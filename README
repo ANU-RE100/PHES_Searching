@@ -1,0 +1,18 @@
+Building requires shapelib and gdal
+
+Install using:
+sudo apt-get install libgdal-dev
+sudo apt-get install libshp-dev
+
+To build:
+
+   cd C++
+   make utils
+
+To run:
+
+   cd ..
+   ./bin/screening 148 -36 1
+   ./bin/pairing 148 -36
+   ./bin/pretty_set 148 -36
+   ./bin/constructor 148 -36
