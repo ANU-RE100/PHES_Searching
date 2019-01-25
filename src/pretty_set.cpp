@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include "shapefil.h"
+#include <sys/stat.h> 
+#include <sys/types.h> 
 
 #include "model2D.h"
 #include "TIFF_IO.h"
@@ -113,6 +115,7 @@ int main(int nargs, char **argv)
 
 	Model_int8 *seen;
 
+	mkdir("processing_files/pretty_set_pairs",0777);
 	FILE *csv_data_file = fopen(convert_string("processing_files/pretty_set_pairs/"+str(square_coordinate)+"_rough_pretty_set_pairs_data.csv"), "w");
 	write_rough_pair_data_header(csv_data_file);
 

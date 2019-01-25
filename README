@@ -4,9 +4,11 @@ Install using:
 sudo apt-get install libgdal-dev
 sudo apt-get install libshp-dev
 
+Place all input files in PHES_Searching/input/
+
 To build:
 
-   cd C++
+   cd PHES_Searching
    make utils
 
 To run:

@@ -368,12 +368,12 @@ int main(int nargs, char **argv)
 
 	for(uint i = 0; i<tests.size(); i++){
 
-		mkdir(convert_string("Output/Final Output/"+str(square_coordinate)),0777);
-
-		FILE *csv_file = fopen(convert_string("Output/Final Output/"+str(square_coordinate)+"/"+str(square_coordinate)+"_"+str(tests[i])+".csv"), "w");
+        mkdir("output/final_output", 0777);
+		mkdir(convert_string("output/final_output/"+str(square_coordinate)),0777);
+		FILE *csv_file = fopen(convert_string("output/final_output/"+str(square_coordinate)+"/"+str(square_coordinate)+"_"+str(tests[i])+".csv"), "w");
 		write_pair_csv_header(csv_file);
 
-		ofstream kml_file(convert_string("Output/Final Output/"+str(square_coordinate)+"/"+str(square_coordinate)+"_"+str(tests[i])+".kml"), ios::out);
+		ofstream kml_file(convert_string("output/final_output/"+str(square_coordinate)+"/"+str(square_coordinate)+"_"+str(tests[i])+".kml"), ios::out);
 		KML_Holder kml_holder;
 
 		//FILE *fusion_csv_file = fopen(convert_string("Output/Final Output/"+str(square_coordinate)+"/"+str(square_coordinate)+"_"+str(tests[i])+"_Fusion_Table.csv"), "w");

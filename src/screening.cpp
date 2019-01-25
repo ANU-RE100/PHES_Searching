@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include "shapefil.h"
+#include <sys/stat.h> 
+#include <sys/types.h> 
 
 #include "model2D.h"
 #include "TIFF_IO.h"
@@ -10,8 +12,8 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-bool debug = false;
 bool debug_output = true;
+bool debug = false;
 
 bool check_intersection(double lat, GeographicCoordinate line[2]){
     if ((line[0].lat < lat && line[1].lat>=lat) || (line[0].lat >= lat && line[1].lat < lat))
@@ -368,13 +370,15 @@ static RoughReservoir model_reservoir(ArrayCoordinate pour_point, Model_int16 *f
 
 static void model_reservoirs(GridSquare square_coordinate, Model_int8 *pour_points, Model_int16 *flow_directions, Model_int16 *DEM, Model_int32 *flow_accumulation, Model_int16 *filter)
 {
-	FILE *csv_file = fopen(convert_string("Output/Reservoirs/"+str(square_coordinate)+"_reservoirs.csv"), "w");
+	mkdir("output/reservoirs",0777);
+	FILE *csv_file = fopen(convert_string("output/reservoirs/"+str(square_coordinate)+"_reservoirs.csv"), "w");
 	if (!csv_file) {
 	 	fprintf(stderr, "failed to open reservoir CSV file\n");
 		exit(1);
     }
 	write_rough_reservoir_csv_header(csv_file);
 
+	mkdir("processing_files/reservoirs",0777);
 	FILE *csv_data_file = fopen(convert_string("processing_files/reservoirs/"+str(square_coordinate)+"_reservoirs_data.csv"), "w");
 	if (!csv_file) {
 	 	fprintf(stderr, "failed to open reservoir CSV data file\n");
@@ -436,11 +440,14 @@ int main(int nargs, char **argv)
 	geotransform[3] = origin.lat;
 
 	if (display) {
-		printf("\nAfter neighbour tiles added:\n");
+		printf("\nAfter border added:\n");
 		Model_int16_print(DEM);
 	}
-
-	TIFF_Write_int16(convert_string("debug/input/"+str(square_coordinate)+"_input.tif"), geotransform, geoprojection, DEM);
+	if(debug_output){
+		mkdir("debug",0777);
+		mkdir("debug/input",0777);
+		TIFF_Write_int16(convert_string("debug/input/"+str(square_coordinate)+"_input.tif"), geotransform, geoprojection, DEM);
+	}
 
 	vector<string> filenames;
 	filenames.push_back("input/CLUM/CLUM541550552_WGS84.shp");
@@ -450,8 +457,10 @@ int main(int nargs, char **argv)
 		printf("\nFilter:\n");
 		Model_int16_print(filter);
 	}
-	if(debug_output)
+	if(debug_output){
+		mkdir("debug/filter",0777);
 		TIFF_Write_int16(convert_string("debug/filter/"+str(square_coordinate)+"_filter.tif"), geotransform, geoprojection, DEM);
+	}
 
 	Model_int16 *flow_directions;
 	Model_int16 *flow_directions_esri;
@@ -479,6 +488,7 @@ int main(int nargs, char **argv)
 		}
 		DEM_filled_int = Model_double_to_int16(DEM_filled);
 		if(debug_output){
+			mkdir("debug/DEM_filled",0777);
 			TIFF_Write_double(convert_string("debug/DEM_filled/"+str(square_coordinate)+"_DEM_filled.tif"), geotransform, geoprojection, DEM_filled);
 			TIFF_Write_int16(convert_string("debug/DEM_filled/"+str(square_coordinate)+"_DEM_filled_int.tif"), geotransform, geoprojection, DEM_filled_int);
 		}
@@ -496,8 +506,11 @@ int main(int nargs, char **argv)
 			printf("\nFlow Directions ESRI:\n");
 			Model_int16_print(flow_directions_esri);
 		}
-		if(debug_output)
+		if(debug_output){
+			mkdir("debug/flow_directions",0777);
 			TIFF_Write_int16(convert_string("debug/flow_directions/"+str(square_coordinate)+"_flow_directions.tif"), geotransform, geoprojection, flow_directions);
+		}
+		mkdir("processing_files/flow_directions",0777);
 		TIFF_Write_int16(convert_string("processing_files/flow_directions/"+str(square_coordinate)+"_flow_directions.tif"), geotransform, geoprojection, flow_directions);
 		printf("Flow directions Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - t_usec) );
 
@@ -507,8 +520,10 @@ int main(int nargs, char **argv)
 			printf("\nFlow Accumulation:\n");
 			Model_int32_print(flow_accumulation);
 		}
-		if(debug_output)
+		if(debug_output){
+			mkdir("debug/flow_accumulation",0777);
 			TIFF_Write_int32(convert_string("debug/flow_accumulation/"+str(square_coordinate)+"_flow_accumulation.tif"), geotransform, geoprojection, flow_accumulation);
+		}
 		printf("Flow accumulation Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - t_usec) );
 
 		Model_int8 *streams = find_streams(flow_accumulation);
@@ -516,8 +531,10 @@ int main(int nargs, char **argv)
 			printf("\nStreams (Greater than %d accumulation):\n", stream_threshold);
 			Model_int8_print(streams);
 		}
-		if(debug_output)
+		if(debug_output){
+			mkdir("debug/streams",0777);
 			TIFF_Write_int8(convert_string("debug/streams/"+str(square_coordinate)+"_streams.tif"), geotransform, geoprojection, streams);
+		}
 
 		pour_points = find_pour_points(streams, flow_directions, DEM_filled);
 		Model_int8_free(streams);
@@ -525,8 +542,10 @@ int main(int nargs, char **argv)
 			printf("\nPour points (Streams every %.1fm):\n", contour_height);
 			Model_int8_print(pour_points);
 		}
-		if(debug_output)
+		if(debug_output){
+			mkdir("debug/pour_points",0777);
 			TIFF_Write_int8(convert_string("debug/pour_points/"+str(square_coordinate)+"_pour_points.tif"), geotransform, geoprojection, pour_points);
+		}
 	}
 
 	t_usec = walltime_usec();

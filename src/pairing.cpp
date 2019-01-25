@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <sys/stat.h> 
+#include <sys/types.h> 
 
 #include "phes_base.h"
 
@@ -179,13 +181,15 @@ int main(int nargs, char **argv)
 
 	pairing(upper_reservoirs, lower_reservoirs);
 
-	FILE *csv_file = fopen(convert_string("Output/Pairs/"+str(square_coordinate)+"_rough_pairs.csv"), "w");
+	mkdir("output/pairs",0777);
+	FILE *csv_file = fopen(convert_string("output/pairs/"+str(square_coordinate)+"_rough_pairs.csv"), "w");
 	if (!csv_file) {
 	 	fprintf(stderr, "failed to open reservoir pair CSV file\n");
 		exit(1);
     }
 	write_rough_pair_csv_header(csv_file);
 
+	mkdir("processing_files/pairs",0777);
 	FILE *csv_data_file = fopen(convert_string("processing_files/pairs/"+str(square_coordinate)+"_rough_pairs_data.csv"), "w");
 	if (!csv_data_file) {
 	 	fprintf(stderr, "failed to open reservoir pair CSV data file\n");
