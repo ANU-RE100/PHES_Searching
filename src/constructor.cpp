@@ -177,8 +177,8 @@ string str(vector<GeographicCoordinate> polygon, double elevation){
 }
 
 bool model_reservoir(Reservoir* reservoir, Models models, Reservoir_KML_Coordinates* coordinates){
-	Model_int16 *DEM;
-	Model_int16 *flow_directions;
+	Model_int16 *DEM = models.DEMs[0];
+	Model_int16 *flow_directions = models.flow_directions[0];
 	Model_int16 *cur_model = Model_int16_create(models.DEMs[0]->shape, MODEL_SET_ZERO);
 
 	for(int i = 0; i<9; i++){
@@ -346,13 +346,8 @@ bool model_pair(Pair* pair, Models models, Pair_KML* pair_kml){
 
 int main(int nargs, char **argv)
 {
-	int display = false;
 
 	GridSquare square_coordinate = GridSquare_init(atoi(argv[2]), atoi(argv[1]));
-	if(nargs>3)
-		display = atoi(argv[3]);
-
-	GeographicCoordinate origin = get_origin(square_coordinate, 600);
 
 	TIFF_IO_init();
 
@@ -371,10 +366,9 @@ int main(int nargs, char **argv)
 
 	pairs = read_rough_pair_data(convert_string("processing_files/pretty_set_pairs/"+str(square_coordinate)+"_rough_pretty_set_pairs_data.csv"));
 
-	sort(tests.begin(), tests.end());
 	for(uint i = 0; i<tests.size(); i++){
 
-		int check = mkdir(convert_string("Output/Final Output/"+str(square_coordinate)),0777);
+		mkdir(convert_string("Output/Final Output/"+str(square_coordinate)),0777);
 
 		FILE *csv_file = fopen(convert_string("Output/Final Output/"+str(square_coordinate)+"/"+str(square_coordinate)+"_"+str(tests[i])+".csv"), "w");
 		write_pair_csv_header(csv_file);

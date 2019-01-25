@@ -133,7 +133,7 @@ string get_dam_geometry(Reservoir_KML_Coordinates coordinates){
 "            </LinearRing></innerBoundaryIs>\n"
 "          </Polygon>\n";
 	}else{
-		for(int i = 0; i<coordinates.dam.size(); i++){
+		for(uint i = 0; i<coordinates.dam.size(); i++){
 			to_return+=
 "          <Polygon>\n"
 "            <extrude>1</extrude>\n"
@@ -221,7 +221,7 @@ string generate_folder(string name, vector<string> records){
 	string to_return = 
 "    <Folder>\n"
 "      <name>"+name+"</name>\n";
-	for(int i = 0; i<records.size();i++)
+	for(uint i = 0; i<records.size();i++)
 		to_return+=records[i];
 	to_return+="    </Folder>\n";
 	return to_return;

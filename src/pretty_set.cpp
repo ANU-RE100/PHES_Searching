@@ -13,8 +13,8 @@ using namespace std;
 array<vector<Pair>,tests.size()> pairs;
 
 bool check_reservoir(Reservoir reservoir, Models models, Model_int8 *seen, vector<ArrayCoordinate> *used_points){
-	Model_int16 *DEM;
-	Model_int16 *flow_directions;
+	Model_int16 *DEM = models.DEMs[0];
+	Model_int16 *flow_directions = models.flow_directions[0];
 
 	for(int i = 0; i<9; i++){
 		if(models.neighbors[i].lat == (int)(FLOOR(reservoir.latitude)-EPS) && models.neighbors[i].lon == (int)(FLOOR(reservoir.longitude)+EPS)){
@@ -74,8 +74,6 @@ bool check_reservoir(Reservoir reservoir, Models models, Model_int8 *seen, vecto
 	for(uint i = 0; i<temp_used_points.size(); i++){
 		used_points->push_back(temp_used_points[i]);
 	}
-	if(temp_used_points.size() == 0)
-		printf("0: %d\n", temp_used_points[0]);
 	return true;
 }
 
@@ -93,13 +91,8 @@ bool check_pair(Pair pair, Models models, Model_int8 *seen){
 
 int main(int nargs, char **argv)
 {
-	int display = false;
 
 	GridSquare square_coordinate = GridSquare_init(atoi(argv[2]), atoi(argv[1]));
-	if(nargs>3)
-		display = atoi(argv[3]);
-
-	GeographicCoordinate origin = get_origin(square_coordinate, 600);
 
 	TIFF_IO_init();
 
