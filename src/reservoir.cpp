@@ -134,8 +134,9 @@ vector<RoughReservoir> read_rough_reservoir_data(char* filename)
 		}
         reservoirs.push_back(reservoir);
     }
-    if(header)
+    if(header){
     	throw 1;
+    }
 
 	return reservoirs;
 }
