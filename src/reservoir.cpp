@@ -250,3 +250,15 @@ void write_pair_csv(FILE *csv_file, Pair *pair)
 	pair->lower.identifier, to_string(pair->lower.elevation), dtos(pair->lower.latitude,4), dtos(pair->lower.longitude,4), dtos(pair->lower.area,0), dtos(pair->lower.volume,1),dtos(pair->lower.dam_height,1),dtos(pair->lower.dam_length,0), dtos(pair->lower.dam_volume,2), dtos(pair->lower.water_rock,1)};
 	write_to_csv_file(csv_file, line);
 }
+
+void write_total_csv_header(FILE *csv_file)
+{
+	vector<string> header = {"Grid Identifier","Number of paired sites","Total potential capacity (GWh)"};
+	write_to_csv_file(csv_file, header);
+}
+
+void write_total_csv(FILE *csv_file, string square_name, int num_sites, int energy_capacity)
+{
+	vector<string> line = {square_name, to_string(num_sites), to_string(energy_capacity)};
+	write_to_csv_file(csv_file, line);
+}

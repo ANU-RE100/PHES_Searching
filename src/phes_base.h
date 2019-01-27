@@ -241,6 +241,8 @@ array<vector<Pair>,tests.size()> read_rough_pair_data(char* filename);
 void update_reservoir_boundary(ArrayCoordinate (*dam_shape_bounds)[ndirections], ArrayCoordinate point, int elevation_above_pp);
 void write_pair_csv_header(FILE *csv_file);
 void write_pair_csv(FILE *csv_file, Pair *pair);
+void write_total_csv_header(FILE *csv_file);
+void write_total_csv(FILE *csv_file, string square_name, int num_sites, int energy_capacity);
 
 struct Models{
 	GridSquare neighbors[9];

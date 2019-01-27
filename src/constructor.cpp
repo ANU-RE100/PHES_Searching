@@ -390,13 +390,17 @@ int main(int nargs, char **argv)
 	Model_int8* seen = Model_int8_create(big_shape, MODEL_SET_ZERO);
 
 	pairs = read_rough_pair_data(convert_string("processing_files/pretty_set_pairs/"+str(square_coordinate)+"_rough_pretty_set_pairs_data.csv"));
+	mkdir("output/final_output", 0777);
+	mkdir(convert_string("output/final_output/"+str(square_coordinate)),0777);
+
+	FILE *total_csv_file = fopen(convert_string("output/final_output/"+str(square_coordinate)+"/"+str(square_coordinate)+"_total.csv"), "w");
+	write_total_csv_header(total_csv_file);
 
 	int total_count = 0;
 	int total_capacity = 0;
 	for(uint i = 0; i<tests.size(); i++){
 
-        mkdir("output/final_output", 0777);
-		mkdir(convert_string("output/final_output/"+str(square_coordinate)),0777);
+        
 		FILE *csv_file = fopen(convert_string("output/final_output/"+str(square_coordinate)+"/"+str(square_coordinate)+"_"+str(tests[i])+".csv"), "w");
 		write_pair_csv_header(csv_file);
 
@@ -427,5 +431,6 @@ int main(int nargs, char **argv)
 		printf("%d %dGWh Pairs with storage time %dh\n", count, tests[i].energy_capacity, tests[i].storage_time);
 		kml_file.close();
 	}
+	write_total_csv(total_csv_file, str(square_coordinate), total_count, total_capacity);
 	printf("%d pairs for a total of %dGWh\n", total_count, total_capacity);
 }
