@@ -8,60 +8,50 @@
 #include <errno.h>
 #include <dirent.h>
 
+//Being risky (for devel only)
+#include <bits/stdc++.h>
+using namespace std;
 
-int mark_done(char *tasks_done_dir, int myid)
-{
-	int rc = mkdir(tasks_done_dir, 0770);
-	if (rc == -1 && errno != EEXIST) {
-		fprintf(stderr, "failed to create done dir %s: %s\n", tasks_done_dir, strerror(errno));
-		exit(1);
+#include "phes_base.h"
+
+int set_worker(string process){
+	mkdir(convert_string("driver_files/"+process+"_workers"), 0770);
+	int i = 0;
+	while(true){
+		string workerlockfile = "driver_files/"+process+"_workers/"+to_string(i);
+		int fds = open(convert_string(workerlockfile), O_CREAT | O_EXCL | O_WRONLY, 0600);
+		if (!(fds < 0)) {
+            return i;
+		}
+		i++;
 	}
-
-	char task_done[1024];
-	sprintf(task_done, "%s/task%d", tasks_done_dir, myid);
-	int fds = open(task_done, O_CREAT | O_WRONLY, 0600);
-	if (fds < 0)  {
-		fprintf(stderr, "failed to create %s : %s\n", task_done, strerror(errno));
-		exit(1);
-	}
-	close(fds);
-
-	return 0;
 }
 
-int all_done(char *tasks_done_dir, int ntasks)
-{
-	DIR *dirp = opendir(tasks_done_dir);
-	if (!dirp) {
-		fprintf(stderr, "failed to open done dir %s: %s\n", tasks_done_dir, strerror(errno));
-		exit(1);
+void unset_worker(int id, string process){
+	string workerlockfile = "driver_files/"+process+"_workers/"+to_string(id);
+	if(remove(convert_string(workerlockfile))!=0){
+		printf("Problem removing worker: %d\n", id);
 	}
-
-	struct dirent *de;
-
-	int ntasks_done=0;
-	errno = 0;
-	for (de = readdir(dirp);
-	     de;
-	     de = readdir(dirp)) {
-		ntasks_done++;
-	}
-	
-	if (ntasks_done == ntasks+2) return 1; // remember . and ..
-
-	if (errno) {
-		fprintf(stderr, "failed to read done dir %s entry: %s\n", tasks_done_dir, strerror(errno));
-		exit(1);
-	}
-
-	return 0;
 }
 
-struct task {
-	int lon, lat;
-};
+bool all_done(string process)
+{
+	DIR *dir = opendir(convert_string("driver_files/"+process+"_workers"));
+	if (!dir) {
+		fprintf(stderr, "failed to open done dir %s: %s\n", convert_string("driver_files/"+process+"_workers"), strerror(errno));
+		exit(1);
+	}
 
-struct task *read_tasklist(char *tasks_file)
+	int n=0;
+	while(readdir(dir)!=NULL) n++;
+	if(n<=2){
+		return true;
+	}
+	return false;
+}
+
+
+vector<GridSquare> read_tasklist(char *tasks_file)
 {
 	FILE *fd = fopen(tasks_file, "r");
 	if (!fd)  {
@@ -69,124 +59,77 @@ struct task *read_tasklist(char *tasks_file)
 		exit(1);
 	}
 
-	int lon, lat, rc=0, count=0;
+	vector<GridSquare> tasklist;
+
+	int lon, lat, rc=0;
 	while (rc != EOF) {	
 		rc = fscanf(fd, "%d %d", &lon, &lat);
-		printf("read %d %d\n", lon, lat);
-		if (rc == 2) count++; 
+		tasklist.push_back(GridSquare_init(lat, lon));
 	}
-	printf("read %d tasks\n", count);
-	
-	struct task *tasklist = (task*) malloc((count+1)*sizeof(struct task));
-
-	rewind(fd);
-
-	for (int i=0; i<count;i++) {
-		struct task *task = tasklist+i;
-		rc = fscanf(fd, "%d %d", &task->lon, &task->lat);
-	}
-
+	printf("read %zu tasks\n", tasklist.size());
 	fclose(fd);
-	
-	tasklist[count].lon = -500;
-
 	return tasklist;
+}
+
+vector<string> read_processlist(char *processes_file)
+{
+	ifstream fd(processes_file);
+	if (!fd)  {
+		fprintf(stderr, "failed to open process file %s: %s\n", processes_file, strerror(errno));
+		exit(1);
+	}
+
+	vector<string> processlist;
+
+	for(string line; getline(fd, line);){
+		processlist.push_back(line);
+	}
+	printf("read %zu processes\n", processlist.size());
+	fd.close();
+	return processlist;
 }
 
 
 int main(int nargs, char **argv)
 {
-	// get my id
-	int myid = atoi(argv[1]);
-	int ntasks = atoi(argv[2]);
-	char *tasks_file = argv[3];
-	char tasklockfile[128];
+	char *tasks_file = argv[1];
+	char *process_file = argv[2];
 
-	printf("args %d %d %s\n", myid, ntasks, tasks_file);
-	struct task *task;
-	struct task *screening_tasklist = read_tasklist(tasks_file);
-	struct task *pairing_tasklist = screening_tasklist;
-	// TODO read lists of tasks =>  screening_tasklist and pairing_tasklist
+	printf("args %s %s\n", tasks_file, process_file);
 
-	char *bindir=getenv("PHES_BINDIR");
-	if (!bindir) {
+	vector<GridSquare> tasklist = read_tasklist(tasks_file);
+	vector<string> processlist = read_processlist(process_file);
+
+	char *temp=getenv("PHES_BINDIR");
+	if (!temp) {
 		fprintf(stderr, "PHES_BINDIR not set\n");
 		exit(1);
 	}
+	string bindir(temp);
 
-	char screening_cmd[1024];
-	sprintf(screening_cmd, "%s/screening", bindir);
-	char *screening_args = screening_cmd+strlen(screening_cmd);
-
-	for (task = screening_tasklist; task->lon > -500; task++) {
-		
-		// form lockfile name
-		sprintf(tasklockfile, "lockfiles/screening_task_%d_%d", task->lon, task->lat);
-
-		printf("task %d trying %s\n", myid, tasklockfile);
-		int fds = open(tasklockfile, O_CREAT | O_EXCL | O_WRONLY, 0600);
-                if (fds < 0) {
-                        if (errno == EEXIST) {
-				// some other task has it
-				continue;
-                        } else {
-				fprintf(stderr, "failed to to open lock file %s: %s\n", tasklockfile, strerror(errno));
+	for (auto process : processlist) {
+		int id = set_worker(process);
+		for(auto task : tasklist){
+			string tasklockfile = "driver_files/lockfiles/"+process+"_task_"+to_string(task.lon)+"_"+to_string(task.lat);
+			int fds = open(convert_string(tasklockfile), O_CREAT | O_EXCL | O_WRONLY, 0600);
+			if (fds < 0) {
+                if (errno == EEXIST) {
+					// some other program has it
+					continue;
+	            } else {
+					fprintf(stderr, "failed to to open lock file %s: %s\n", convert_string(tasklockfile), strerror(errno));
+					exit(1);
+				}
+			}
+			if(system(convert_string(bindir+"/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)))){
+				printf("Problem running command\n");
 				exit(1);
 			}
 		}
-
-		
-		printf("task %d got it\n", myid);
-		// task is mine 
-		sprintf(screening_args, " %d %d", task->lon, task->lat);
-		int rc = system(screening_cmd);
-		close(fds);
-	}
-
-
-	// all screening tasks have been allocated
-	mark_done("screening_tasks_done", myid);
-
-	while ( !all_done("screening_tasks_done", ntasks))
-		sleep(5);
-
-	printf("screening complete\n");
-
-	char pairing_cmd[1024];
-	sprintf(pairing_cmd, "%s/pairing", bindir);
-	char *pairing_args = pairing_cmd+strlen(pairing_cmd);
-
-	for (task = pairing_tasklist; task->lon > -500; task++) {
-		
-		// form lockfile name
-		sprintf(tasklockfile, "lockfiles/pair_task_%d_%d", task->lon, task->lat);
-		printf("task %d trying %s\n", myid, tasklockfile);
-
-		int fds = open(tasklockfile, O_CREAT | O_EXCL | O_WRONLY, 0600);
-                if (fds < 0) {
-                        if (errno == EEXIST) {
-				// some other task has it
-				continue;
-                        } else {
-				fprintf(stderr, "failed to to open lock file %s: %s\n", tasklockfile, strerror(errno));
-				exit(1);
-			}
+		unset_worker(id, process);
+		while(!all_done(process)){
+		 	sleep(5);
 		}
-
-		// task is mine 
-		printf("task %d got it\n", myid);
-
-		sprintf(pairing_args, " %d %d", task->lon, task->lat);
-		int rc = system(pairing_cmd);
-		close(fds);
 	}
-
-	
-	// all pairing tasks have been allocated
-	mark_done("pairing_tasks_done", myid);
-
-	while ( !all_done("pairing_tasks_done", ntasks))
-		sleep(5);
-
-	printf("pairing complete\n");
+	printf("\nDone\n");
 }
