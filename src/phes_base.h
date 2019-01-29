@@ -40,6 +40,8 @@ const int MAX_WALL_HEIGHT = 100;
 const double dam_wall_heights[NWALL_HEIGHTS] = { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100}; //  Wall heights to test and export
 const double all_wall_heights[NWALL_HEIGHTS+1] = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
 
+extern int display;
+
 struct Test{
 	int energy_capacity;
 	int storage_time;
@@ -268,6 +270,6 @@ Model_int16* read_DEM_with_borders(GridSquare sq);
 Models Models_init(GridSquare sc);
 void set_FOM(Pair* pair);
 string str(Test test);
-
+bool file_exists(char* name);
 
 #endif

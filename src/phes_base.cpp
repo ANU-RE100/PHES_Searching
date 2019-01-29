@@ -152,7 +152,8 @@ Model_int16* read_DEM_with_borders(GridSquare sc){
 					DEM->d[row][col] = DEM_temp->d[row-tile_offset.row][col-tile_offset.col];
 			Model_int16_free(DEM_temp);
 		}catch (int e){
-			fprintf(stderr, "Could not find file %s: %s\n", convert_string("input/"+str(gs)+"_1arc_v3.tif"), strerror(errno));
+			if(display)
+				fprintf(stderr, "Could not find file %s: %s\n", convert_string("input/"+str(gs)+"_1arc_v3.tif"), strerror(errno));
 			if (i==0)
 				throw(1);
 		}
@@ -185,4 +186,9 @@ void set_FOM(Pair* pair){
 
 string str(Test test){
 	return to_string(test.energy_capacity)+"GWh_"+to_string(test.storage_time)+"h";
+}
+
+bool file_exists (char* name) {
+	ifstream infile(name);
+    return infile.good();
 }

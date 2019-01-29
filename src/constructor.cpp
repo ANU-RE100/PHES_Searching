@@ -13,6 +13,8 @@
 #include <bits/stdc++.h>
 using namespace std;
 
+int display = false;
+
 array<vector<Pair>,tests.size()> pairs;
 
 void update_reservoir_boundary(ArrayCoordinate dam_shape_bounds[], ArrayCoordinate point)
@@ -321,7 +323,7 @@ bool model_reservoir(Reservoir* reservoir, Models models, Reservoir_KML_Coordina
     coordinates->reservoir = polygon_string;
 
     coordinates->is_turkeys_nest = is_turkeys_nest;
-
+    Model_int16_free(cur_model);
 	return true;
 }
 
@@ -370,8 +372,13 @@ int main(int nargs, char **argv)
 {
 
 	GridSquare square_coordinate = GridSquare_init(atoi(argv[2]), atoi(argv[1]));
+    if(nargs>3)
+        display = atoi(argv[3]);
 
-	TIFF_IO_init();
+    printf("Constructor started for %s\n",convert_string(str(square_coordinate)));
+
+    TIFF_IO_init();
+    unsigned long t_usec = walltime_usec();
 
 	Models models = Models_init(square_coordinate);
 
@@ -381,7 +388,8 @@ int main(int nargs, char **argv)
 			models.DEMs[i] = read_DEM_with_borders(gs);
 			models.flow_directions[i] = TIFF_Read_int16(convert_string("processing_files/flow_directions/"+str(gs)+"_flow_directions.tif"), NULL, NULL);
 		}catch(int e){
-			printf("Could not find %s\n", convert_string(str(gs)));
+            if(display)
+			 printf("Could not find %s\n", convert_string(str(gs)));
 		}
 		
 	}
@@ -428,9 +436,10 @@ int main(int nargs, char **argv)
 		}
 
 		kml_file << output_kml(&kml_holder, str(square_coordinate), tests[i]);
-		printf("%d %dGWh Pairs with storage time %dh\n", count, tests[i].energy_capacity, tests[i].storage_time);
+        if(display)
+		  printf("%d %dGWh Pairs with storage time %dh\n", count, tests[i].energy_capacity, tests[i].storage_time);
 		kml_file.close();
 	}
 	write_total_csv(total_csv_file, str(square_coordinate), total_count, total_capacity);
-	printf("%d pairs for a total of %dGWh\n", total_count, total_capacity);
+    printf("Constructor finished for %s. Found %d pairs for a total of %dGWh. Runtime: %.2f sec\n", convert_string(str(square_coordinate)), total_count, total_capacity, 1.0e-6*(walltime_usec() - t_usec) );
 }

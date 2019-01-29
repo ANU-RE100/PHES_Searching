@@ -12,6 +12,8 @@
 #include <bits/stdc++.h>
 using namespace std;
 
+int display = false;
+
 array<vector<Pair>,tests.size()> pairs;
 
 bool check_reservoir(Reservoir reservoir, Models models, Model_int8 *seen, vector<ArrayCoordinate> *used_points){
@@ -95,9 +97,14 @@ int main(int nargs, char **argv)
 {
 
 	GridSquare square_coordinate = GridSquare_init(atoi(argv[2]), atoi(argv[1]));
+	if(nargs>3)
+		display = atoi(argv[3]);
+
+	printf("Pretty set started for %s\n",convert_string(str(square_coordinate)));
 
 	TIFF_IO_init();
-
+	unsigned long t_usec = walltime_usec();
+	
 	Models models = Models_init(square_coordinate);
 
 	for(int i = 0; i<9; i++){
@@ -106,7 +113,8 @@ int main(int nargs, char **argv)
 			models.DEMs[i] = read_DEM_with_borders(gs);
 			models.flow_directions[i] = TIFF_Read_int16(convert_string("processing_files/flow_directions/"+str(gs)+"_flow_directions.tif"), NULL, NULL);
 		}catch(int e){
-			printf("Could not find %s\n", convert_string(str(gs)));
+			if(display)
+				printf("Could not find %s\n", convert_string(str(gs)));
 		}
 		
 	}
@@ -130,6 +138,8 @@ int main(int nargs, char **argv)
 				count++;
 			}
 		}
-		printf("%d %dGWh Pairs with storage time %dh\n", count, tests[i].energy_capacity, tests[i].storage_time);
+		if(display)
+			printf("%d %dGWh Pairs with storage time %dh\n", count, tests[i].energy_capacity, tests[i].storage_time);
 	}
+	printf("Pretty set finished for %s. Runtime: %.2f sec\n", convert_string(str(square_coordinate)), 1.0e-6*(walltime_usec() - t_usec) );
 }

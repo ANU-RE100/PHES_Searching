@@ -4,6 +4,7 @@
 
 #include "phes_base.h"
 
+int display = false;
 
 array<vector<Pair>, tests.size()> pairs;
 
@@ -150,10 +151,15 @@ void pairing(vector<RoughReservoir> upper_reservoirs, vector<RoughReservoir> low
 int main(int nargs, char **argv)
 {
 	GridSquare square_coordinate = GridSquare_init(atoi(argv[2]), atoi(argv[1]));
+	if(nargs>3)
+		display = atoi(argv[3]);
+
+	printf("Pairing started for %s\n",convert_string(str(square_coordinate)));
 
 	unsigned long t_usec = walltime_usec();
 	vector<RoughReservoir> upper_reservoirs = read_rough_reservoir_data(convert_string("processing_files/reservoirs/"+str(square_coordinate)+"_reservoirs_data.csv"));
-	printf("Read in %zu uppers\n", upper_reservoirs.size());
+	if(display)
+		printf("Read in %zu uppers\n", upper_reservoirs.size());
 	vector<RoughReservoir> lower_reservoirs;
 
 	GridSquare neighbors[9] = {
@@ -173,11 +179,12 @@ int main(int nargs, char **argv)
 			for(uint j = 0; j<temp.size(); j++)
 				lower_reservoirs.push_back(temp[j]);
 		}catch(int e){
-			printf("Could not import reservoirs from %s\n", convert_string("processing_files/reservoirs/"+str(neighbors[i])+"_reservoirs_data.csv"));
+			if(display)
+				printf("Could not import reservoirs from %s\n", convert_string("processing_files/reservoirs/"+str(neighbors[i])+"_reservoirs_data.csv"));
 		}
 	}
-
-	printf("Read in %zu lowers\n", lower_reservoirs.size());
+	if(display)
+		printf("Read in %zu lowers\n", lower_reservoirs.size());
 
 	pairing(upper_reservoirs, lower_reservoirs);
 
@@ -199,8 +206,8 @@ int main(int nargs, char **argv)
 
 	int total=0;
 	for (uint itest=0; itest<tests.size(); itest++) {
-
-		printf("%zu reservoir pairs at energy %dGWh and storage time %dh\n", pairs[itest].size(), tests[itest].energy_capacity, tests[itest].storage_time);
+		if(display)
+			printf("%zu reservoir pairs at energy %dGWh and storage time %dh\n", pairs[itest].size(), tests[itest].energy_capacity, tests[itest].storage_time);
 
 		total+=pairs[itest].size();
 		Pair pair;
@@ -213,5 +220,5 @@ int main(int nargs, char **argv)
 
 	fclose(csv_file);
 
-	printf("Reservoir pairs: found %d pairs,  Runtime: %.2f sec\n", total, 1.0e-6*(walltime_usec() - t_usec) );
+	printf("Pairing finished for %s. Found %d pairs,  Runtime: %.2f sec\n", convert_string(str(square_coordinate)), total, 1.0e-6*(walltime_usec() - t_usec) );
 }

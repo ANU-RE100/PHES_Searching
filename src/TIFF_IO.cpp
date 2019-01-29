@@ -10,6 +10,7 @@
 #include <gdal/cpl_conv.h>
 #include <gdal/cpl_string.h>
 
+#include "phes_base.h"
 #include "model2D.h"
 
 void TIFF_IO_init( )
@@ -19,9 +20,15 @@ void TIFF_IO_init( )
 
 Model_int16 *TIFF_Read_int16(char *tiff_filename, double *geotransform, char **geoprojection)
 {
+	if(!file_exists(tiff_filename)){
+		if(display)
+			fprintf(stderr, "No file %s\n", tiff_filename);
+		throw(1);
+	}
 	GDALDatasetH hDataset = GDALOpen(tiff_filename, GA_ReadOnly );
 	if( hDataset == NULL ) {
-		fprintf(stderr, "Cannot open %s\n", tiff_filename);
+		if(display)
+			fprintf(stderr, "Cannot open %s\n", tiff_filename);
 		throw(1);
 	}
 
@@ -85,9 +92,15 @@ Model_int16 *TIFF_Read_int16(char *tiff_filename, double *geotransform, char **g
 
 Model_int8 *TIFF_Read_int8(char *tiff_filename, double *geotransform, char **geoprojection)
 {
+	if(!file_exists(tiff_filename)){
+		if(display)
+			fprintf(stderr, "No file %s\n", tiff_filename);
+		throw(1);
+	}
 	GDALDatasetH hDataset = GDALOpen(tiff_filename, GA_ReadOnly );
 	if( hDataset == NULL ) {
-		fprintf(stderr, "Cannot open %s\n", tiff_filename);
+		if(display)
+			fprintf(stderr, "Cannot open %s\n", tiff_filename);
 		throw(1);
 	}
 
@@ -151,9 +164,15 @@ Model_int8 *TIFF_Read_int8(char *tiff_filename, double *geotransform, char **geo
 
 Model_int32 *TIFF_Read_int32(char *tiff_filename, double *geotransform, char **geoprojection)
 {
+	if(!file_exists(tiff_filename)){
+		if(display)
+			fprintf(stderr, "No file %s\n", tiff_filename);
+		throw(1);
+	}
 	GDALDatasetH hDataset = GDALOpen(tiff_filename, GA_ReadOnly );
 	if( hDataset == NULL ) {
-		fprintf(stderr, "Cannot open %s\n", tiff_filename);
+		if(display)
+			fprintf(stderr, "Cannot open %s\n", tiff_filename);
 		throw(1);
 	}
 
@@ -217,9 +236,15 @@ Model_int32 *TIFF_Read_int32(char *tiff_filename, double *geotransform, char **g
 
 Model_double *TIFF_Read_double(char *tiff_filename, double *geotransform, char **geoprojection)
 {
+	if(!file_exists(tiff_filename)){
+		if(display)
+			fprintf(stderr, "No file %s\n", tiff_filename);
+		throw(1);
+	}
 	GDALDatasetH hDataset = GDALOpen(tiff_filename, GA_ReadOnly );
 	if( hDataset == NULL ) {
-		fprintf(stderr, "Cannot open %s\n", tiff_filename);
+		if(display)
+			fprintf(stderr, "Cannot open %s\n", tiff_filename);
 		throw(1);
 	}
 

@@ -14,6 +14,8 @@ using namespace std;
 
 #include "phes_base.h"
 
+int display = false;
+
 int set_worker(string process){
 	mkdir(convert_string("driver_files/"+process+"_workers"), 0770);
 	int i = 0;
