@@ -12,7 +12,7 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-bool debug_output = true;
+bool debug_output = false;
 bool debug = false;
 
 bool check_intersection(double lat, GeographicCoordinate line[2]){

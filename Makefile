@@ -5,11 +5,12 @@ OBJS1 = src/screening.o src/model2D.o src/TIFF_IO.o src/reservoir.o src/coordina
 OBJS2 = src/pairing.o src/model2D.o src/TIFF_IO.o src/reservoir.o src/coordinates.o src/phes_base.o 
 OBJS3 = src/pretty_set.o src/reservoir.o src/model2D.o src/TIFF_IO.o src/coordinates.o src/phes_base.o
 OBJS4 = src/constructor.o src/reservoir.o src/model2D.o src/TIFF_IO.o src/coordinates.o src/phes_base.o src/kml.o
-DIRS = bin input output processing_files
+OBJS5 = src/search_driver.o
+DIRS = bin input output processing_files lockfiles
 INCDIRS = -Iinclude
 
 
-utils: $(shell mkdir -p $(DIRS)) bin/screening bin/pairing bin/pretty_set bin/constructor
+utils: $(shell mkdir -p $(DIRS)) bin/screening bin/pairing bin/pretty_set bin/constructor bin/search_driver
 	
 
 bin/screening: $(OBJS1)
@@ -23,6 +24,9 @@ bin/pretty_set: $(OBJS3)
 
 bin/constructor: $(OBJS4)
 	g++  $(CXXFLAGS) $(LDFLAGS) $(OBJS4) $(LIBS) -o $@
+
+bin/search_driver: $(OBJS5)
+	g++  $(CXXFLAGS) $(LDFLAGS) $(OBJS5) $(LIBS) -o $@
 
 .c.o:
 	g++ $(CXXFLAGS) $(INCDIRS) -c -o $@ $<
