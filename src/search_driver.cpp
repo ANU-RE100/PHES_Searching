@@ -110,6 +110,7 @@ int main(int nargs, char **argv)
 	for (auto process : processlist) {
 		int id = set_worker(process);
 		for(auto task : tasklist){
+			mkdir(convert_string("driver_files/lockfiles"), 0770);
 			string tasklockfile = "driver_files/lockfiles/"+process+"_task_"+to_string(task.lon)+"_"+to_string(task.lat);
 			int fds = open(convert_string(tasklockfile), O_CREAT | O_EXCL | O_WRONLY, 0600);
 			if (fds < 0) {

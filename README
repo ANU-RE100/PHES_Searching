@@ -20,4 +20,9 @@ To run:
    ./bin/constructor 148 -36
 
 To run large batch:
-   bin/start_drivers.sh <num_processes> <tasks_file> <processes_file>
+
+	make run 
+
+	or
+
+	bin/start_drivers.sh <num_processes> <tasks_file> <processes_file>
