@@ -1,38 +1,33 @@
-/*
- * Some common parameters and base types for PHES utilities
- */
-
 #ifndef PHES_BASE_H
 #define PHES_BASE_H
 
 #include <sys/time.h>
 #include <sys/stat.h> 
 #include "shapefil.h"
+#include <gdal/gdal.h>
+#include <gdal/cpl_conv.h>
+#include <gdal/cpl_string.h>
 
 #include <bits/stdc++.h>
 using namespace std;
 
-#include "model2D.h"
-#include "TIFF_IO.h"
-
-// In variable_parser.cpp
 void parse_variables(char* filename);
 
 const double EPS = 1.0e-6;
 const double INF = 1.0e18;  
 
-extern double resolution;         // Approx. 30 m for 1 arc-second DEM
-extern double min_watershed_area;      // Minimum watershed area in hectares
-extern int stream_threshold;        // Flow accumulation to be defined a creek
-extern double contour_height;      // Contour interval for finding dam sites to test
-extern double freeboard;           // Freeboard on dam
+extern double resolution;
+extern double min_watershed_area;
+extern int stream_threshold;
+extern double contour_height;
+extern double freeboard;
 extern int MIN_HEAD;
 extern double min_reservoir_volume;
 extern double min_reservoir_water_rock;
 extern double min_max_dam_height;
-extern double dambatter;                      // Slope on sides of dam
-extern double cwidth;                       // Width of top of dam
-extern int border;                       // Number of cells to add as border around square
+extern double dambatter;
+extern double cwidth;
+extern int border;
 extern double gravity; 				  
 extern double generation_efficiency;
 extern double usable_volume;
@@ -40,7 +35,7 @@ extern double J_GWh_conversion;
 extern double water_density;
 extern double cubic_metres_GL_conversion;
 extern int MAX_WALL_HEIGHT;
-extern vector<double> dam_wall_heights; //  Wall heights to test and export
+extern vector<double> dam_wall_heights;
 extern vector<string> filter_filenames;
 extern double powerhouse_coeff;
 extern double power_exp;
@@ -102,6 +97,10 @@ const array<Direction, 8> directions =
 #define SQRT sqrt
 #define FLOOR floor
 
+bool file_exists(char* name);
+
+#include "model2D.h"
+#include "TIFF_IO.h"
 #include "coordinates.h"
 #include "reservoir.h"
 #include "csv.h"
@@ -129,6 +128,6 @@ Model_int16* read_DEM_with_borders(GridSquare sq);
 Models Models_init(GridSquare sc);
 void set_FOM(Pair* pair);
 string str(Test test);
-bool file_exists(char* name);
+
 
 #endif

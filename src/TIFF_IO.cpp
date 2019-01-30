@@ -1,7 +1,3 @@
-#include <gdal/gdal.h>
-#include <gdal/cpl_conv.h>
-#include <gdal/cpl_string.h>
-
 #include "phes_base.h"
 
 void TIFF_IO_init( )
