@@ -6,7 +6,6 @@ ndrivers=$1
 tasks_file=$2
 processes_file=$3
 me=`hostname`
-echo $me
 
 set -e
 for ((task=0;task<ndrivers;task++))

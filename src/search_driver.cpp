@@ -134,5 +134,5 @@ int main(int nargs, char **argv)
 		 	sleep(5);
 		}
 	}
-	printf("\nDone\n");
+	printf("Done\n");
 }

@@ -1,17 +1,8 @@
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <assert.h>
-
 #include <gdal/gdal.h>
 #include <gdal/cpl_conv.h>
 #include <gdal/cpl_string.h>
 
 #include "phes_base.h"
-#include "model2D.h"
 
 void TIFF_IO_init( )
 {

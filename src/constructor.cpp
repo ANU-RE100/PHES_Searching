@@ -4,29 +4,15 @@
 #include <sys/stat.h> 
 #include <sys/types.h> 
 
-#include "model2D.h"
-#include "TIFF_IO.h"
 #include "phes_base.h"
 #include "kml.h"
 
-//Being risky (for devel only)
 #include <bits/stdc++.h>
 using namespace std;
 
 int display = false;
 
-array<vector<Pair>,tests.size()> pairs;
-
-void update_reservoir_boundary(ArrayCoordinate dam_shape_bounds[], ArrayCoordinate point)
-{
-	for (int i = 0; i<ndirections; i++) {
-		if ( (directions[i].row*point.row + directions[i].col * point.col) >
-		     (directions[i].row*dam_shape_bounds[i].row + directions[i].col*dam_shape_bounds[i].col) ){
-			dam_shape_bounds[i].row = point.row;
-			dam_shape_bounds[i].col = point.col;
-		}
-	}
-}
+vector<vector<Pair> > pairs;
 
 // Returns a tuple with the two cells adjacent to an edge defined by two points
 ArrayCoordinate* get_adjacent_cells(ArrayCoordinate point1, ArrayCoordinate point2){
@@ -222,7 +208,7 @@ bool model_reservoir(Reservoir* reservoir, Models models, Reservoir_KML_Coordina
 			reservoir->area+=find_area(p);
 			update_reservoir_boundary(reservoir->shape_bound, p);
 
-			for (int d=0; d<ndirections; d++) {
+			for (uint d=0; d<directions.size(); d++) {
 				ArrayCoordinate neighbor = {p.row+directions[d].row, p.col+directions[d].col, p.origin};
 				if (check_within(neighbor, flow_directions->shape) &&
 				    flows_to(neighbor, p, flow_directions) &&
@@ -347,8 +333,8 @@ bool model_pair(Pair* pair, Models models, Pair_KML* pair_kml, Model_int8 *seen,
 	ArrayCoordinate upper_closest_point = pair->upper.pour_point;
     ArrayCoordinate lower_closest_point = pair->lower.pour_point;
     double mindist = find_distance(upper_closest_point, lower_closest_point);
-    for(int iupper = 0; iupper<ndirections; iupper++)
-    	for(int ilower = 0; ilower<ndirections; ilower++)
+    for(uint iupper = 0; iupper<directions.size(); iupper++)
+    	for(uint ilower = 0; ilower<directions.size(); ilower++)
     		if (find_distance(pair->upper.shape_bound[iupper], pair->lower.shape_bound[ilower])<mindist){
                 upper_closest_point = pair->upper.shape_bound[iupper];
                 lower_closest_point = pair->lower.shape_bound[ilower];
@@ -378,6 +364,7 @@ int main(int nargs, char **argv)
     printf("Constructor started for %s\n",convert_string(str(square_coordinate)));
 
     TIFF_IO_init();
+    parse_variables(convert_string("variables"));
     unsigned long t_usec = walltime_usec();
 
 	Models models = Models_init(square_coordinate);

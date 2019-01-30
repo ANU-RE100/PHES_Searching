@@ -1,12 +1,4 @@
-#include <sys/time.h>
-
-//Being risky
-#include <bits/stdc++.h>
-using namespace std;
-
 #include "phes_base.h"
-#include "model2D.h"
-#include "TIFF_IO.h"
 
 int convert_to_int(double f)
 {
@@ -16,10 +8,10 @@ int convert_to_int(double f)
 		return (int) (f-0.5);
 }
 
-double max_over_wall_heights(double *a)
+double max(vector<double> a)
 {
 	double amax = -1.0e20;
-	for (int ih=0; ih<NWALL_HEIGHTS; ih++)
+	for (uint ih=0; ih<a.size(); ih++)
 		amax = MAX(amax, a[ih]);
 
 	return amax;
@@ -35,11 +27,11 @@ double convert_to_dam_volume(double height, double length)
 	return (((height+freeboard)*(cwidth+dambatter*(height+freeboard)))/1000000)*length;
 }
 
-double linear_interpolate(double value, const double *x_values, const double *y_values)
+double linear_interpolate(double value, vector<double> x_values, vector<double> y_values)
 {
-	int i = 0;
+	uint i = 0;
 	while (x_values[i]<value) {
-		if (i==NWALL_HEIGHTS-1)
+		if (i==x_values.size()-1)
 			return INF;
 		else
 			i++;
@@ -76,40 +68,6 @@ char* convert_string(string str){
 	char *c = new char[str.length() + 1];
 	strcpy(c, str.c_str());
 	return c;
-}
-
-string ReplaceAll(string str, const string& from, const string& to) {
-    size_t start_pos = 0;
-    while((start_pos = str.find(from, start_pos)) != string::npos) {
-        str.replace(start_pos, from.length(), to);
-        start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
-    }
-    return str;
-}
-
-void write_to_csv_file(FILE *csv_file, vector<string> cols){
-	for(uint i = 0; i<cols.size();i++){
-		if (cols[i].find(',') != std::string::npos){
-			cols[i] = ReplaceAll(cols[i], string("\""), string("\"\""));
-			cols[i] = ReplaceAll(cols[i], string("  "), string(""));
-			cols[i] = ReplaceAll(cols[i], string("\n"), string(""));
-			cols[i] = '"'+cols[i]+'"';
-		}
-		fprintf(csv_file, "%s", convert_string(cols[i]));
-		if(i!=cols.size()-1)
-			fprintf(csv_file, ",");
-	}
-	fprintf(csv_file, "\n");
-}
-
-vector<string> read_from_csv_file(string line){
-	vector<string> cols;
-	istringstream ss(line);
-	string col;
-    while (getline(ss, col, ',')) {
-        cols.push_back(col);
-    }
-	return cols;
 }
 
 string dtos(double f, int nd) {
@@ -181,7 +139,12 @@ Models Models_init(GridSquare sc){
 }
 
 void set_FOM(Pair* pair){
-	pair->FOM = pair->head * pair->upper.water_rock * pair->lower.water_rock / (pair->upper.water_rock + pair->lower.water_rock) - 125.0/SQRT(pair->slope);
+	double power = 1000*pair->energy_capacity/pair->storage_time;
+	double power_house_cost = powerhouse_coeff*pow(MIN(power,800),(power_exp))/pow((double)pair->head,head_exp);
+	double tunnel_cost = ((power_slope_factor*MIN(power,800)+slope_int)*pow((double)pair->head,head_coeff)*pair->distance*1000)+(power_offset*MIN(power,800)+tunnel_fixed);
+	double power_cost = 0.001*(power_house_cost+tunnel_cost)/MIN(power, 800);
+	double energy_cost = dam_cost*1/(pair->water_rock*generation_efficiency * usable_volume*water_density*gravity*pair->head)*J_GWh_conversion/cubic_metres_GL_conversion;
+	pair->FOM = power_cost+energy_cost*pair->storage_time;
 }
 
 string str(Test test){

@@ -1,0 +1,44 @@
+resolution = 30.87;			// Approx. 30 m for 1 arc-second DEM
+min_watershed_area = 10;	// Minimum watershed area in hectares
+border = 600;				// Number of cells to add as border around square
+contour_height = 10.0;		// Contour interval for finding dam sites to test
+
+min_head = 100;
+min_reservoir_volume = 1.0;
+min_reservoir_water_rock = 3.0;
+min_max_dam_height = 5.0;
+
+dambatter = 3.0;			// Slope on sides of dam
+cwidth = 10.0;				// Width of top of dam
+freeboard = 1.5;			// Freeboard on dam
+
+gravity = 9.8; 				  
+generation_efficiency = 0.9;
+usable_volume = 0.85;
+J_GWh_conversion = 3.6e12;
+water_density = 1000.0;
+cubic_metres_GL_conversion = 1.0e6;
+
+dam_wall_heights = 10, 20, 30, 40, 50, 60, 70, 80, 90, 100;	//  Wall heights to test and export
+
+test = 150, 18, 100;
+test = 50, 18, 100;
+test = 50, 6, 100;
+test = 15, 18, 100;
+test = 15, 6, 100;
+test = 5, 18, 100;
+test = 5, 6, 100;
+test = 2, 6, 100;
+
+filter = input/CLUM/CLUM541550552_WGS84.shp;
+filter = input/CAPAD/capad.shp;
+
+powerhouse_coeff = 63500000;
+power_exp = 0.75;
+head_exp = 0.5;
+power_slope_factor = 1280;
+slope_int = 208500;
+head_coeff = -0.54;
+power_offset = 66429;
+tunnel_fixed = 17000000;
+dam_cost = 168;

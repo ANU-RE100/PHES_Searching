@@ -1,16 +1,4 @@
-#include <stdlib.h>
-#include <sys/time.h>
-#include "shapefil.h"
-#include <sys/stat.h> 
-#include <sys/types.h> 
-
-#include "model2D.h"
-#include "TIFF_IO.h"
 #include "phes_base.h"
-
-//Being risky (for devel only)
-#include <bits/stdc++.h>
-using namespace std;
 
 bool debug_output = false;
 bool debug = false;
@@ -158,7 +146,7 @@ static Model_double *fill(Model_int16 *DEM)
 			q.pop();
 		}
 
-		for (int d=0; d<ndirections; d++) {
+		for (uint d=0; d<directions.size(); d++) {
 			neighbor = ArrayCoordinateWithHeight_init(c.row+directions[d].row,c.col+directions[d].col,0);		
 			if (!check_within(neighbor, DEM->shape) || seen[neighbor.row][neighbor.col]){
 				continue;
@@ -320,7 +308,7 @@ static RoughReservoir model_reservoir(ArrayCoordinate pour_point, Model_int16 *f
 		area_at_elevation[elevation_above_pp+1] += find_area(p); 
 		modelling_array->d[p.row][p.col] = iterator;
 
-		for (int d=0; d<ndirections; d++) {
+		for (uint d=0; d<directions.size(); d++) {
 			ArrayCoordinate neighbor = {p.row+directions[d].row, p.col+directions[d].col, p.origin};
 			if (check_within(neighbor, flow_directions->shape) &&
 			    flows_to(neighbor, p, flow_directions) &&
@@ -342,7 +330,7 @@ static RoughReservoir model_reservoir(ArrayCoordinate pour_point, Model_int16 *f
 		q.pop();
 		int elevation = (int)(DEM->d[p.row][p.col]);
 		int elevation_above_pp = MAX(elevation - reservoir.elevation,0);
-		for (int d=0; d<ndirections; d++) {
+		for (uint d=0; d<directions.size(); d++) {
 			ArrayCoordinate neighbor = {p.row+directions[d].row, p.col+directions[d].col, p.origin};
 			if (check_within(neighbor, flow_directions->shape)){
 				if(flows_to(neighbor, p, flow_directions) &&
@@ -357,14 +345,14 @@ static RoughReservoir model_reservoir(ArrayCoordinate pour_point, Model_int16 *f
 		}
 	}
 
-	for (int ih =0 ; ih< NWALL_HEIGHTS; ih++) {
+	for (uint ih =0 ; ih< dam_wall_heights.size(); ih++) {
 		int height = dam_wall_heights[ih];
-		reservoir.areas[ih] = cumulative_area_at_elevation[height];
-		reservoir.dam_volumes[ih] = 0;
+		reservoir.areas.push_back(cumulative_area_at_elevation[height]);
+		reservoir.dam_volumes.push_back(0);
 		for (int jh=0; jh < height; jh++)
 			reservoir.dam_volumes[ih] += convert_to_dam_volume(height-jh, dam_length_at_elevation[jh]);
-		reservoir.volumes[ih] = volume_at_elevation[height] + 0.5*reservoir.dam_volumes[ih];
-		reservoir.water_rocks[ih] = reservoir.volumes[ih]/reservoir.dam_volumes[ih];
+		reservoir.volumes.push_back(volume_at_elevation[height] + 0.5*reservoir.dam_volumes[ih]);
+		reservoir.water_rocks.push_back(reservoir.volumes[ih]/reservoir.dam_volumes[ih]);
 	}
 
 	return reservoir;
@@ -400,8 +388,8 @@ static void model_reservoirs(GridSquare square_coordinate, Model_int8 *pour_poin
 			i++;
 			RoughReservoir reservoir = model_reservoir(pour_point, flow_directions, DEM, filter, model, i);
 
-			if ( max_over_wall_heights(reservoir.volumes)>=min_reservoir_volume &&
-			     max_over_wall_heights(reservoir.water_rocks)>min_reservoir_water_rock &&
+			if ( max(reservoir.volumes)>=min_reservoir_volume &&
+			     max(reservoir.water_rocks)>min_reservoir_water_rock &&
 			     reservoir.max_dam_height>=min_max_dam_height) {
 				reservoir.watershed_area = find_area(pour_point)*flow_accumulation->d[row][col];
 
@@ -428,6 +416,7 @@ int main(int nargs, char **argv)
 	GeographicCoordinate origin = get_origin(square_coordinate, 600);
 
 	TIFF_IO_init();
+	parse_variables(convert_string("variables"));
 
 	char *geoprojection;
 	double geotransform[6];
@@ -448,18 +437,7 @@ int main(int nargs, char **argv)
 		TIFF_Write_int16(convert_string("debug/input/"+str(square_coordinate)+"_input.tif"), geotransform, geoprojection, DEM);
 	}
 
-	vector<string> filenames;
-	filenames.push_back("input/CLUM/CLUM541550552_WGS84.shp");
-	filenames.push_back("input/CAPAD/capad.shp");
-	Model_int16 *filter = read_filter(filenames, origin, DEM->shape);
-	if (display) {
-		printf("\nFilter:\n");
-		Model_int16_print(filter);
-	}
-	if(debug_output){
-		mkdir("debug/filter",0777);
-		TIFF_Write_int16(convert_string("debug/filter/"+str(square_coordinate)+"_filter.tif"), geotransform, geoprojection, DEM);
-	}
+	
 
 	Model_int16 *flow_directions;
 	Model_int16 *flow_directions_esri;
@@ -467,12 +445,14 @@ int main(int nargs, char **argv)
 	Model_int32 *flow_accumulation;
 	Model_double *DEM_filled;
 	Model_int16 *DEM_filled_int;
+	Model_int16 *filter;
 
 	unsigned long t_usec = walltime_usec();
 
 
 	if (debug) {
 		// Read in preprocessed files to save time during debug
+		filter = TIFF_Read_int16(convert_string("debug/filter/"+str(square_coordinate)+"_filter.tif"), NULL, NULL);
 		DEM_filled = TIFF_Read_double(convert_string("debug/DEM_filled/"+str(square_coordinate)+"_DEM_filled.tif"), NULL, NULL);
 		DEM_filled_int = TIFF_Read_int16(convert_string("debug/DEM_filled/"+str(square_coordinate)+"_DEM_filled_int.tif"), NULL, NULL);
 		flow_directions = TIFF_Read_int16(convert_string("debug/flow_directions/"+str(square_coordinate)+"_flow_directions.tif"), NULL, NULL);
@@ -480,6 +460,16 @@ int main(int nargs, char **argv)
 		pour_points = TIFF_Read_int8(convert_string("debug/pour_points/"+str(square_coordinate)+"_pour_points.tif"), NULL, NULL);
 	}else {
 		// If not using preprocessed files, process files
+		filter = read_filter(filter_filenames, origin, DEM->shape);
+		if (display) {
+			printf("\nFilter:\n");
+			Model_int16_print(filter);
+		}
+		if(debug_output){
+			mkdir("debug/filter",0777);
+			TIFF_Write_int16(convert_string("debug/filter/"+str(square_coordinate)+"_filter.tif"), geotransform, geoprojection, filter);
+		}
+
 		DEM_filled = fill(DEM);
 		if (display) {
 			printf("\nFilled No Flats:\n");

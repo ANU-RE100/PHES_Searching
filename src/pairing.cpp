@@ -1,16 +1,12 @@
-#include <stdlib.h>
-#include <sys/stat.h> 
-#include <sys/types.h> 
-
 #include "phes_base.h"
 
 int display = false;
 
-array<vector<Pair>, tests.size()> pairs;
+vector<vector<Pair> > pairs;
 
-vector<GeographicCoordinate> find_points_to_test(ArrayCoordinate boundary[][ndirections], double wall_height, ArrayCoordinate pour_point)
+vector<GeographicCoordinate> find_points_to_test(vector<array<ArrayCoordinate, directions.size()> > boundary, double wall_height, ArrayCoordinate pour_point)
 {
-	ArrayCoordinate one_point[ndirections] = { pour_point, pour_point, pour_point, pour_point,
+	array<ArrayCoordinate, directions.size()> one_point = { pour_point, pour_point, pour_point, pour_point,
 					  pour_point, pour_point, pour_point, pour_point };
 
 	int i = 0;
@@ -19,12 +15,12 @@ vector<GeographicCoordinate> find_points_to_test(ArrayCoordinate boundary[][ndir
 	}
 
 	int lower_wall_height = (i) ? dam_wall_heights[i-1] : 0;
-	ArrayCoordinate *lower_shape = (i) ? boundary[i-1] : one_point;
+	array<ArrayCoordinate, directions.size()> lower_shape = (i) ? boundary[i-1] : one_point;
 	vector<GeographicCoordinate> bound;
 
 	double inv_wall_height_interval = 0.1;
 	
-	for (int j=0; j<ndirections; j++) {
+	for (uint j=0; j<directions.size(); j++) {
 		GeographicCoordinate point1 = convert_coordinates(lower_shape[j]);
 		GeographicCoordinate point2 = convert_coordinates(boundary[i][j]);
 		bound.push_back((GeographicCoordinate) { point1.lat+(point2.lat-point1.lat)*(wall_height-lower_wall_height)*inv_wall_height_interval,
@@ -37,7 +33,7 @@ vector<GeographicCoordinate> find_points_to_test(ArrayCoordinate boundary[][ndir
 }
 
 
-double find_least_distance_sqd(ArrayCoordinate upper_boundary[][ndirections], ArrayCoordinate (*lower_boundary)[ndirections],
+double find_least_distance_sqd(vector<array<ArrayCoordinate, directions.size()> > upper_boundary, vector<array<ArrayCoordinate, directions.size()> > lower_boundary,
 			      double upper_wall_height, double lower_wall_height,
 			      ArrayCoordinate upper_pour_point, ArrayCoordinate lower_pour_point)
 {
@@ -60,10 +56,10 @@ Pair *check_good_pair(RoughReservoir upper, RoughReservoir lower, int energy_cap
 {
 	int head = upper.elevation - lower.elevation;
 	double required_volume = find_required_volume(energy_capacity, head);
-	if ( (max_over_wall_heights(upper.volumes) < required_volume) ||
-	     (max_over_wall_heights(lower.volumes) < required_volume) )
+	if ( (max(upper.volumes) < required_volume) ||
+	     (max(lower.volumes) < required_volume) )
 		return NULL;
-	
+
 	double upper_dam_wall_height = linear_interpolate(required_volume, upper.volumes, dam_wall_heights);
 	double lower_dam_wall_height = linear_interpolate(required_volume, lower.volumes, dam_wall_heights);
 
@@ -113,12 +109,19 @@ Pair *check_good_pair(RoughReservoir upper, RoughReservoir lower, int energy_cap
 	pair->storage_time = storage_time;
 	pair->required_volume = required_volume;
     pair->slope = pair->head/(pair->distance)*0.001;
+    pair->water_rock = 1/(1/pair->upper.water_rock+1/pair->lower.water_rock);
 	set_FOM(pair);
+
 	return pair;
 }
 
 void pairing(vector<RoughReservoir> upper_reservoirs, vector<RoughReservoir> lower_reservoirs)
 {
+	for (uint itest=0; itest<tests.size(); itest++) {
+		vector<Pair> t;
+		pairs.push_back(t);
+	}
+
 	RoughReservoir* upper_reservoir;
 	RoughReservoir* lower_reservoir;
 	for (uint iupper=0;iupper < upper_reservoirs.size(); iupper++) {
@@ -157,6 +160,8 @@ int main(int nargs, char **argv)
 	printf("Pairing started for %s\n",convert_string(str(square_coordinate)));
 
 	unsigned long t_usec = walltime_usec();
+	parse_variables(convert_string("variables"));
+
 	vector<RoughReservoir> upper_reservoirs = read_rough_reservoir_data(convert_string("processing_files/reservoirs/"+str(square_coordinate)+"_reservoirs_data.csv"));
 	if(display)
 		printf("Read in %zu uppers\n", upper_reservoirs.size());

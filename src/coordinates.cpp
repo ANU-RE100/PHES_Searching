@@ -1,10 +1,4 @@
-//Being risky
-#include <bits/stdc++.h>
-using namespace std;
-
 #include "phes_base.h"
-#include "model2D.h"
-
 
 GeographicCoordinate GeographicCoordinate_init(double latitude, double longitude)
 {
@@ -99,7 +93,7 @@ int find_lowest_neighbor(ArrayCoordinate c, Model_double *DEM)
 	int result = 0;
 	double min_drop = 0;
 	double min_dist = 100000;
-	for (int d=0; d<ndirections; d++) {
+	for (uint d=0; d<directions.size(); d++) {
 		c2.row = c.row+directions[d].row;
 		c2.col = c.col+directions[d].col;
 		c2.origin = c.origin;
@@ -126,7 +120,7 @@ int find_lowest_neighbor(ArrayCoordinate c, Model_double *DEM, double coslat)
 	int result = 0;
 	double min_drop = 0;
 	double min_dist = 100000;
-	for (int d=0; d<ndirections; d++) {
+	for (uint d=0; d<directions.size(); d++) {
 		c2.row = c.row+directions[d].row;
 		c2.col = c.col+directions[d].col;
 		c2.origin = c.origin;

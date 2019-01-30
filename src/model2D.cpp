@@ -1,8 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "model2D.h"
 #include "phes_base.h"
 
 

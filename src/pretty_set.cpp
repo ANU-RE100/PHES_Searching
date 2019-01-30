@@ -14,7 +14,7 @@ using namespace std;
 
 int display = false;
 
-array<vector<Pair>,tests.size()> pairs;
+vector<vector<Pair> > pairs;
 
 bool check_reservoir(Reservoir reservoir, Models models, Model_int8 *seen, vector<ArrayCoordinate> *used_points){
 	Model_int16 *DEM = models.DEMs[0];
@@ -50,7 +50,7 @@ bool check_reservoir(Reservoir reservoir, Models models, Model_int8 *seen, vecto
 				return false;
 			}
 			volume+=(wall_height-(DEM->d[p.row][p.col]-DEM->d[reservoir.pour_point.row][reservoir.pour_point.col]))*find_area(p)/100;
-			for (int d=0; d<ndirections; d++) {
+			for (uint d=0; d<directions.size(); d++) {
 				ArrayCoordinate neighbor = {p.row+directions[d].row, p.col+directions[d].col, p.origin};
 				if (check_within(neighbor, flow_directions->shape) &&
 				    flows_to(neighbor, p, flow_directions) &&
@@ -103,6 +103,7 @@ int main(int nargs, char **argv)
 	printf("Pretty set started for %s\n",convert_string(str(square_coordinate)));
 
 	TIFF_IO_init();
+	parse_variables(convert_string("variables"));
 	unsigned long t_usec = walltime_usec();
 	
 	Models models = Models_init(square_coordinate);
