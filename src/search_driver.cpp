@@ -97,7 +97,10 @@ int main(int nargs, char **argv)
 	char *tasks_file = argv[1];
 	char *process_file = argv[2];
 
-	printf("args %s %s\n", tasks_file, process_file);
+	if(nargs==3)
+		printf("args %s %s\n", tasks_file, process_file);
+	else
+		exit(1);
 
 	vector<GridSquare> tasklist = read_tasklist(tasks_file);
 	vector<string> processlist = read_processlist(process_file);

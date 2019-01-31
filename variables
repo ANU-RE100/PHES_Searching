@@ -1,4 +1,3 @@
-resolution = 30.87;			// Approx. 30 m for 1 arc-second DEM
 min_watershed_area = 10;	// Minimum watershed area in hectares
 border = 600;				// Number of cells to add as border around square
 contour_height = 10.0;		// Contour interval for finding dam sites to test

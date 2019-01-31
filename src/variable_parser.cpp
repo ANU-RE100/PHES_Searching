@@ -1,6 +1,6 @@
 #include "phes_base.h"
 
-double resolution;         // Approx. 30 m for 1 arc-second DEM
+double resolution = 30.87;         // Approx. 30 m for 1 arc-second DEM
 double min_watershed_area;      // Minimum watershed area in hectares
 int stream_threshold;
 double contour_height;      // Contour interval for finding dam sites to test

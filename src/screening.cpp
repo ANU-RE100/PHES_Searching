@@ -359,7 +359,7 @@ static RoughReservoir model_reservoir(ArrayCoordinate pour_point, Model_int16 *f
 }
 
 
-static void model_reservoirs(GridSquare square_coordinate, Model_int8 *pour_points, Model_int16 *flow_directions, Model_int16 *DEM, Model_int32 *flow_accumulation, Model_int16 *filter)
+static int model_reservoirs(GridSquare square_coordinate, Model_int8 *pour_points, Model_int16 *flow_directions, Model_int16 *DEM, Model_int32 *flow_accumulation, Model_int16 *filter)
 {
 	mkdir("output/reservoirs",0777);
 	FILE *csv_file = fopen(convert_string("output/reservoirs/"+str(square_coordinate)+"_reservoirs.csv"), "w");
@@ -378,6 +378,7 @@ static void model_reservoirs(GridSquare square_coordinate, Model_int8 *pour_poin
 	write_rough_reservoir_data_header(csv_data_file);
 
 	int i = 0;
+	int count = 0;
 	Model_int32 *model = Model_int32_create(flow_directions->shape, MODEL_SET_ZERO);
 
 	for (int row=border;row <border+pour_points->shape[0]-2*border; row++)
@@ -397,11 +398,13 @@ static void model_reservoirs(GridSquare square_coordinate, Model_int8 *pour_poin
 
 				write_rough_reservoir_csv(csv_file, reservoir);
 				write_rough_reservoir_data(csv_data_file, reservoir);
+				count++;
 			}
 		}
 
 	fclose(csv_file);
 	fclose(csv_data_file);
+	return count;
 }
 
 int main(int nargs, char **argv)
@@ -417,6 +420,8 @@ int main(int nargs, char **argv)
 
 	TIFF_IO_init();
 	parse_variables(convert_string("variables"));
+	unsigned long start_usec = walltime_usec();
+	unsigned long t_usec = start_usec;
 
 	char *geoprojection;
 	double geotransform[6];
@@ -447,8 +452,6 @@ int main(int nargs, char **argv)
 	Model_int16 *DEM_filled_int;
 	Model_int16 *filter;
 
-	unsigned long t_usec = walltime_usec();
-
 
 	if (debug) {
 		// Read in preprocessed files to save time during debug
@@ -460,16 +463,19 @@ int main(int nargs, char **argv)
 		pour_points = TIFF_Read_int8(convert_string("debug/pour_points/"+str(square_coordinate)+"_pour_points.tif"), NULL, NULL);
 	}else {
 		// If not using preprocessed files, process files
+		t_usec = walltime_usec();
 		filter = read_filter(filter_filenames, origin, DEM->shape);
 		if (display) {
 			printf("\nFilter:\n");
 			Model_int16_print(filter);
+			printf("Filter Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - t_usec) );
 		}
 		if(debug_output){
 			mkdir("debug/filter",0777);
 			TIFF_Write_int16(convert_string("debug/filter/"+str(square_coordinate)+"_filter.tif"), geotransform, geoprojection, filter);
 		}
 
+		t_usec = walltime_usec();
 		DEM_filled = fill(DEM);
 		if (display) {
 			printf("\nFilled No Flats:\n");
@@ -539,6 +545,7 @@ int main(int nargs, char **argv)
 	}
 
 	t_usec = walltime_usec();
-	model_reservoirs(square_coordinate, pour_points, flow_directions, DEM_filled_int, flow_accumulation, filter);
-	printf(convert_string("Screening finished for "+str(square_coordinate)+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - t_usec) );
+	int count = model_reservoirs(square_coordinate, pour_points, flow_directions, DEM_filled_int, flow_accumulation, filter);
+	printf("Found %d reservoirs. Runtime: %.2f sec\n", count, 1.0e-6*(walltime_usec() - t_usec));
+	printf(convert_string("Screening finished for "+str(square_coordinate)+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
 }
