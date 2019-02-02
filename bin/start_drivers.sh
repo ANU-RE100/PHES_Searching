@@ -6,7 +6,7 @@ me=`hostname`
 set -e
 for ((task=0;task<ndrivers;task++))
 do
-    $PHES_BINDIR/search_driver &
+    bin/search_driver &
 done
 
 echo Started $ndrivers searchers on $me

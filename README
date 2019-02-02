@@ -6,6 +6,8 @@ sudo apt-get install libshp-dev
 
 Place all input files in PHES_Searching/input/
 
+Edit variables in PHES_Searching/variables
+
 To build:
 
    cd PHES_Searching
@@ -13,16 +15,15 @@ To build:
 
 To run:
 
-   cd ..
-   ./bin/screening 148 -36 1
-   ./bin/pairing 148 -36
-   ./bin/pretty_set 148 -36
-   ./bin/constructor 148 -36
+   ./bin/screening <long> <lat> 1
+   ./bin/pairing <long> <lat> 1
+   ./bin/pretty_set <long> <lat> 1
+   ./bin/constructor <long> <lat> 1
 
 To run large batch:
 
-	make run 
+	make run n=<num_processes>
 
 	or
 
-	bin/start_drivers.sh <num_processes> <tasks_file> <processes_file>
+	bin/start_drivers.sh <num_processes>

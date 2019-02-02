@@ -87,16 +87,21 @@ static void read_shp_filter(string filename, GeographicCoordinate origin, int DE
 }
 
 void read_tif_filter(string filename, GeographicCoordinate origin, Model_int16* filter, int value_to_filter){
-	double geotransform[6];
-	Model_int8* tif_filter = TIFF_Read_int8(convert_string(filename), geotransform, NULL);
-	GeographicCoordinate tif_origin = {geotransform[3], geotransform[0]};
-	for(int row = 0; row<filter->shape[0]; row++){
-		for(int col = 0; col<filter->shape[1]; col++){
-			GeographicCoordinate point = convert_coordinates(ArrayCoordinate_init(row, col, origin));
-			ArrayCoordinate tif_point = convert_coordinates(point, tif_origin, geotransform[5], geotransform[1]);
-			if(check_within(tif_point, tif_filter->shape) && tif_filter->d[tif_point.row][tif_point.col]==value_to_filter)
-				filter->d[row][col] = true;
+	try{
+		double geotransform[6];
+		Model_int8* tif_filter = TIFF_Read_int8(convert_string(filename), geotransform, NULL);
+		GeographicCoordinate tif_origin = {geotransform[3], geotransform[0]};
+		for(int row = 0; row<filter->shape[0]; row++){
+			for(int col = 0; col<filter->shape[1]; col++){
+				GeographicCoordinate point = convert_coordinates(ArrayCoordinate_init(row, col, origin));
+				ArrayCoordinate tif_point = convert_coordinates(point, tif_origin, geotransform[5], geotransform[1]);
+				if(check_within(tif_point, tif_filter->shape) && tif_filter->d[tif_point.row][tif_point.col]==value_to_filter)
+					filter->d[row][col] = true;
+			}
 		}
+	}catch(int e){
+		if(display)
+			printf("Problem with %s\n", convert_string(filename));
 	}
 }
 
@@ -590,6 +595,7 @@ int main(int nargs, char **argv)
 
 	t_usec = walltime_usec();
 	int count = model_reservoirs(square_coordinate, pour_points, flow_directions, DEM_filled_int, flow_accumulation, filter);
-	printf("Found %d reservoirs. Runtime: %.2f sec\n", count, 1.0e-6*(walltime_usec() - t_usec));
+	if(display)
+		printf("Found %d reservoirs. Runtime: %.2f sec\n", count, 1.0e-6*(walltime_usec() - t_usec));
 	printf(convert_string("Screening finished for "+str(square_coordinate)+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
 }

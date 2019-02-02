@@ -99,8 +99,8 @@ int main()
 					exit(1);
 				}
 			}
-			if(system(convert_string("bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)))){
-				printf("Problem running command: "+"bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat))+"\n");
+			if(system(convert_string("./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)))){
+				cout<<"Problem running command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
 				exit(1);
 			}
 		}
