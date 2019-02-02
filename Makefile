@@ -48,6 +48,3 @@ run4:
 
 run8:
 	bin/start_drivers.sh 8 tasks processes
-
-run9:
-	bin/start_drivers.sh 9 tasks processes

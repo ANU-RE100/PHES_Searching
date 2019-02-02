@@ -16,7 +16,7 @@ int display = false;
 
 vector<vector<Pair> > pairs;
 
-bool check_reservoir(Reservoir reservoir, Models models, Model_int8 *seen, vector<ArrayCoordinate> *used_points){
+bool check_reservoir(Reservoir& reservoir, Models& models, Model_int8 *seen, vector<ArrayCoordinate> *used_points){
 	Model_int16 *DEM = models.DEMs[0];
 	Model_int16 *flow_directions = models.flow_directions[0];
 
@@ -81,7 +81,7 @@ bool check_reservoir(Reservoir reservoir, Models models, Model_int8 *seen, vecto
 	return true;
 }
 
-bool check_pair(Pair pair, Models models, Model_int8 *seen){
+bool check_pair(Pair& pair, Models& models, Model_int8 *seen){
 	vector<ArrayCoordinate> used_points;
 	if(!check_reservoir(pair.upper, models, seen, &used_points))
 		return false;
@@ -140,7 +140,7 @@ int main(int nargs, char **argv)
 			}
 		}
 		if(display)
-			printf("%d %dGWh Pairs with storage time %dh\n", count, tests[i].energy_capacity, tests[i].storage_time);
+			printf("%d %dGWh %dh Pairs\n", count, tests[i].energy_capacity, tests[i].storage_time);
 	}
 	printf("Pretty set finished for %s. Runtime: %.2f sec\n", convert_string(str(square_coordinate)), 1.0e-6*(walltime_usec() - t_usec) );
 }

@@ -47,6 +47,7 @@ double find_distance_sqd(GeographicCoordinate c1, GeographicCoordinate c2, doubl
 int flows_to(ArrayCoordinate c1, ArrayCoordinate c2, Model_int16 *flow_directions);
 GeographicCoordinate convert_coordinates(ArrayCoordinate c);
 ArrayCoordinate convert_coordinates(GeographicCoordinate c, GeographicCoordinate origin);
+ArrayCoordinate convert_coordinates(GeographicCoordinate c, GeographicCoordinate origin, double lat_res, double lon_res);
 double find_orthogonal_nn_distance(ArrayCoordinate c1, ArrayCoordinate c2);
 
 #endif

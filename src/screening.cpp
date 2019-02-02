@@ -29,76 +29,120 @@ vector<double> find_polygon_intersections(int row, vector<GeographicCoordinate> 
     return to_return;
 }
 
+static void read_shp_filter(string filename, GeographicCoordinate origin, int DEM_shape[2], Model_int16* filter){
+	SHPHandle SHP = SHPOpen(convert_string(filename), "rb" );
+	if(SHP != NULL ){
+    	int	nEntities, nShapeType;
+    	double 	adfMinBound[4], adfMaxBound[4];
+    	vector<vector<GeographicCoordinate> > relevant_polygons;
+    	SHPGetInfo(SHP, &nEntities, &nShapeType, adfMinBound, adfMaxBound );
+	    for( int i = 0; i < nEntities; i++ )
+	    {
+	        SHPObject	*shape;
+	        shape = SHPReadObject( SHP, i );
+	        if( shape == NULL ){
+	            fprintf( stderr,"Unable to read shape %d, terminating object reading.\n",i);
+	            break;
+	        }
+	        vector<GeographicCoordinate> temp_poly;
+	        bool to_keep = false;
+	        for(int j = 0, iPart = 1; j < shape->nVertices; j++ )
+	        {
+	            if( iPart < shape->nParts && shape->panPartStart[iPart] == j )
+	            {
+	            	if(to_keep)
+	        			relevant_polygons.push_back(temp_poly);
+	            	to_keep = false;
+	            	temp_poly.clear();
+	                iPart++;
+	            }
+	            GeographicCoordinate temp_point = GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
+	            to_keep = (to_keep || check_within(convert_coordinates(temp_point, origin),DEM_shape));
+	            temp_poly.push_back(temp_point);
+	        }
+	        if(to_keep)
+	        	relevant_polygons.push_back(temp_poly);
+	        SHPDestroyObject( shape );
+	    }
+	    if(display)
+	    	printf("%d Polygons imported from %s\n", (int)relevant_polygons.size(), convert_string(filename));
+	    for(uint i = 0; i<relevant_polygons.size(); i++){
+	    	for(int row =0; row<DEM_shape[0]; row++){
+                vector<double> polygon_intersections = find_polygon_intersections(row, relevant_polygons[i], origin);
+                for(uint j = 0; j<polygon_intersections.size();j++){
+                	polygon_intersections[j] = (convert_coordinates(GeographicCoordinate_init(0, polygon_intersections[j]),origin).col);
+                }
+                for(uint j = 0; j<polygon_intersections.size()/2;j++){
+                    for(int col=polygon_intersections[2*j];col<polygon_intersections[2*j+1];col++){
+                    	ArrayCoordinate coordinate = ArrayCoordinate_init(row, col, origin);
+                        if(check_within(coordinate,DEM_shape)){
+                        	filter->d[row][col]=true;
+                        }
+                    }
+                }
+            }
+	    }
+    }
+    SHPClose( SHP );
+}
+
+void read_tif_filter(string filename, GeographicCoordinate origin, Model_int16* filter, int value_to_filter){
+	double geotransform[6];
+	Model_int8* tif_filter = TIFF_Read_int8(convert_string(filename), geotransform, NULL);
+	GeographicCoordinate tif_origin = {geotransform[3], geotransform[0]};
+	for(int row = 0; row<filter->shape[0]; row++){
+		for(int col = 0; col<filter->shape[1]; col++){
+			GeographicCoordinate point = convert_coordinates(ArrayCoordinate_init(row, col, origin));
+			ArrayCoordinate tif_point = convert_coordinates(point, tif_origin, geotransform[5], geotransform[1]);
+			if(check_within(tif_point, tif_filter->shape) && tif_filter->d[tif_point.row][tif_point.col]==value_to_filter)
+				filter->d[row][col] = true;
+		}
+	}
+}
+
+string find_world_urban_filename(GeographicCoordinate point){
+	char clat = 65+floor((point.lat+90)/8+1);
+	if(clat>=73)
+		clat++;
+	if(clat>=79)
+		clat++;
+	int nlon = floor((point.lon+180)/6+1);
+
+	char strlon[3];
+	snprintf(strlon, 3, "%02d", nlon);
+	return "input/WORLD_URBAN/"+string(strlon)+string(1, clat)+"_hbase_human_built_up_and_settlement_extent_geographic_30m.tif";
+}
+
+vector<GeographicCoordinate> get_corners(GeographicCoordinate origin, int* DEM_shape){
+	vector<GeographicCoordinate> to_return = {
+		origin, 
+		convert_coordinates(ArrayCoordinate_init(0, DEM_shape[1], origin)),
+		convert_coordinates(ArrayCoordinate_init(DEM_shape[0], 0, origin)),
+		convert_coordinates(ArrayCoordinate_init(DEM_shape[0], DEM_shape[1], origin))
+	};
+	return to_return;
+}
+
 static Model_int16 *read_filter(vector<string> filenames, GeographicCoordinate origin, int DEM_shape[2])
 {
+	vector<string> filter_files;
 	Model_int16 *filter = Model_int16_create(DEM_shape, MODEL_SET_ZERO);
-	for(uint nfile = 0; nfile<filenames.size(); nfile++){
-		SHPHandle SHP = SHPOpen(convert_string(filenames[nfile]), "rb" );
-		if(SHP == NULL )
-	    {
-	        printf( "Unable to open:%s\n", convert_string(filenames[nfile]) );
-	    }else{
-	    	int	nEntities, nShapeType;
-	    	double 	adfMinBound[4], adfMaxBound[4];
-	    	vector<vector<GeographicCoordinate> > relevant_polygons;
-	    	SHPGetInfo(SHP, &nEntities, &nShapeType, adfMinBound, adfMaxBound );
-
-		    for( int i = 0; i < nEntities; i++ )
-		    {
-		        SHPObject	*shape;
-		        shape = SHPReadObject( SHP, i );
-
-		        if( shape == NULL ){
-		            fprintf( stderr,"Unable to read shape %d, terminating object reading.\n",i);
-		            break;
-		        }
-
-		        vector<GeographicCoordinate> temp_poly;
-		        bool to_keep = false;
-		        for(int j = 0, iPart = 1; j < shape->nVertices; j++ )
-		        {
-		            if( iPart < shape->nParts && shape->panPartStart[iPart] == j )
-		            {
-		            	if(to_keep)
-		        			relevant_polygons.push_back(temp_poly);
-		            	to_keep = false;
-		            	temp_poly.clear();
-		                iPart++;
-		            }
-
-		            GeographicCoordinate temp_point = GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
-		            to_keep = (to_keep || check_within(convert_coordinates(temp_point, origin),DEM_shape));
-		            temp_poly.push_back(temp_point);
-		        }
-		        if(to_keep)
-		        	relevant_polygons.push_back(temp_poly);
-		        
-		        SHPDestroyObject( shape );
-		    }
-		    if(display)
-		    	printf("%d Polygons imported from %s\n", (int)relevant_polygons.size(), convert_string(filenames[nfile]));
-		    for(uint i = 0; i<relevant_polygons.size(); i++){
-		    	for(int row =0; row<DEM_shape[0]; row++){
-	                vector<double> polygon_intersections = find_polygon_intersections(row, relevant_polygons[i], origin);
-	                for(uint j = 0; j<polygon_intersections.size();j++){
-	                	polygon_intersections[j] = (convert_coordinates(GeographicCoordinate_init(0, polygon_intersections[j]),origin).col);
-	                }
-	                if (polygon_intersections.size()%2!=0)
-	                    printf("Weird Polygon: %d has %d intersections on row %d\n",i,(int)polygon_intersections.size(), row);
-	                for(uint j = 0; j<polygon_intersections.size()/2;j++){
-	                    for(int col=polygon_intersections[2*j];col<polygon_intersections[2*j+1];col++){
-	                    	ArrayCoordinate coordinate = ArrayCoordinate_init(row, col, origin);
-	                        if(check_within(coordinate,DEM_shape)){
-	                        	filter->d[row][col]=true;
-	                        }
-	                    }
-	                }
-	            }
-		    }
-	    }
-	    SHPClose( SHP );
+	for(string filename:filenames){
+		if(filename=="use_world_urban"){
+			if(display)
+				printf("Using world urban data\n");
+			vector<string> required;
+			for(GeographicCoordinate corner: get_corners(origin, DEM_shape)){
+				string urban_filename = find_world_urban_filename(corner);
+				if(find(required.begin(), required.end(), urban_filename)==required.end()){
+					required.push_back(urban_filename);
+					read_tif_filter(urban_filename, origin, filter, -55);
+				}
+			}
+		}else{
+			read_shp_filter(filename, origin, DEM_shape, filter);
+		}		
 	}
-	
 	return filter;
 }
 
@@ -286,10 +330,10 @@ static RoughReservoir model_reservoir(ArrayCoordinate pour_point, Model_int16 *f
 
 	RoughReservoir reservoir = RoughReservoir_init(pour_point, (int)(DEM->d[pour_point.row][pour_point.col]));
 
-	double area_at_elevation[MAX_WALL_HEIGHT+1] = {0};
-	double cumulative_area_at_elevation[MAX_WALL_HEIGHT+1] = {0};
-	double volume_at_elevation[MAX_WALL_HEIGHT+1] = {0};
-	double dam_length_at_elevation[MAX_WALL_HEIGHT+1] = {0};
+	double area_at_elevation[max_wall_height+1] = {0};
+	double cumulative_area_at_elevation[max_wall_height+1] = {0};
+	double volume_at_elevation[max_wall_height+1] = {0};
+	double dam_length_at_elevation[max_wall_height+1] = {0};
 
 	queue<ArrayCoordinate> q;
 	q.push(pour_point);
@@ -312,14 +356,14 @@ static RoughReservoir model_reservoir(ArrayCoordinate pour_point, Model_int16 *f
 			ArrayCoordinate neighbor = {p.row+directions[d].row, p.col+directions[d].col, p.origin};
 			if (check_within(neighbor, flow_directions->shape) &&
 			    flows_to(neighbor, p, flow_directions) &&
-			    ((int)(DEM->d[neighbor.row][neighbor.col]-DEM->d[pour_point.row][pour_point.col]) < MAX_WALL_HEIGHT) ) {
+			    ((int)(DEM->d[neighbor.row][neighbor.col]-DEM->d[pour_point.row][pour_point.col]) < max_wall_height) ) {
 				q.push(neighbor);
 			}
 		}
 
 	}
 
-	for (int ih=1; ih<MAX_WALL_HEIGHT+1;ih++) {
+	for (int ih=1; ih<max_wall_height+1;ih++) {
 		cumulative_area_at_elevation[ih] = cumulative_area_at_elevation[ih-1] + area_at_elevation[ih];
 		volume_at_elevation[ih] = volume_at_elevation[ih-1] + 0.01*cumulative_area_at_elevation[ih]; // area in ha, vol in GL
 	}
@@ -334,12 +378,12 @@ static RoughReservoir model_reservoir(ArrayCoordinate pour_point, Model_int16 *f
 			ArrayCoordinate neighbor = {p.row+directions[d].row, p.col+directions[d].col, p.origin};
 			if (check_within(neighbor, flow_directions->shape)){
 				if(flows_to(neighbor, p, flow_directions) &&
-			    ((int)(DEM->d[neighbor.row][neighbor.col]-DEM->d[pour_point.row][pour_point.col]) < MAX_WALL_HEIGHT) ) {
+			    ((int)(DEM->d[neighbor.row][neighbor.col]-DEM->d[pour_point.row][pour_point.col]) < max_wall_height) ) {
 					q.push(neighbor);
 				}
 				if ((directions[d].row * directions[d].col == 0) // coordinate orthogonal directions
 				    && (modelling_array->d[neighbor.row][neighbor.col] < iterator ) ){
-					dam_length_at_elevation[MIN(MAX(elevation_above_pp, (int)(DEM->d[neighbor.row][neighbor.col]-reservoir.elevation)),MAX_WALL_HEIGHT)] +=find_orthogonal_nn_distance(p, neighbor);	//WE HAVE PROBLEM IF VALUE IS NEGATIVE???	
+					dam_length_at_elevation[MIN(MAX(elevation_above_pp, (int)(DEM->d[neighbor.row][neighbor.col]-reservoir.elevation)),max_wall_height)] +=find_orthogonal_nn_distance(p, neighbor);	//WE HAVE PROBLEM IF VALUE IS NEGATIVE???	
 				}
 			}
 		}

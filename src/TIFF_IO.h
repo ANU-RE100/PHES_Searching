@@ -14,7 +14,7 @@ void TIFF_Write_int32(char *tiff_filename, double *geotransform, char *geoprojec
 void TIFF_Write_double(char *tiff_filename, double *geotransform, char *geoprojection, Model_double *m);
 
 template<class T>
-vector<vector<T> > *TIFF_Read(char *tiff_filename, double *geotransform, char **geoprojection, int data_type)
+Model<T> TIFF_Read(char *tiff_filename, double *geotransform, char **geoprojection, int data_type)
 {
 	if(!file_exists(tiff_filename)){
 		if(display)

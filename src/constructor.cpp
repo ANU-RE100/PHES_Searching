@@ -313,7 +313,7 @@ bool model_reservoir(Reservoir* reservoir, Models models, Reservoir_KML_Coordina
 	return true;
 }
 
-bool model_pair(Pair* pair, Models models, Pair_KML* pair_kml, Model_int8 *seen, bool* non_overlap){
+bool model_pair(Pair* pair, Models models, Pair_KML* pair_kml, Model_int8 *seen, bool* non_overlap, int max_FOM){
 
 	vector<ArrayCoordinate> used_points;
 	*non_overlap = true;
@@ -346,7 +346,9 @@ bool model_pair(Pair* pair, Models models, Pair_KML* pair_kml, Model_int8 *seen,
     pair->volume = min(pair->upper.volume, pair->lower.volume);
     pair->water_rock = 1/((1/pair->upper.water_rock)+(1/pair->lower.water_rock));
     set_FOM(pair);
-
+    if(pair->FOM>max_FOM){
+        return false;
+    }
     GeographicCoordinate average = GeographicCoordinate_init((convert_coordinates(upper_closest_point).lat+convert_coordinates(lower_closest_point).lat)/2,
     	((convert_coordinates(upper_closest_point).lon+convert_coordinates(lower_closest_point).lon)/2));
     pair_kml->point = dtos(average.lon,5)+","+dtos(average.lat,5)+",0";
@@ -410,7 +412,7 @@ int main(int nargs, char **argv)
 		for(uint j=0; j<pairs[i].size(); j++){
 			Pair_KML pair_kml;
 			bool non_overlap;
-			if(model_pair(&pairs[i][j], models, &pair_kml, seen, &non_overlap)){
+			if(model_pair(&pairs[i][j], models, &pair_kml, seen, &non_overlap, tests[i].max_FOM)){
 				write_pair_csv(csv_file, &pairs[i][j]);
 				//write_fusion_csv(fusion_csv_file, &pairs[i][j], &pair_kml);
 				update_kml_holder(&kml_holder, &pairs[i][j], &pair_kml);
@@ -424,9 +426,9 @@ int main(int nargs, char **argv)
 
 		kml_file << output_kml(&kml_holder, str(square_coordinate), tests[i]);
         if(display)
-		  printf("%d %dGWh Pairs with storage time %dh\n", count, tests[i].energy_capacity, tests[i].storage_time);
+		  printf("%d %dGWh %dh Pairs\n", count, tests[i].energy_capacity, tests[i].storage_time);
 		kml_file.close();
 	}
 	write_total_csv(total_csv_file, str(square_coordinate), total_count, total_capacity);
-    printf("Constructor finished for %s. Found %d pairs for a total of %dGWh. Runtime: %.2f sec\n", convert_string(str(square_coordinate)), total_count, total_capacity, 1.0e-6*(walltime_usec() - t_usec) );
+    printf("Constructor finished for %s. Found %d non-overlapping pairs with a total of %dGWh. Runtime: %.2f sec\n", convert_string(str(square_coordinate)), total_count, total_capacity, 1.0e-6*(walltime_usec() - t_usec) );
 }

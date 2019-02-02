@@ -52,7 +52,7 @@ double find_least_distance_sqd(vector<array<ArrayCoordinate, directions.size()> 
 	return mindist2;
 }
 
-Pair *check_good_pair(RoughReservoir upper, RoughReservoir lower, int energy_capacity, int storage_time, Pair *pair)
+Pair *check_good_pair(RoughReservoir& upper, RoughReservoir& lower, int energy_capacity, int storage_time, Pair *pair, int max_FOM)
 {
 	int head = upper.elevation - lower.elevation;
 	double required_volume = find_required_volume(energy_capacity, head);
@@ -69,7 +69,7 @@ Pair *check_good_pair(RoughReservoir upper, RoughReservoir lower, int energy_cap
 	double upper_water_rock_estimate = required_volume/linear_interpolate(upper_dam_wall_height, dam_wall_heights, upper.dam_volumes);
 	double lower_water_rock_estimate = required_volume/linear_interpolate(lower_dam_wall_height, dam_wall_heights, lower.dam_volumes);
 
-	if ( (upper_water_rock_estimate*lower_water_rock_estimate) < 1.5*(upper_water_rock_estimate+lower_water_rock_estimate) )
+	if ( (upper_water_rock_estimate*lower_water_rock_estimate) < min_pair_water_rock*(upper_water_rock_estimate+lower_water_rock_estimate) )
 		return NULL;
 
 	ArrayCoordinate upper_coordinates = upper.pour_point;
@@ -79,7 +79,7 @@ Pair *check_good_pair(RoughReservoir upper, RoughReservoir lower, int energy_cap
 							   upper_dam_wall_height, lower_dam_wall_height,
 							   upper_coordinates, lower_coordinates);
 
-	if ( SQ(10*head*0.001) < least_distance )
+	if ( SQ(head*0.001) < least_distance*SQ(min_slope))
 		return NULL;
 
 	Reservoir upper_reservoir = Reservoir_init(upper.pour_point, upper.elevation);
@@ -111,11 +111,12 @@ Pair *check_good_pair(RoughReservoir upper, RoughReservoir lower, int energy_cap
     pair->slope = pair->head/(pair->distance)*0.001;
     pair->water_rock = 1/(1/pair->upper.water_rock+1/pair->lower.water_rock);
 	set_FOM(pair);
-
+	if(pair->FOM>max_FOM)
+		return NULL;
 	return pair;
 }
 
-void pairing(vector<RoughReservoir> upper_reservoirs, vector<RoughReservoir> lower_reservoirs)
+void pairing(vector<RoughReservoir>& upper_reservoirs, vector<RoughReservoir>& lower_reservoirs)
 {
 	for (uint itest=0; itest<tests.size(); itest++) {
 		vector<Pair> t;
@@ -131,18 +132,18 @@ void pairing(vector<RoughReservoir> upper_reservoirs, vector<RoughReservoir> low
 		    lower_reservoir = &lower_reservoirs[ilower];
 
 		    int head = upper_reservoir->elevation - lower_reservoir->elevation;
-			if ( head < MIN_HEAD)
+			if ( head < min_head)
 				continue;
 
 			// Pour point separation
 			double distance_sqd = find_distance_sqd(upper_reservoir->pour_point,lower_reservoir->pour_point, coslat);
 
-			if (distance_sqd >= SQ(20) || ( SQ(20.0*head*0.001) <= distance_sqd ))
+			if (SQ(head*0.001) <= distance_sqd*SQ(min_pp_slope))
 				continue;
 
 			for (uint itest=0; itest<tests.size(); itest++) {
 				Pair temp_pair;
-				if (check_good_pair(*upper_reservoir, *lower_reservoir, tests[itest].energy_capacity, tests[itest].storage_time, &temp_pair)) {
+				if (check_good_pair(*upper_reservoir, *lower_reservoir, tests[itest].energy_capacity, tests[itest].storage_time, &temp_pair, tests[itest].max_FOM)) {
 					pairs[itest].push_back(temp_pair);
 				}
 			}
@@ -196,7 +197,7 @@ int main(int nargs, char **argv)
 	mkdir("output/pairs",0777);
 	FILE *csv_file = fopen(convert_string("output/pairs/"+str(square_coordinate)+"_rough_pairs.csv"), "w");
 	if (!csv_file) {
-	 	fprintf(stderr, "failed to open reservoir pair CSV file\n");
+	 	fprintf(stderr, "Failed to open reservoir pair CSV file\n");
 		exit(1);
     }
 	write_rough_pair_csv_header(csv_file);
@@ -204,7 +205,7 @@ int main(int nargs, char **argv)
 	mkdir("processing_files/pairs",0777);
 	FILE *csv_data_file = fopen(convert_string("processing_files/pairs/"+str(square_coordinate)+"_rough_pairs_data.csv"), "w");
 	if (!csv_data_file) {
-	 	fprintf(stderr, "failed to open reservoir pair CSV data file\n");
+	 	fprintf(stderr, "Failed to open reservoir pair CSV data file\n");
 		exit(1);
     }
 	write_rough_pair_data_header(csv_data_file);
@@ -212,7 +213,7 @@ int main(int nargs, char **argv)
 	int total=0;
 	for (uint itest=0; itest<tests.size(); itest++) {
 		if(display)
-			printf("%zu reservoir pairs at energy %dGWh and storage time %dh\n", pairs[itest].size(), tests[itest].energy_capacity, tests[itest].storage_time);
+			printf("%zu %dGWh %dh pairs\n", pairs[itest].size(), tests[itest].energy_capacity, tests[itest].storage_time);
 
 		total+=pairs[itest].size();
 		Pair pair;
@@ -225,5 +226,5 @@ int main(int nargs, char **argv)
 
 	fclose(csv_file);
 
-	printf("Pairing finished for %s. Found %d pairs,  Runtime: %.2f sec\n", convert_string(str(square_coordinate)), total, 1.0e-6*(walltime_usec() - t_usec) );
+	printf("Pairing finished for %s. Found %d pairs. Runtime: %.2f sec\n", convert_string(str(square_coordinate)), total, 1.0e-6*(walltime_usec() - t_usec) );
 }

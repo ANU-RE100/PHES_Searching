@@ -36,7 +36,7 @@ RoughReservoir RoughReservoir_init(ArrayCoordinate pour_point, int elevation)
 	reservoir.latitude = geo_coordinate.lat;
 	reservoir.longitude = geo_coordinate.lon;
 	reservoir.pour_point = pour_point;
-	reservoir.max_dam_height = MAX_WALL_HEIGHT;
+	reservoir.max_dam_height = max_wall_height;
 
 	// initialize bounds
 	for (uint ih=0; ih < dam_wall_heights.size(); ih++) {

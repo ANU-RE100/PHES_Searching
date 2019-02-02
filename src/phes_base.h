@@ -15,28 +15,42 @@ void parse_variables(char* filename);
 
 const double EPS = 1.0e-6;
 const double INF = 1.0e18;  
+const double J_GWh_conversion = 3.6e12;
+const double cubic_metres_GL_conversion = 1.0e6;
+const double resolution = 30.87;
 
-extern double resolution;
-extern double min_watershed_area;
-extern int stream_threshold;
-extern double contour_height;
-extern double freeboard;
-extern int MIN_HEAD;
-extern double min_reservoir_volume;
-extern double min_reservoir_water_rock;
-extern double min_max_dam_height;
-extern double dambatter;
-extern double cwidth;
-extern int border;
-extern double gravity; 				  
-extern double generation_efficiency;
-extern double usable_volume;
-extern double J_GWh_conversion;
-extern double water_density;
-extern double cubic_metres_GL_conversion;
-extern int MAX_WALL_HEIGHT;
-extern vector<double> dam_wall_heights;
+// General
+extern int border;							// Number of cells to add as border around DEM square
+extern double dambatter;					// Slope on sides of dam
+extern double cwidth;						// Width of top of dam
+extern double freeboard;            		// Freeboard on dam
+
+// Screening
+extern double min_watershed_area;			// Minimum watershed area in hectares to be consisered a stream
+extern int stream_threshold;				// Number of cells required to reach minimum watershed area
+extern double contour_height;				// Contour interval along streams for finding dam sites to test
+
+extern double min_reservoir_volume;			// Minimum reservoir volume (GL) at maximum dam wall height
+extern double min_reservoir_water_rock;		// Minimum reservoir water to rock ratio at optimal dam wall height
+extern double min_max_dam_height;			// Minimum maximum dam height (m) (Before overlapping filters) to be considered a potential reservoir
+
 extern vector<string> filter_filenames;
+extern vector<double> dam_wall_heights; 	//  Wall heights to test and export
+
+// Pairing
+extern int min_head;						// Minimum head (m) to be considered a potential pair
+extern double min_pair_water_rock;			// Minimum pair water to rock ratio based on interpolated values
+extern double min_slope;					// Minimum slope based on interpolated nearest point seperation between two reservoirs
+extern double min_pp_slope;					// Minimum slope based on pourpoint seperation between two reservoirs
+
+// Common
+extern double gravity;						// Acceleration due to gravity (m/s/s)
+extern double generation_efficiency;		// Efficiency of generation
+extern double usable_volume;				// Usable volume of reservoir
+extern double water_density;				// Density of water (kg/m^3)
+extern int max_wall_height;
+
+// FOM Calculations
 extern double powerhouse_coeff;
 extern double power_exp;
 extern double head_exp;
@@ -46,12 +60,13 @@ extern double head_coeff;
 extern double power_offset;
 extern double tunnel_fixed;
 extern double dam_cost;
+
 extern int display;
 
 struct Test{
 	int energy_capacity;
 	int storage_time;
-	int min_FOM;
+	int max_FOM;
 	bool operator<(const Test &o) const
 	    {
 	    	if(energy_capacity==o.energy_capacity){

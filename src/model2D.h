@@ -10,11 +10,6 @@ using namespace std;
 template<class T>
 class Model{
 public:
-	Model(){
-		rows = 0;
-		cols = 0;
-		data = NULL;
-	}
 	Model(int rows, int cols){
 		this->rows = rows;
 		this->cols = cols;
@@ -29,6 +24,8 @@ public:
 			data = new T[rows*cols];
 		}
 	}
+	Model(string filename, double* geotransform, char** geoprojection);
+	void write(string filename, double* geotransform, char** geoprojection);
 	~Model(){
 		delete[] data;
 	}
@@ -77,7 +74,17 @@ private:
 	int cols;
 	T *data;
 };
- 
+
+template <typename T> 
+Model<T>::Model(string filename, double* geotransform, char** geoprojection){ 
+    printf("NOT YET IMPLEMENTED\n");
+}
+
+template <typename T> 
+void Model<T>::write(string filename, double* geotransform, char** geoprojection){ 
+    printf("NOT YET IMPLEMENTED\n");
+}
+
 struct Model_double {
 	int shape[2];
 	double **d;
