@@ -1,5 +1,9 @@
 #include "phes_base.h"
 
+// Search Driver
+string tasks_file;					// File with list of cells to do line by line in format <lon> <lat>
+string processes_file;				// File with list of processes to complete
+
 // General
 int border;							// Number of cells to add as border around DEM square
 double dambatter;					// Slope on sides of dam
@@ -128,6 +132,10 @@ void parse_variables(char* filename){
 				min_slope = stod(value);
 			if(variable=="min_pp_slope")
 				min_pp_slope = stod(value);
+			if(variable=="tasks_file")
+				tasks_file = value;
+			if(variable=="processes_file")
+				processes_file = value;
 		}
 	}
 }

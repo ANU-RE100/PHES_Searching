@@ -1,21 +1,11 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
-#include <string.h>
-#include <errno.h>
 #include <dirent.h>
-
-//Being risky (for devel only)
-#include <bits/stdc++.h>
-using namespace std;
 
 #include "phes_base.h"
 
-int display = false;
+int display = true;
 
+// Create a lockfile for this driver and process, returning the ID of the driver
 int set_worker(string process){
 	mkdir(convert_string("driver_files/"+process+"_workers"), 0770);
 	int i = 0;
@@ -29,6 +19,7 @@ int set_worker(string process){
 	}
 }
 
+// Deletes the lockfile with the given ID
 void unset_worker(int id, string process){
 	string workerlockfile = "driver_files/"+process+"_workers/"+to_string(id);
 	if(remove(convert_string(workerlockfile))!=0){
@@ -36,6 +27,7 @@ void unset_worker(int id, string process){
 	}
 }
 
+// Checks if all drivers have completed the process by checking if any files exist in the processes lockfile directory
 bool all_done(string process)
 {
 	DIR *dir = opendir(convert_string("driver_files/"+process+"_workers"));
@@ -43,16 +35,14 @@ bool all_done(string process)
 		fprintf(stderr, "failed to open done dir %s: %s\n", convert_string("driver_files/"+process+"_workers"), strerror(errno));
 		exit(1);
 	}
-
 	int n=0;
 	while(readdir(dir)!=NULL) n++;
-	if(n<=2){
+	if(n<=2)
 		return true;
-	}
 	return false;
 }
 
-
+// Reads a list of cells to process from the tasks_file (Eg. 148 -36)
 vector<GridSquare> read_tasklist(char *tasks_file)
 {
 	FILE *fd = fopen(tasks_file, "r");
@@ -60,9 +50,7 @@ vector<GridSquare> read_tasklist(char *tasks_file)
 		fprintf(stderr, "failed to open task file %s: %s\n", tasks_file, strerror(errno));
 		exit(1);
 	}
-
 	vector<GridSquare> tasklist;
-
 	int lon, lat, rc=0;
 	while (rc != EOF) {	
 		rc = fscanf(fd, "%d %d", &lon, &lat);
@@ -73,6 +61,7 @@ vector<GridSquare> read_tasklist(char *tasks_file)
 	return tasklist;
 }
 
+// Reads a list of processes to complete from the processes_file (Eg. screening)
 vector<string> read_processlist(char *processes_file)
 {
 	ifstream fd(processes_file);
@@ -80,9 +69,7 @@ vector<string> read_processlist(char *processes_file)
 		fprintf(stderr, "failed to open process file %s: %s\n", processes_file, strerror(errno));
 		exit(1);
 	}
-
 	vector<string> processlist;
-
 	for(string line; getline(fd, line);){
 		processlist.push_back(line);
 	}
@@ -91,26 +78,12 @@ vector<string> read_processlist(char *processes_file)
 	return processlist;
 }
 
-
-int main(int nargs, char **argv)
+int main()
 {
-	char *tasks_file = argv[1];
-	char *process_file = argv[2];
+	parse_variables(convert_string("variables"));
 
-	if(nargs==3)
-		printf("args %s %s\n", tasks_file, process_file);
-	else
-		exit(1);
-
-	vector<GridSquare> tasklist = read_tasklist(tasks_file);
-	vector<string> processlist = read_processlist(process_file);
-
-	char *temp=getenv("PHES_BINDIR");
-	if (!temp) {
-		fprintf(stderr, "PHES_BINDIR not set\n");
-		exit(1);
-	}
-	string bindir(temp);
+	vector<GridSquare> tasklist = read_tasklist(convert_string(tasks_file));
+	vector<string> processlist = read_processlist(convert_string(processes_file));
 
 	for (auto process : processlist) {
 		int id = set_worker(process);
@@ -120,15 +93,14 @@ int main(int nargs, char **argv)
 			int fds = open(convert_string(tasklockfile), O_CREAT | O_EXCL | O_WRONLY, 0600);
 			if (fds < 0) {
                 if (errno == EEXIST) {
-					// some other program has it
 					continue;
 	            } else {
 					fprintf(stderr, "failed to to open lock file %s: %s\n", convert_string(tasklockfile), strerror(errno));
 					exit(1);
 				}
 			}
-			if(system(convert_string(bindir+"/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)))){
-				printf("Problem running command\n");
+			if(system(convert_string("bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)))){
+				printf("Problem running command: "+"bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat))+"\n");
 				exit(1);
 			}
 		}

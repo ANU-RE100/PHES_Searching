@@ -1,4 +1,8 @@
-//General
+// Search Driver
+tasks_file = tasks;				// File with list of cells to do line by line in format <lon> <lat>
+processes_file = processes;		// File with list of processes to complete
+
+// General
 border = 600;					// Number of cells to add as border around DEM square
 
 dambatter = 3.0;				// Slope on sides of dam

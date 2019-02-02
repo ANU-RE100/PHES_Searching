@@ -9,6 +9,7 @@ OBJS4 = src/constructor.o $(GEN_OBJS)
 OBJS5 = src/search_driver.o $(GEN_OBJS)
 DIRS = bin input output processing_files driver_files
 INCDIRS = -Iinclude
+NDRIVERS = 1
 
 
 utils: $(shell mkdir -p $(DIRS)) bin/screening bin/pairing bin/pretty_set bin/constructor bin/search_driver
@@ -38,13 +39,4 @@ clear:
 	rm -r -f processing_files driver_files && mkdir -p $(DIRS)
 
 run:
-	bin/start_drivers.sh 1 tasks processes
-
-run2:
-	bin/start_drivers.sh 2 tasks processes
-
-run4:
-	bin/start_drivers.sh 4 tasks processes
-
-run8:
-	bin/start_drivers.sh 8 tasks processes
+	bin/start_drivers.sh $(NDRIVERS)
