@@ -215,7 +215,7 @@ vector<vector<Pair> > read_rough_pair_data(char* filename)
 
 void write_pair_csv_header(FILE *csv_file)
 {
-	vector<string> header = {"Pair Identifier","Figure of Merit","Head (m)","Distance (km)","Slope (%)","Volume (GL)","Energy (GWh)","Storage time (h)","Combined water to rock ratio",
+	vector<string> header = {"Pair Identifier",(output_FOM?"Figure of Merit":"Class"),"Head (m)","Distance (km)","Slope (%)","Volume (GL)","Energy (GWh)","Storage time (h)","Combined water to rock ratio",
 	"Upper Identifier","Upper elevation (m)","Upper latitude","Upper longitude","Upper reservoir area (ha)","Upper reservoir volume (GL)","Upper dam height (m)","Upper dam length (m)","Upper dam volume (GL)","Upper water to rock ratio",
 	"Lower Identifier","Lower elevation (m)","Lower latitude","Lower longitude","Lower reservoir area (ha)","Lower reservoir volume (GL)","Lower dam height (m)","Lower dam length (m)","Lower dam volume (GL)","Lower water to rock ratio"};
 	write_to_csv_file(csv_file, header);
@@ -223,7 +223,7 @@ void write_pair_csv_header(FILE *csv_file)
 
 void write_pair_csv(FILE *csv_file, Pair *pair)
 {
-	vector<string> line = {pair->identifier, dtos(pair->FOM,0),to_string(pair->head), dtos(pair->distance, 2), dtos(pair->slope*100, 0),  dtos(pair->volume, 1), to_string(pair->energy_capacity), to_string(pair->storage_time), dtos(pair->water_rock, 1),
+	vector<string> line = {pair->identifier, (output_FOM?dtos(pair->FOM,0):string(1,pair->category)),to_string(pair->head), dtos(pair->distance, 2), dtos(pair->slope*100, 0),  dtos(pair->volume, 1), to_string(pair->energy_capacity), to_string(pair->storage_time), dtos(pair->water_rock, 1),
 	pair->upper.identifier, to_string(pair->upper.elevation), dtos(pair->upper.latitude,4), dtos(pair->upper.longitude,4), dtos(pair->upper.area,0), dtos(pair->upper.volume,1),dtos(pair->upper.dam_height,1),dtos(pair->upper.dam_length,0), dtos(pair->upper.dam_volume,2), dtos(pair->upper.water_rock,1),
 	pair->lower.identifier, to_string(pair->lower.elevation), dtos(pair->lower.latitude,4), dtos(pair->lower.longitude,4), dtos(pair->lower.area,0), dtos(pair->lower.volume,1),dtos(pair->lower.dam_height,1),dtos(pair->lower.dam_length,0), dtos(pair->lower.dam_volume,2), dtos(pair->lower.water_rock,1)};
 	write_to_csv_file(csv_file, line);

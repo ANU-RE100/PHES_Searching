@@ -35,6 +35,9 @@ double usable_volume;				// Usable volume of reservoir
 double water_density;				// Density of water (kg/m^3)
 int max_wall_height;
 
+// Output
+bool output_FOM = false;			// Whether to output exact FOM or category split
+
 // FOM Calculations
 double powerhouse_coeff;
 double power_exp;

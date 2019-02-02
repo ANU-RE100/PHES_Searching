@@ -54,6 +54,7 @@ struct Pair {
 	double required_volume;
 	double volume;
 	double FOM;
+	char category;
 	double water_rock;
 	int energy_capacity;
 	int storage_time;

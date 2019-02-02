@@ -54,6 +54,9 @@ extern double usable_volume;				// Usable volume of reservoir
 extern double water_density;				// Density of water (kg/m^3)
 extern int max_wall_height;
 
+// Output
+extern bool output_FOM;						// Whether to output exact FOM or category split
+
 // FOM Calculations
 extern double powerhouse_coeff;
 extern double power_exp;

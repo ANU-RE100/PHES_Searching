@@ -91,7 +91,7 @@ string get_html(Pair* pair){
 "              <td>"+pair->identifier+"</td></tr>\n"
 "              <tr><td>\n"
 "              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">\n"
-"              <tr><td>Figure of Merit</td><td>"+dtos(pair->FOM,0)+"</td></tr>\n"
+"              <tr><td>"+(output_FOM?"Figure of Merit":"Class")+"</td><td>"+(output_FOM?dtos(pair->FOM,0):string(1,pair->category))+"</td></tr>\n"
 "              <tr bgcolor=\"#D4E4F3\"><td>Head (m)</td><td>"+to_string(pair->head)+"</td></tr>\n"
 "              <tr><td>Seperation (km)</td><td>"+dtos(pair->distance,1)+"</td></tr>\n"
 "              <tr bgcolor=\"#D4E4F3\"><td>Average Slope (%)</td><td>"+dtos(pair->slope*100,0)+"</td></tr>\n"
