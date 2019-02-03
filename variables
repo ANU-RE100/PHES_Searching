@@ -11,7 +11,7 @@ freeboard = 1.5;				// Freeboard on dam
 
 // Screening
 min_watershed_area = 10;		// Minimum watershed area in hectares to be consisered a stream
-contour_height = 10.0;			// Contour interval along streams for finding dam sites to test
+contour_height = 10;			// Contour interval along streams for finding dam sites to test
 
 min_reservoir_volume = 1.0;		// Minimum reservoir volume (GL) at maximum dam wall height
 min_reservoir_water_rock = 3.0;	// Minimum reservoir water to rock ratio at optimal dam wall height
@@ -46,6 +46,10 @@ head_coeff = -0.54;
 power_offset = 66429;
 tunnel_fixed = 17000000;
 dam_cost = 168;
+
+// Output
+good_colour = 255, 200, 200, 255; // Opacity, Blue, Green, Red
+bad_colour = 255, 0, 0, 150;
 
 // Reservoir sizings
 test = 150, 18, 2800;			// Test in format {Volume (GL), Storage time (h), Maximum FOM}

@@ -28,8 +28,8 @@ ArrayCoordinate ArrayCoordinate_init(int row, int col, GeographicCoordinate orig
 ArrayCoordinateWithHeight ArrayCoordinateWithHeight_init(int row, int col, double h)
 {
 	ArrayCoordinateWithHeight array_coordinate;
-	array_coordinate.row = row;
-	array_coordinate.col = col;
+	array_coordinate.row = (short)row;
+	array_coordinate.col = (short)col;
 	array_coordinate.h = h;
 	return array_coordinate;
 }
@@ -86,60 +86,15 @@ double find_slope(ArrayCoordinate c1, ArrayCoordinate c2, Model_double *DEM)
 	return ( DEM->d[c2.row][c2.col]-DEM->d[c1.row][c1.col])/find_distance(c1, c2);
 }
 
-// Find the lowest neighbor of a point
-int find_lowest_neighbor(ArrayCoordinate c, Model_double *DEM)
-{
-	ArrayCoordinate c2;
-	int result = 0;
-	double min_drop = 0;
-	double min_dist = 100000;
-	for (uint d=0; d<directions.size(); d++) {
-		c2.row = c.row+directions[d].row;
-		c2.col = c.col+directions[d].col;
-		c2.origin = c.origin;
-		if (check_within(c2, DEM->shape)) {
-			double drop = DEM->d[c2.row][c2.col]-DEM->d[c.row][c.col];
-			double dist = find_distance(c, c2);
-			if (drop*min_dist < min_drop*dist) {
-				min_drop = drop;
-				min_dist = dist;
-				result = d;
-			}
-		}
-	}
-	if(min_drop>=0){
-		printf("Alert: Drop of 0 at %d %d", c.row, c.col);
-	}
-	return result;
-}
-
-// Find the lowest neighbor of a point given the cos of the latitude (for speed optimization)
-int find_lowest_neighbor(ArrayCoordinate c, Model_double *DEM, double coslat)
-{
-	ArrayCoordinate c2;
-	int result = 0;
-	double min_drop = 0;
-	double min_dist = 100000;
-	for (uint d=0; d<directions.size(); d++) {
-		c2.row = c.row+directions[d].row;
-		c2.col = c.col+directions[d].col;
-		c2.origin = c.origin;
-		if (check_within(c2, DEM->shape)) {
-			double drop = DEM->d[c2.row][c2.col]-DEM->d[c.row][c.col];
-			double dist = find_distance(c, c2, coslat);
-			if (drop*min_dist < min_drop*dist) {
-				min_drop = drop;
-				min_dist = dist;
-				result = d;
-			}
-		}
-	}
-	return result;
-}
 
 int flows_to(ArrayCoordinate c1, ArrayCoordinate c2, Model_int16 *flow_directions) {
 	return ( ( c1.row + directions[flow_directions->d[c1.row][c1.col]].row == c2.row ) &&
 		 ( c1.col + directions[flow_directions->d[c1.row][c1.col]].col == c2.col ) );
+}
+
+bool flows_to(ArrayCoordinate c1, ArrayCoordinate c2, Model<char>* flow_directions) {
+	return ( ( c1.row + directions[flow_directions->get(c1.row,c1.col)].row == c2.row ) &&
+		 ( c1.col + directions[flow_directions->get(c1.row,c1.col)].col == c2.col ) );
 }
 
 // area of single cell in ha

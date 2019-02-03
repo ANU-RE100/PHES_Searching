@@ -13,7 +13,7 @@ double freeboard;            		// Freeboard on dam
 // Screening
 double min_watershed_area;			// Minimum watershed area in hectares to be consisered a stream
 int stream_threshold;				// Number of cells required to reach minimum watershed area
-double contour_height;				// Contour interval along streams for finding dam sites to test
+int contour_height;				// Contour interval along streams for finding dam sites to test
 
 double min_reservoir_volume;		// Minimum reservoir volume (GL) at maximum dam wall height
 double min_reservoir_water_rock;	// Minimum reservoir water to rock ratio at optimal dam wall height
@@ -37,6 +37,8 @@ int max_wall_height;
 
 // Output
 bool output_FOM = false;			// Whether to output exact FOM or category split
+int good_colour[4];
+int bad_colour[4];
 
 // FOM Calculations
 double powerhouse_coeff;
@@ -74,7 +76,7 @@ void parse_variables(char* filename){
 			if(variable=="border")
 				border = stoi(value);
 			if(variable=="contour_height")
-				contour_height = stod(value);
+				contour_height = stoi(value);
 			if(variable=="min_head")
 				min_head = stoi(value);
 			if(variable=="min_reservoir_volume")
@@ -139,6 +141,14 @@ void parse_variables(char* filename){
 				tasks_file = value;
 			if(variable=="processes_file")
 				processes_file = value;
+			if(variable=="good_colour"){
+				vector<string> t = read_from_csv_file(value);
+				good_colour[0] = stoi(t[0]);good_colour[1] = stoi(t[1]);good_colour[2] = stoi(t[2]);good_colour[3] = stoi(t[3]);
+			}
+			if(variable=="bad_colour"){
+				vector<string> t = read_from_csv_file(value);
+				bad_colour[0] = stoi(t[0]);bad_colour[1] = stoi(t[1]);bad_colour[2] = stoi(t[2]);bad_colour[3] = stoi(t[3]);
+			}
 		}
 	}
 }

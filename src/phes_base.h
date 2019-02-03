@@ -4,9 +4,9 @@
 #include <sys/time.h>
 #include <sys/stat.h> 
 #include "shapefil.h"
-#include <gdal/gdal.h>
 #include <gdal/cpl_conv.h>
 #include <gdal/cpl_string.h>
+#include "gdal/gdal_priv.h"
 
 #include <bits/stdc++.h>
 using namespace std;
@@ -28,11 +28,12 @@ extern int border;							// Number of cells to add as border around DEM square
 extern double dambatter;					// Slope on sides of dam
 extern double cwidth;						// Width of top of dam
 extern double freeboard;            		// Freeboard on dam
+extern int display;							// Whether to display full output
 
 // Screening
 extern double min_watershed_area;			// Minimum watershed area in hectares to be consisered a stream
 extern int stream_threshold;				// Number of cells required to reach minimum watershed area
-extern double contour_height;				// Contour interval along streams for finding dam sites to test
+extern int contour_height;					// Contour interval along streams for finding dam sites to test
 
 extern double min_reservoir_volume;			// Minimum reservoir volume (GL) at maximum dam wall height
 extern double min_reservoir_water_rock;		// Minimum reservoir water to rock ratio at optimal dam wall height
@@ -56,6 +57,8 @@ extern int max_wall_height;
 
 // Output
 extern bool output_FOM;						// Whether to output exact FOM or category split
+extern int good_colour[4];
+extern int bad_colour[4];
 
 // FOM Calculations
 extern double powerhouse_coeff;
@@ -67,8 +70,6 @@ extern double head_coeff;
 extern double power_offset;
 extern double tunnel_fixed;
 extern double dam_cost;
-
-extern int display;
 
 struct Test{
 	int energy_capacity;
@@ -87,18 +88,17 @@ extern vector<Test> tests;
 
 struct Direction{
 	int row, col;
-	int val;
 };
 
 const array<Direction, 8> directions =
-	{{{ 0,  1, 1  }, 
-      { 1,  1, 2  },
-      { 1,  0, 4  },
-      { 1, -1, 8  },
-      { 0, -1, 16 },
-      {-1, -1, 32 },
-      {-1,  0, 64 },
-      {-1,  1, 128}}};
+	{{{ 0,  1}, 
+      { 1,  1},
+      { 1,  0},
+      { 1, -1},
+      { 0, -1},
+      {-1, -1},
+      {-1,  0},
+      {-1,  1}}};
 
 
 #ifndef MIN
@@ -147,9 +147,9 @@ void write_to_csv_file(FILE *csv_file, vector<string> cols);
 vector<string> read_from_csv_file(string line);
 string dtos(double f, int nd);
 Model_int16* read_DEM_with_borders(GridSquare sq);
+Model<short>* read_DEM_with_borders(GridSquare sq, int border);
 Models Models_init(GridSquare sc);
 void set_FOM(Pair* pair);
 string str(Test test);
-
 
 #endif

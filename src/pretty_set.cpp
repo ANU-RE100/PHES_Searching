@@ -1,11 +1,5 @@
-#include <stdlib.h>
-#include <sys/time.h>
 #include "shapefil.h"
-#include <sys/stat.h> 
-#include <sys/types.h> 
 
-#include "model2D.h"
-#include "TIFF_IO.h"
 #include "phes_base.h"
 
 //Being risky (for devel only)

@@ -15,21 +15,10 @@ using namespace std;
 string kml_start = 
 "<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n"
 "  <Document id=\"Layers\">\n"
-"    <Style id=\"upper_style\">\n"
+"    <Style id=\"reservoir_style\">\n"
 "      <LineStyle>\n"
 "        <width>0</width>\n"
 "      </LineStyle>\n"
-"      <PolyStyle>\n"
-"        <color>99ff8888</color>\n"
-"      </PolyStyle>\n"
-"    </Style>\n"
-"    <Style id=\"lower_style\">\n"
-"      <LineStyle>\n"
-"        <width>0</width>\n"
-"      </LineStyle>\n"
-"      <PolyStyle>\n"
-"        <color>99ff0000</color>\n"
-"      </PolyStyle>\n"
 "    </Style>\n"
 "    <Style id=\"wall_style\">\n"
 "      <LineStyle>\n"
@@ -48,6 +37,9 @@ string kml_start =
 "    <Style id=\"pin_style\">\n"
 "      <IconStyle>\n"
 "        <scale>1</scale>\n"
+"        <Icon>\n"
+"           <href>http://maps.google.com/mapfiles/kml/pushpin/wht-pushpin.png</href>\n"
+"        </Icon>\n"
 "      </IconStyle>\n"
 "      <LabelStyle>\n"
 "        <color>99ffffff</color>\n"
@@ -165,15 +157,20 @@ string get_point_geometry(string coordinates){
 "        </Point>\n";
 }
 
-string get_reservoir_kml(Reservoir* reservoir, string style, Reservoir_KML_Coordinates coordinates){
+string get_reservoir_kml(Reservoir* reservoir, string colour, Reservoir_KML_Coordinates coordinates){
 	return
 "      <Placemark>\n"
 "        <name><![CDATA["+reservoir->identifier+"]]></name>\n"
-"        <styleUrl>"+style+"</styleUrl>\n"
-+get_reservoir_geometry(coordinates)+
+"        <styleUrl>#reservoir_style</styleUrl>\n"
+"        <Style>\n"
+"          <PolyStyle>\n"
+"            <color>"+colour+"</color>\n"
+"          </PolyStyle>\n"
+"        </Style>\n"
+			+get_reservoir_geometry(coordinates)+
 "        <description>\n"
 "           <![CDATA[\n"
-+get_html(reservoir)+
+			+get_html(reservoir)+
 "           ]]>\n"
 "        </description>\n"
 "      </Placemark>\n";
@@ -184,7 +181,7 @@ string get_dam_kml(Reservoir* reservoir, Reservoir_KML_Coordinates coordinates){
 "      <Placemark>\n"
 "        <name><![CDATA["+reservoir->identifier+" Dam]]></name>\n"
 "        <styleUrl>#wall_style</styleUrl>\n"
-+get_dam_geometry(coordinates)+
+			+get_dam_geometry(coordinates)+
 "      </Placemark>\n";
 }
 
@@ -193,13 +190,28 @@ string get_line_kml(Pair* pair, string coordinates){
 "      <Placemark>\n"
 "        <name><![CDATA["+pair->identifier+"]]></name>\n"
 "        <styleUrl>#pipe_style</styleUrl>\n"
-+get_line_geometry(coordinates)+
+			+get_line_geometry(coordinates)+
 "        <description>\n"
 "           <![CDATA[\n"
-+get_html(pair)+
+				+get_html(pair)+
 "           ]]>\n"
 "        </description>\n"
 "      </Placemark>\n";
+}
+
+string hex(int c){
+	stringstream to_return;
+	to_return << setw(2) << setfill('0') << hex << c;
+	return to_return.str();
+}
+
+string get_colour(char category){
+	int opacity = convert_to_int(good_colour[0]+(((category-'A')/4.0)*(bad_colour[0]-good_colour[0])));
+	int blue = convert_to_int(good_colour[1]+(((category-'A')/4.0)*(bad_colour[1]-good_colour[1])));
+	int green = convert_to_int(good_colour[2]+(((category-'A')/4.0)*(bad_colour[2]-good_colour[2])));
+	int red = convert_to_int(good_colour[3]+(((category-'A')/4.0)*(bad_colour[3]-good_colour[3])));
+	string to_return = hex(opacity)+hex(blue)+hex(green)+hex(red);
+	return to_return;
 }
 
 string get_point_kml(Pair* pair, string coordinates){
@@ -207,11 +219,16 @@ string get_point_kml(Pair* pair, string coordinates){
 "      <Placemark>\n"
 "        <name><![CDATA["+pair->identifier+"]]></name>\n"
 "        <styleUrl>#pin_style</styleUrl>\n"
-+get_point_geometry(coordinates)+
+"        <Style>\n"
+"          <IconStyle>\n"
+"            <color>"+get_colour(pair->category)+"</color>\n"
+"          </IconStyle>\n"
+"        </Style>\n"
+			+get_point_geometry(coordinates)+
 "        <altitudeMode>relativeToGround</altitudeMode>\n"
 "        <description>\n"
 "           <![CDATA[\n"
-+get_html(pair)+
+				+get_html(pair)+
 "           ]]>\n"
 "        </description>\n"
 "      </Placemark>\n";
@@ -243,9 +260,9 @@ string output_kml(KML_Holder* kml_holder, string square, Test test){
 void update_kml_holder(KML_Holder* kml_holder, Pair* pair, Pair_KML* pair_kml){
 	kml_holder->points.push_back(get_point_kml(pair, pair_kml->point));
 	kml_holder->lines.push_back(get_line_kml(pair, pair_kml->line));
-	kml_holder->uppers.push_back(get_reservoir_kml(&pair->upper, "#upper_style", pair_kml->upper));
+	kml_holder->uppers.push_back(get_reservoir_kml(&pair->upper, "#88F0AA14", pair_kml->upper));
 	kml_holder->upper_dams.push_back(get_dam_kml(&pair->upper, pair_kml->upper));
-	kml_holder->lowers.push_back(get_reservoir_kml(&pair->lower, "#lower_style", pair_kml->lower));
+	kml_holder->lowers.push_back(get_reservoir_kml(&pair->lower, "#88F03C14", pair_kml->lower));
 	kml_holder->lower_dams.push_back(get_dam_kml(&pair->lower, pair_kml->lower));
 }
 

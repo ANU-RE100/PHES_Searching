@@ -119,6 +119,47 @@ Model_int16* read_DEM_with_borders(GridSquare sc){
 	return DEM;
 }
 
+Model<short>* read_DEM_with_borders(GridSquare sc, int border){
+	Model<short>* DEM = new Model<short>(0, 0, MODEL_UNSET);
+	const int neighbors[9][4][2] = {
+		//[(Tile coordinates) , (Tile base)		 		  , (Tile limit)				  , (Tile offset)	 	       ]
+		{ {sc.lat  ,sc.lon  } , {border,      border	 }, {border+3600,  	3600+border	 }, {border-1,    border     } },
+		{ {sc.lat+1,sc.lon-1} , {0,			  0		 	 }, {border, 	    border	 	 }, {border-3601, border-3600} },
+		{ {sc.lat+1,sc.lon  } , {0,	      	  border	 }, {border,	    3600+border	 }, {border-3601, border     } },
+		{ {sc.lat+1,sc.lon+1} , {0,	      	  3600+border}, {border,        3600+2*border}, {border-3601, border+3600} },
+		{ {sc.lat  ,sc.lon+1} , {border-1,    3600+border}, {3600+border,   3600+2*border}, {border-1,    border+3600} },
+		{ {sc.lat-1,sc.lon+1} , {3600+border, 3600+border}, {3600+2*border, 3600+2*border}, {border+3599, border+3600} },
+		{ {sc.lat-1,sc.lon  } , {3600+border, border	 }, {3600+2*border, 3601+border	 }, {border+3599, border     } },
+		{ {sc.lat-1,sc.lon-1} , {3600+border, 0		 	 }, {3600+2*border, border	 	 }, {border+3599, border-3600} },
+		{ {sc.lat  ,sc.lon-1} , {border-1,    0		 	 }, {3600+border,   border	 	 }, {border-1,    border-3600} }
+	};
+	for (int i=0; i<9; i++) {
+		GridSquare gs = GridSquare_init(neighbors[i][0][0], neighbors[i][0][1]);
+		ArrayCoordinate tile_start = ArrayCoordinate_init(neighbors[i][1][0], neighbors[i][1][1], get_origin(gs, border));
+		ArrayCoordinate tile_end = ArrayCoordinate_init(neighbors[i][2][0], neighbors[i][2][1], get_origin(gs, border));
+		ArrayCoordinate tile_offset = ArrayCoordinate_init(neighbors[i][3][0], neighbors[i][3][1], get_origin(gs, border));
+		try{
+			Model<short>* DEM_temp = new Model<short>("input/"+str(gs)+"_1arc_v3.tif", GDT_Int16);
+			if (i==0) {
+				DEM = new Model<short>(DEM_temp->nrows()+2*border-1,DEM_temp->ncols()+2*border-1, MODEL_SET_ZERO);
+				DEM->set_geodata(DEM_temp->get_geodata());
+				GeographicCoordinate origin = get_origin(gs, border);
+				DEM->set_origin(origin.lat, origin.lon);
+			}
+			for(int row = tile_start.row ; row < tile_end.row ; row++)
+				for(int col = tile_start.col ; col < tile_end.col; col++)
+					DEM->set(row, col, DEM_temp->get(row-tile_offset.row,col-tile_offset.col));
+			delete DEM_temp;
+		}catch (int e){
+			if(display)
+				fprintf(stderr, "Could not find file %s: %s\n", convert_string("input/"+str(gs)+"_1arc_v3.tif"), strerror(errno));
+			if (i==0)
+				throw(1);
+		}
+	}
+	return DEM;
+}
+
 Models Models_init(GridSquare sc){
 	Models models;
 	GridSquare neighbors[9] = {
