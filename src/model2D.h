@@ -61,7 +61,7 @@ public:
 	bool check_within(GeographicCoordinate& g){
 		return check_within(floor((g.lat-geodata.geotransform[3])/geodata.geotransform[5]), floor((g.lon-geodata.geotransform[0])/geodata.geotransform[1]));
 	}
-	T get(GeographicCoordinate& g){
+	T get(GeographicCoordinate g){
 		return get(floor((g.lat-geodata.geotransform[3])/geodata.geotransform[5]), floor((g.lon-geodata.geotransform[0])/geodata.geotransform[1]));
 	}
 	void set(GeographicCoordinate& g, T value){

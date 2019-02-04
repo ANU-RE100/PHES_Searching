@@ -1,18 +1,9 @@
-#include <stdlib.h>
-#include <sys/time.h>
-#include "shapefil.h"
-#include <sys/stat.h> 
-#include <sys/types.h> 
-
 #include "phes_base.h"
 #include "kml.h"
 
-#include <bits/stdc++.h>
-using namespace std;
-
 int display = false;
 
-vector<vector<Pair> > pairs;
+vector<vector<Pair>> pairs;
 
 // Returns a tuple with the two cells adjacent to an edge defined by two points
 ArrayCoordinate* get_adjacent_cells(ArrayCoordinate point1, ArrayCoordinate point2){
@@ -164,18 +155,17 @@ string str(vector<GeographicCoordinate> polygon, double elevation){
 	return to_return;
 }
 
-bool model_reservoir(Reservoir* reservoir, Models models, Reservoir_KML_Coordinates* coordinates, Model_int8 *seen, bool* non_overlap, vector<ArrayCoordinate> *used_points){
+bool model_reservoir(Reservoir* reservoir, Models models, Reservoir_KML_Coordinates* coordinates, Model<bool>* seen, bool* non_overlap, vector<ArrayCoordinate> *used_points, BigModel big_model){
 	
 	Model_int16 *DEM = models.DEMs[0];
 	Model_int16 *flow_directions = models.flow_directions[0];
 	Model_int16 *cur_model = Model_int16_create(models.DEMs[0]->shape, MODEL_SET_ZERO);
 
-	for(int i = 0; i<9; i++){
+	for(int i = 0; i<9; i++)
 		if(models.neighbors[i].lat == (int)(FLOOR(reservoir->latitude)-EPS) && models.neighbors[i].lon == (int)(FLOOR(reservoir->longitude)+EPS)){
 			DEM = models.DEMs[i];
 			flow_directions = models.flow_directions[i];
 		}
-	}
 
 	double req_volume = reservoir->volume;
 	reservoir->volume = 0;
@@ -184,7 +174,7 @@ bool model_reservoir(Reservoir* reservoir, Models models, Reservoir_KML_Coordina
 	
 	// RESERVOIR
 	char last_dir = 'd';
-	while(reservoir->volume*(1+0.5/reservoir->water_rock)<0.99*req_volume || reservoir->volume*(1+0.5/reservoir->water_rock)>1.01*req_volume){
+	while(reservoir->volume*(1+0.5/reservoir->water_rock)<(1-volume_accuracy)*req_volume || reservoir->volume*(1+0.5/reservoir->water_rock)>(1+volume_accuracy)*req_volume){
 		temp_used_points.clear();
 		reservoir->volume = 0;
 		reservoir->area = 0;
@@ -200,7 +190,7 @@ bool model_reservoir(Reservoir* reservoir, Models models, Reservoir_KML_Coordina
 			ArrayCoordinate big_ac = convert_coordinates(convert_coordinates(p), models.origin);
 
 			temp_used_points.push_back(big_ac);
-			if (seen->d[big_ac.row][big_ac.col]){
+			if (seen->get(big_ac.row,big_ac.col)){
 				*non_overlap = false;
 			}
 
@@ -219,17 +209,17 @@ bool model_reservoir(Reservoir* reservoir, Models models, Reservoir_KML_Coordina
 
 		}
 		
-		if(reservoir->volume*(1+0.5/reservoir->water_rock)<0.99*req_volume){
-			reservoir->dam_height+=0.05;
+		if(reservoir->volume*(1+0.5/reservoir->water_rock)<(1-volume_accuracy)*req_volume){
+			reservoir->dam_height+=dam_wall_height_resolution;
             if(reservoir->dam_height>reservoir->max_dam_height)
                 return false;
             last_dir = 'u';
 		}
                 
-        if(reservoir->volume*(1+0.5/reservoir->water_rock)>1.01*req_volume){
+        if(reservoir->volume*(1+0.5/reservoir->water_rock)>(1+volume_accuracy)*req_volume){
         	if (last_dir == 'u')
                 break;
-            reservoir->dam_height-=0.05;
+            reservoir->dam_height-=dam_wall_height_resolution;
             last_dir = 'd';
         }            
 	}
@@ -313,20 +303,20 @@ bool model_reservoir(Reservoir* reservoir, Models models, Reservoir_KML_Coordina
 	return true;
 }
 
-bool model_pair(Pair* pair, Models models, Pair_KML* pair_kml, Model_int8 *seen, bool* non_overlap, int max_FOM){
+bool model_pair(Pair* pair, Models models, Pair_KML* pair_kml, Model<bool>* seen, bool* non_overlap, int max_FOM, BigModel big_model){
 
 	vector<ArrayCoordinate> used_points;
 	*non_overlap = true;
 
-	if(!model_reservoir(&pair->upper, models, &pair_kml->upper, seen, non_overlap, &used_points))
+	if(!model_reservoir(&pair->upper, models, &pair_kml->upper, seen, non_overlap, &used_points, big_model))
 		return false;
 
-	if(!model_reservoir(&pair->lower, models, &pair_kml->lower, seen, non_overlap, &used_points))
+	if(!model_reservoir(&pair->lower, models, &pair_kml->lower, seen, non_overlap, &used_points, big_model))
 		return false;
 
 	if(*non_overlap){
 		for(uint i = 0; i<used_points.size();i++){
-			seen->d[used_points[i].row][used_points[i].col] = true;
+			seen->set(used_points[i].row,used_points[i].col,true);
 		}
 	}
 
@@ -369,6 +359,7 @@ int main(int nargs, char **argv)
     parse_variables(convert_string("variables"));
     unsigned long t_usec = walltime_usec();
 
+    BigModel big_model = BigModel_init(square_coordinate);
 	Models models = Models_init(square_coordinate);
 
 	for(int i = 0; i<9; i++){
@@ -383,8 +374,8 @@ int main(int nargs, char **argv)
 		
 	}
 
-	int big_shape[2] = {models.DEMs[0]->shape[0]*3-border*4, models.DEMs[0]->shape[1]*3-border*4};
-	Model_int8* seen = Model_int8_create(big_shape, MODEL_SET_ZERO);
+	Model<bool>* seen = new Model<bool>(big_model.DEM->nrows(), big_model.DEM->nrows(), MODEL_SET_ZERO);
+    seen->set_geodata(big_model.DEM->get_geodata());
 
 	pairs = read_rough_pair_data(convert_string("processing_files/pretty_set_pairs/"+str(square_coordinate)+"_rough_pretty_set_pairs_data.csv"));
 	mkdir("output/final_output", 0777);
@@ -396,7 +387,7 @@ int main(int nargs, char **argv)
 	int total_count = 0;
 	int total_capacity = 0;
 	for(uint i = 0; i<tests.size(); i++){
-
+        sort(pairs[i].begin(), pairs[i].end());
         
 		FILE *csv_file = fopen(convert_string("output/final_output/"+str(square_coordinate)+"/"+str(square_coordinate)+"_"+str(tests[i])+".csv"), "w");
 		write_pair_csv_header(csv_file);
@@ -412,7 +403,7 @@ int main(int nargs, char **argv)
 		for(uint j=0; j<pairs[i].size(); j++){
 			Pair_KML pair_kml;
 			bool non_overlap;
-			if(model_pair(&pairs[i][j], models, &pair_kml, seen, &non_overlap, tests[i].max_FOM)){
+			if(model_pair(&pairs[i][j], models, &pair_kml, seen, &non_overlap, tests[i].max_FOM, big_model)){
 				write_pair_csv(csv_file, &pairs[i][j]);
 				//write_fusion_csv(fusion_csv_file, &pairs[i][j], &pair_kml);
 				update_kml_holder(&kml_holder, &pairs[i][j], &pair_kml);
@@ -426,7 +417,7 @@ int main(int nargs, char **argv)
 
 		kml_file << output_kml(&kml_holder, str(square_coordinate), tests[i]);
         if(display)
-		  printf("%d %dGWh %dh Pairs\n", count, tests[i].energy_capacity, tests[i].storage_time);
+            printf("%d %dGWh %dh Pairs\n", count, tests[i].energy_capacity, tests[i].storage_time);
 		kml_file.close();
 	}
 	write_total_csv(total_csv_file, str(square_coordinate), total_count, total_capacity);

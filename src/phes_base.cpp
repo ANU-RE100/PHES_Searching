@@ -179,6 +179,34 @@ Models Models_init(GridSquare sc){
 	return models;
 }
 
+BigModel BigModel_init(GridSquare sc){
+	BigModel big_model;
+	GridSquare neighbors[9] = {
+		(GridSquare){sc.lat  ,sc.lon  },
+		(GridSquare){sc.lat+1,sc.lon-1},
+		(GridSquare){sc.lat+1,sc.lon  },
+		(GridSquare){sc.lat+1,sc.lon+1},
+		(GridSquare){sc.lat  ,sc.lon+1},
+		(GridSquare){sc.lat-1,sc.lon+1},
+		(GridSquare){sc.lat-1,sc.lon  },
+		(GridSquare){sc.lat-1,sc.lon-1},
+		(GridSquare){sc.lat  ,sc.lon-1}};
+	for(int i = 0; i<9; i++){
+		big_model.neighbors[i] = neighbors[i];
+	}
+	big_model.DEM = read_DEM_with_borders(sc, 3600);
+	for(int i = 0; i<9; i++){
+		GridSquare gs = big_model.neighbors[i];
+		try{
+			big_model.flow_directions[i] = new Model<char>("processing_files/flow_directions/"+str(gs)+"_flow_directions.tif",GDT_Byte);
+		}catch(int e){
+			if(display)
+				printf("Could not find %s\n", convert_string(str(gs)));
+		}
+	}
+	return big_model;
+}
+
 void set_FOM(Pair* pair){
 	double power = 1000*pair->energy_capacity/pair->storage_time;
 	double power_house_cost = powerhouse_coeff*pow(MIN(power,800),(power_exp))/pow((double)pair->head,head_exp);

@@ -59,6 +59,8 @@ extern int max_wall_height;
 extern bool output_FOM;						// Whether to output exact FOM or category split
 extern int good_colour[4];
 extern int bad_colour[4];
+extern double volume_accuracy;				// Maximum ratio error on final volume
+extern double dam_wall_height_resolution;	// Resolution of dam wall height (m)
 
 // FOM Calculations
 extern double powerhouse_coeff;
@@ -134,6 +136,12 @@ struct Models{
 	GeographicCoordinate origin;
 };
 
+struct BigModel{
+	GridSquare neighbors[9];
+	Model<short>* DEM;
+	Model<char>* flow_directions[9];
+};
+
 int convert_to_int(double f);
 double max(vector<double> a);
 double convert_to_dam_volume(int height, double length);
@@ -149,6 +157,7 @@ string dtos(double f, int nd);
 Model_int16* read_DEM_with_borders(GridSquare sq);
 Model<short>* read_DEM_with_borders(GridSquare sq, int border);
 Models Models_init(GridSquare sc);
+BigModel BigModel_init(GridSquare sc);
 void set_FOM(Pair* pair);
 string str(Test test);
 

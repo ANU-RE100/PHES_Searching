@@ -2,7 +2,7 @@
 
 int display = false;
 
-vector<vector<Pair> > pairs;
+vector<vector<Pair>> pairs;
 
 vector<GeographicCoordinate> find_points_to_test(vector<array<ArrayCoordinate, directions.size()> > boundary, double wall_height, ArrayCoordinate pour_point)
 {

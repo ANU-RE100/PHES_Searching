@@ -39,6 +39,8 @@ int max_wall_height;
 bool output_FOM = false;			// Whether to output exact FOM or category split
 int good_colour[4];
 int bad_colour[4];
+double volume_accuracy;				// Maximum ratio error on final volume
+double dam_wall_height_resolution;	// Resolution of dam wall height (m)
 
 // FOM Calculations
 double powerhouse_coeff;
@@ -149,6 +151,10 @@ void parse_variables(char* filename){
 				vector<string> t = read_from_csv_file(value);
 				bad_colour[0] = stoi(t[0]);bad_colour[1] = stoi(t[1]);bad_colour[2] = stoi(t[2]);bad_colour[3] = stoi(t[3]);
 			}
+			if(variable=="volume_accuracy")
+				volume_accuracy = stod(value);
+			if(variable=="dam_wall_height_resolution")
+				dam_wall_height_resolution = stod(value);
 		}
 	}
 }
