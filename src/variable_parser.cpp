@@ -10,6 +10,9 @@ double dambatter;					// Slope on sides of dam
 double cwidth;						// Width of top of dam
 double freeboard;            		// Freeboard on dam
 
+// Shapefile tiling
+vector<string> filter_filenames_to_tile; // Shapefiles to split into tiles
+
 // Screening
 double min_watershed_area;			// Minimum watershed area in hectares to be consisered a stream
 int stream_threshold;				// Number of cells required to reach minimum watershed area
@@ -36,7 +39,7 @@ double water_density;				// Density of water (kg/m^3)
 int max_wall_height;
 
 // Output
-bool output_FOM = false;			// Whether to output exact FOM or category split
+bool output_FOM;			// Whether to output exact FOM or category split
 int good_colour[4];
 int bad_colour[4];
 double volume_accuracy;				// Maximum ratio error on final volume
@@ -55,6 +58,7 @@ double dam_cost;
 
 // Reservoir Sizings
 vector<Test> tests;					// Test in format {Volume (GL), Storage time (h), Maximum FOM}
+vector<CategoryCutoff> category_cutoffs;
 
 void parse_variables(char* filename){
 	ifstream in(filename);
@@ -71,6 +75,8 @@ void parse_variables(char* filename){
 			}
 			if(variable=="filter")
 				filter_filenames.push_back(value);
+			if(variable=="filter_to_tile")
+				filter_filenames_to_tile.push_back(value);
 			if(variable=="min_watershed_area"){
 				min_watershed_area = stod(value);
 				stream_threshold = (int)(11.1*min_watershed_area);
@@ -155,6 +161,14 @@ void parse_variables(char* filename){
 				volume_accuracy = stod(value);
 			if(variable=="dam_wall_height_resolution")
 				dam_wall_height_resolution = stod(value);
+			if(variable=="output_FOM")
+				output_FOM = stoi(value);
+			if(variable.length()==1){
+				vector<string> t = read_from_csv_file(value);
+				CategoryCutoff cutoff = {variable[0], stod(t[0]), stod(t[1])};
+				category_cutoffs.push_back(cutoff);
+				sort(category_cutoffs.begin(), category_cutoffs.end());
+			}
 		}
 	}
 }

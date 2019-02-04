@@ -42,7 +42,7 @@ string kml_start =
 "        </Icon>\n"
 "      </IconStyle>\n"
 "      <LabelStyle>\n"
-"        <color>99ffffff</color>\n"
+"        <color>00ffffff</color>\n"
 "        <scale>0.6</scale>\n"
 "      </LabelStyle>\n"
 "    </Style>\n";

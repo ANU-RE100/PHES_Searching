@@ -214,7 +214,12 @@ void set_FOM(Pair* pair){
 	double power_cost = 0.001*(power_house_cost+tunnel_cost)/MIN(power, 800);
 	double energy_cost = dam_cost*1/(pair->water_rock*generation_efficiency * usable_volume*water_density*gravity*pair->head)*J_GWh_conversion/cubic_metres_GL_conversion;
 	pair->FOM = power_cost+energy_cost*pair->storage_time;
-	pair->category = 'A'+rand()%5;
+	pair->category = 'Z';
+	uint i = 0;
+	while(i<category_cutoffs.size() && pair->FOM<category_cutoffs[i].power_cost+pair->storage_time*category_cutoffs[i].storage_cost){
+		pair->category = category_cutoffs[i].category;
+		i++;
+	}
 }
 
 string str(Test test){

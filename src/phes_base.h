@@ -30,6 +30,9 @@ extern double cwidth;						// Width of top of dam
 extern double freeboard;            		// Freeboard on dam
 extern int display;							// Whether to display full output
 
+// Shapefile tiling
+extern vector<string> filter_filenames_to_tile; // Shapefiles to split into tiles
+
 // Screening
 extern double min_watershed_area;			// Minimum watershed area in hectares to be consisered a stream
 extern int stream_threshold;				// Number of cells required to reach minimum watershed area
@@ -101,6 +104,18 @@ const array<Direction, 8> directions =
       {-1, -1},
       {-1,  0},
       {-1,  1}}};
+
+struct CategoryCutoff{
+	char category;
+	double power_cost;
+	double storage_cost;
+	bool operator<(const CategoryCutoff &o) const
+	    {
+			return category > o.category;
+	    }
+};
+
+extern vector<CategoryCutoff> category_cutoffs;
 
 
 #ifndef MIN

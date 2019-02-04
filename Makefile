@@ -2,6 +2,7 @@
 CXXFLAGS = -std=c++11 -O3 -Wall -Wextra -g
 LIBS = -lgdal -lshp
 GEN_OBJS = src/model2D.o src/TIFF_IO.o src/reservoir.o src/coordinates.o src/phes_base.o  src/variable_parser.o src/kml.o src/csv.o
+OBJS0 = src/shapefile_tiling.o $(GEN_OBJS)
 OBJS1 = src/screening.o $(GEN_OBJS)
 OBJS2 = src/pairing.o $(GEN_OBJS)
 OBJS3 = src/pretty_set.o $(GEN_OBJS)
@@ -10,7 +11,10 @@ OBJS5 = src/search_driver.o $(GEN_OBJS)
 DIRS = bin input output processing_files driver_files
 INCDIRS = -Iinclude
 
-utils: $(shell mkdir -p $(DIRS)) bin/screening bin/pairing bin/pretty_set bin/constructor bin/search_driver
+utils: $(shell mkdir -p $(DIRS)) bin/shapefile_tiling bin/screening bin/pairing bin/pretty_set bin/constructor bin/search_driver
+
+bin/shapefile_tiling: $(OBJS0)
+	g++ $(CXXFLAGS) $(LDFLAGS) $(OBJS0) $(LIBS) -o $@
 
 bin/screening: $(OBJS1)
 	g++ $(CXXFLAGS) $(LDFLAGS) $(OBJS1) $(LIBS) -o $@

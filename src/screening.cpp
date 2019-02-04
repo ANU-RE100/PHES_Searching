@@ -104,7 +104,7 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 	for(string filename:filenames){
 		if(filename=="use_world_urban"){
 			if(display)
-				printf("Using world urban data\n");
+				printf("Using world urban data as filter\n");
 			vector<string> done;
 			for(GeographicCoordinate corner: DEM->get_corners()){
 				string urban_filename = find_world_urban_filename(corner);
@@ -112,6 +112,23 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 					read_tif_filter(urban_filename, filter, 201);
 					done.push_back(urban_filename);
 				}
+			}
+		}else if(filename=="use_tiled_filter"){
+			if(display)
+				printf("Using tiled filter\n");
+			GridSquare sc = {(int)((filter->get_coordinate(filter->nrows(), filter->ncols()).lat+filter->get_origin().lat)/2.0)-1,(int)((filter->get_coordinate(filter->nrows(), filter->ncols()).lon+filter->get_origin().lon)/2.0)};
+			GridSquare neighbors[9] = {
+				(GridSquare){sc.lat  ,sc.lon  },
+				(GridSquare){sc.lat+1,sc.lon-1},
+				(GridSquare){sc.lat+1,sc.lon  },
+				(GridSquare){sc.lat+1,sc.lon+1},
+				(GridSquare){sc.lat  ,sc.lon+1},
+				(GridSquare){sc.lat-1,sc.lon+1},
+				(GridSquare){sc.lat-1,sc.lon  },
+				(GridSquare){sc.lat-1,sc.lon-1},
+				(GridSquare){sc.lat  ,sc.lon-1}};
+			for(int i = 0; i<9; i++){
+				read_shp_filter("input/shapefile_tiles/"+str(neighbors[i])+"_shapefile_tile.shp", filter);
 			}
 		}else{
 			read_shp_filter(filename, filter);

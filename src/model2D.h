@@ -21,6 +21,11 @@ public:
 	Model(string filename, GDALDataType data_type);
 	void write(string filename, GDALDataType data_type);
 	void print();
+	Model(int rows, int cols){
+		this->rows = rows;
+		this->cols = cols;
+		data = new T[rows*cols];
+	}
 	Model(int rows, int cols, int zero){
 		this->rows = rows;
 		this->cols = cols;
@@ -41,6 +46,9 @@ public:
 	}
 	T get(int row, int col){
 		return data[row*cols+col];
+	}
+	T* get_pointer(int row, int col){
+		return &data[row*cols+col];
 	}
 	void set(int row, int col, T value){
 		data[row*cols+col] = value;

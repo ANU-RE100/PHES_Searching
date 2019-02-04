@@ -158,13 +158,13 @@ string str(vector<GeographicCoordinate> polygon, double elevation){
 bool model_reservoir(Reservoir* reservoir, Models models, Reservoir_KML_Coordinates* coordinates, Model<bool>* seen, bool* non_overlap, vector<ArrayCoordinate> *used_points, BigModel big_model){
 	
 	Model_int16 *DEM = models.DEMs[0];
-	Model_int16 *flow_directions = models.flow_directions[0];
+	Model<char>* flow_directions = big_model.flow_directions[0];
 	Model_int16 *cur_model = Model_int16_create(models.DEMs[0]->shape, MODEL_SET_ZERO);
 
 	for(int i = 0; i<9; i++)
 		if(models.neighbors[i].lat == (int)(FLOOR(reservoir->latitude)-EPS) && models.neighbors[i].lon == (int)(FLOOR(reservoir->longitude)+EPS)){
 			DEM = models.DEMs[i];
-			flow_directions = models.flow_directions[i];
+			flow_directions = big_model.flow_directions[i];
 		}
 
 	double req_volume = reservoir->volume;
@@ -200,13 +200,12 @@ bool model_reservoir(Reservoir* reservoir, Models models, Reservoir_KML_Coordina
 
 			for (uint d=0; d<directions.size(); d++) {
 				ArrayCoordinate neighbor = {p.row+directions[d].row, p.col+directions[d].col, p.origin};
-				if (check_within(neighbor, flow_directions->shape) &&
+				if (flow_directions->check_within(neighbor.row, neighbor.col) &&
 				    flows_to(neighbor, p, flow_directions) &&
 				    ((DEM->d[neighbor.row][neighbor.col]-DEM->d[reservoir->pour_point.row][reservoir->pour_point.col]) < reservoir->dam_height) ) {
 					q.push(neighbor);
 				}
 			}
-
 		}
 		
 		if(reservoir->volume*(1+0.5/reservoir->water_rock)<(1-volume_accuracy)*req_volume){
@@ -336,7 +335,7 @@ bool model_pair(Pair* pair, Models models, Pair_KML* pair_kml, Model<bool>* seen
     pair->volume = min(pair->upper.volume, pair->lower.volume);
     pair->water_rock = 1/((1/pair->upper.water_rock)+(1/pair->lower.water_rock));
     set_FOM(pair);
-    if(pair->FOM>max_FOM){
+    if(pair->FOM>max_FOM || pair->category=='Z'){
         return false;
     }
     GeographicCoordinate average = GeographicCoordinate_init((convert_coordinates(upper_closest_point).lat+convert_coordinates(lower_closest_point).lat)/2,
