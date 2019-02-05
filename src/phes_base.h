@@ -24,6 +24,7 @@ extern string tasks_file;					// File with list of cells to do line by line in f
 extern string processes_file;				// File with list of processes to complete
 
 // General
+extern string file_storage_location;				// Where to look for input files and store output files
 extern int border;							// Number of cells to add as border around DEM square
 extern double dambatter;					// Slope on sides of dam
 extern double cwidth;						// Width of top of dam
@@ -62,6 +63,8 @@ extern int max_wall_height;
 extern bool output_FOM;						// Whether to output exact FOM or category split
 extern int good_colour[4];
 extern int bad_colour[4];
+extern string upper_colour;
+extern string lower_colour;
 extern double volume_accuracy;				// Maximum ratio error on final volume
 extern double dam_wall_height_resolution;	// Resolution of dam wall height (m)
 

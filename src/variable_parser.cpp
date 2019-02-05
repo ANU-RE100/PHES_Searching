@@ -5,6 +5,7 @@ string tasks_file;					// File with list of cells to do line by line in format <
 string processes_file;				// File with list of processes to complete
 
 // General
+string file_storage_location;		// Where to look for input files and store output files
 int border;							// Number of cells to add as border around DEM square
 double dambatter;					// Slope on sides of dam
 double cwidth;						// Width of top of dam
@@ -42,6 +43,8 @@ int max_wall_height;
 bool output_FOM;			// Whether to output exact FOM or category split
 int good_colour[4];
 int bad_colour[4];
+string upper_colour;
+string lower_colour;
 double volume_accuracy;				// Maximum ratio error on final volume
 double dam_wall_height_resolution;	// Resolution of dam wall height (m)
 
@@ -163,12 +166,18 @@ void parse_variables(char* filename){
 				dam_wall_height_resolution = stod(value);
 			if(variable=="output_FOM")
 				output_FOM = stoi(value);
-			if(variable.length()==1){
+			if(variable.length()==1){ // Category cutoffs
 				vector<string> t = read_from_csv_file(value);
 				CategoryCutoff cutoff = {variable[0], stod(t[0]), stod(t[1])};
 				category_cutoffs.push_back(cutoff);
 				sort(category_cutoffs.begin(), category_cutoffs.end());
 			}
+			if(variable=="upper_colour")
+				upper_colour = value;
+			if(variable=="lower_colour")
+				lower_colour = value;
+			if(variable=="file_storage_location")
+				file_storage_location = value;
 		}
 	}
 }

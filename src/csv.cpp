@@ -129,7 +129,7 @@ void write_rough_pair_data_header(FILE *csv_file)
 	vector<string> header = {"Pair Identifier",
 	"Upper Identifier","Upper latitude","Upper longitude","Upper elevation (m)","Upper dam height (m)","Upper max dam height (m)","Upper water to rock estimate",
 	"Lower Identifier","Lower latitude","Lower longitude","Lower elevation (m)","Lower dam height (m)","Lower max dam height (m)","Lower water to rock estimate",
-	"Head (m)","Pourpoint distance (km)","Distance (km)","Slope","Volume (GL)","Energy (GWh)","Storage time (h)","Figure of merit"};
+	"Head (m)","Pourpoint separation (km)","Separation (km)","Slope","Volume (GL)","Energy (GWh)","Storage time (h)","Figure of merit"};
 	write_to_csv_file(csv_file, header);
 }
 
@@ -215,7 +215,7 @@ vector<vector<Pair> > read_rough_pair_data(char* filename)
 
 void write_pair_csv_header(FILE *csv_file)
 {
-	vector<string> header = {"Pair Identifier",(output_FOM?"Figure of Merit":"Class"),"Head (m)","Distance (km)","Slope (%)","Volume (GL)","Energy (GWh)","Storage time (h)","Combined water to rock ratio",
+	vector<string> header = {"Pair Identifier",(output_FOM?"Figure of Merit":"Class"),"Head (m)","Separation (km)","Slope (%)","Volume (GL)","Energy (GWh)","Storage time (h)","Combined water to rock ratio",
 	"Upper Identifier","Upper elevation (m)","Upper latitude","Upper longitude","Upper reservoir area (ha)","Upper reservoir volume (GL)","Upper dam height (m)","Upper dam length (m)","Upper dam volume (GL)","Upper water to rock ratio",
 	"Lower Identifier","Lower elevation (m)","Lower latitude","Lower longitude","Lower reservoir area (ha)","Lower reservoir volume (GL)","Lower dam height (m)","Lower dam length (m)","Lower dam volume (GL)","Lower water to rock ratio"};
 	write_to_csv_file(csv_file, header);

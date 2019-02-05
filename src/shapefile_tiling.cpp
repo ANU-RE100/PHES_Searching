@@ -26,7 +26,7 @@ int main()
 {
 	printf("Tiling started\n");
 
-	parse_variables(convert_string("variables"));
+	parse_variables(convert_string(file_storage_location+"variables"));
 	unsigned long start_usec = walltime_usec();
 
 	vector<GridSquare> tasklist = read_tasklist(convert_string(tasks_file));
@@ -37,7 +37,7 @@ int main()
 	int iterator = 0;
 
 	for(string filename:filter_filenames_to_tile){
-		SHPHandle SHP = SHPOpen(convert_string(filename), "rb" );
+		SHPHandle SHP = SHPOpen(convert_string(file_storage_location+filename), "rb" );
 		if(SHP != NULL ){
 	    	int	nEntities;
 	    	SHPGetInfo(SHP, &nEntities, NULL, NULL, NULL );
@@ -87,7 +87,7 @@ int main()
 	    SHPClose(SHP);
 	}
 
-	mkdir("input/shapefile_tiles",0777);
+	mkdir(convert_string(file_storage_location+"input/shapefile_tiles"),0777);
 	int z = 0;
 	for(GridSquare gs:tasklist){
 		z++;
@@ -95,9 +95,9 @@ int main()
 		// 	continue;
 		int lat = gs.lat;
 		int lon = gs.lon;
-		SHPHandle SHP = SHPCreate(convert_string("input/shapefile_tiles/"+str(gs)+"_shapefile_tile.shp"), SHPT_POLYGON);
+		SHPHandle SHP = SHPCreate(convert_string(file_storage_location+"input/shapefile_tiles/"+str(gs)+"_shapefile_tile.shp"), SHPT_POLYGON);
 	    if( SHP == NULL ){
-			printf( "Unable to create:%s\n", convert_string("input/shapefile_tiles/"+str(gs)+"_shapefile_tile.shp"));
+			printf( "Unable to create:%s\n", convert_string(file_storage_location+"input/shapefile_tiles/"+str(gs)+"_shapefile_tile.shp"));
 			exit(1);
 	    }
 

@@ -92,15 +92,15 @@ int main(int nargs, char **argv)
 	printf("Pretty set started for %s\n",convert_string(str(square_coordinate)));
 
 	TIFF_IO_init();
-	parse_variables(convert_string("variables"));
+	parse_variables(convert_string(file_storage_location+"variables"));
 	unsigned long t_usec = walltime_usec();
 	
 	BigModel big_model = BigModel_init(square_coordinate);
 
-	pairs = read_rough_pair_data(convert_string("processing_files/pairs/"+str(square_coordinate)+"_rough_pairs_data.csv"));
+	pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pairs/"+str(square_coordinate)+"_rough_pairs_data.csv"));
 
-	mkdir("processing_files/pretty_set_pairs",0777);
-	FILE *csv_data_file = fopen(convert_string("processing_files/pretty_set_pairs/"+str(square_coordinate)+"_rough_pretty_set_pairs_data.csv"), "w");
+	mkdir(convert_string(file_storage_location+"processing_files/pretty_set_pairs"),0777);
+	FILE *csv_data_file = fopen(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+str(square_coordinate)+"_rough_pretty_set_pairs_data.csv"), "w");
 	write_rough_pair_data_header(csv_data_file);
 
 	for(uint i = 0; i<tests.size(); i++){

@@ -1,15 +1,3 @@
-//Being risky (for devel only)
-#include <bits/stdc++.h>
-using namespace std;
-
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <assert.h>
-
 #include "kml.h"
 
 string kml_start = 
@@ -35,12 +23,6 @@ string kml_start =
 "      </LineStyle>\n"
 "    </Style>\n"
 "    <Style id=\"pin_style\">\n"
-"      <IconStyle>\n"
-"        <scale>1</scale>\n"
-"        <Icon>\n"
-"           <href>http://maps.google.com/mapfiles/kml/pushpin/wht-pushpin.png</href>\n"
-"        </Icon>\n"
-"      </IconStyle>\n"
 "      <LabelStyle>\n"
 "        <color>00ffffff</color>\n"
 "        <scale>0.6</scale>\n"
@@ -85,7 +67,7 @@ string get_html(Pair* pair){
 "              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">\n"
 "              <tr><td>"+(output_FOM?"Figure of Merit":"Class")+"</td><td>"+(output_FOM?dtos(pair->FOM,0):string(1,pair->category))+"</td></tr>\n"
 "              <tr bgcolor=\"#D4E4F3\"><td>Head (m)</td><td>"+to_string(pair->head)+"</td></tr>\n"
-"              <tr><td>Seperation (km)</td><td>"+dtos(pair->distance,1)+"</td></tr>\n"
+"              <tr><td>Separation (km)</td><td>"+dtos(pair->distance,1)+"</td></tr>\n"
 "              <tr bgcolor=\"#D4E4F3\"><td>Average Slope (%)</td><td>"+dtos(pair->slope*100,0)+"</td></tr>\n"
 "              <tr><td>Volume (GL)</td><td>"+dtos(pair->volume,1)+"</td></tr>\n"
 "              <tr bgcolor=\"#D4E4F3\"><td>Water to Rock (Pair)</td><td>"+dtos(pair->water_rock,1)+"</td></tr>\n"
@@ -214,6 +196,13 @@ string get_colour(char category){
 	return to_return;
 }
 
+string get_scale(char category){
+	for(CategoryCutoff category_cutoff:category_cutoffs)
+		if(category==category_cutoff.category)
+			return dtos(1.25-((category-'A')/8.0),3);
+	return "0";
+}
+
 string get_point_kml(Pair* pair, string coordinates){
 	return
 "      <Placemark>\n"
@@ -221,7 +210,9 @@ string get_point_kml(Pair* pair, string coordinates){
 "        <styleUrl>#pin_style</styleUrl>\n"
 "        <Style>\n"
 "          <IconStyle>\n"
+"            <scale>"+get_scale(pair->category)+"</scale>\n"
 "            <color>"+get_colour(pair->category)+"</color>\n"
+"            <Icon><href>http://maps.google.com/mapfiles/kml/paddle/"+pair->category+".png</href></Icon>\n"
 "          </IconStyle>\n"
 "        </Style>\n"
 			+get_point_geometry(coordinates)+
@@ -260,31 +251,31 @@ string output_kml(KML_Holder* kml_holder, string square, Test test){
 void update_kml_holder(KML_Holder* kml_holder, Pair* pair, Pair_KML* pair_kml){
 	kml_holder->points.push_back(get_point_kml(pair, pair_kml->point));
 	kml_holder->lines.push_back(get_line_kml(pair, pair_kml->line));
-	kml_holder->uppers.push_back(get_reservoir_kml(&pair->upper, "#88F0AA14", pair_kml->upper));
+	kml_holder->uppers.push_back(get_reservoir_kml(&pair->upper, upper_colour, pair_kml->upper));
 	kml_holder->upper_dams.push_back(get_dam_kml(&pair->upper, pair_kml->upper));
-	kml_holder->lowers.push_back(get_reservoir_kml(&pair->lower, "#88F03C14", pair_kml->lower));
+	kml_holder->lowers.push_back(get_reservoir_kml(&pair->lower, lower_colour, pair_kml->lower));
 	kml_holder->lower_dams.push_back(get_dam_kml(&pair->lower, pair_kml->lower));
 }
 
 
-void write_fusion_csv_header(FILE *csv_file)
-{
-	vector<string> header = {"name", "description", "geometry", "color"};
-	write_to_csv_file(csv_file, header);
-}
+// void write_fusion_csv_header(FILE *csv_file)
+// {
+// 	vector<string> header = {"name", "description", "geometry", "color"};
+// 	write_to_csv_file(csv_file, header);
+// }
 
-void write_fusion_csv(FILE *csv_file, Pair *pair, Pair_KML* pair_kml)
-{
-	vector<string> line1 = {pair->upper.identifier, get_html(&pair->upper), get_reservoir_geometry(pair_kml->upper), "#00FFFF80"};
-	write_to_csv_file(csv_file, line1);
-	vector<string> line2 = {pair->lower.identifier, get_html(&pair->lower), get_reservoir_geometry(pair_kml->lower), "#0000FF80"};
-	write_to_csv_file(csv_file, line2);
-	vector<string> line3 = {pair->upper.identifier, "", get_dam_geometry(pair_kml->upper), "#666666FF"};
-	write_to_csv_file(csv_file, line3);
-	vector<string> line4 = {pair->lower.identifier, "", get_dam_geometry(pair_kml->lower), "#666666FF"};
-	write_to_csv_file(csv_file, line4);
-	vector<string> line5 = {pair->identifier, get_html(pair), get_point_geometry(pair_kml->point), "small_blue"};
-	write_to_csv_file(csv_file, line5);
-	vector<string> line6 = {pair->identifier, get_html(pair), get_line_geometry(pair_kml->line), "#66666680"};
-	write_to_csv_file(csv_file, line6);
-}
+// void write_fusion_csv(FILE *csv_file, Pair *pair, Pair_KML* pair_kml)
+// {
+// 	vector<string> line1 = {pair->upper.identifier, get_html(&pair->upper), get_reservoir_geometry(pair_kml->upper), "#00FFFF80"};
+// 	write_to_csv_file(csv_file, line1);
+// 	vector<string> line2 = {pair->lower.identifier, get_html(&pair->lower), get_reservoir_geometry(pair_kml->lower), "#0000FF80"};
+// 	write_to_csv_file(csv_file, line2);
+// 	vector<string> line3 = {pair->upper.identifier, "", get_dam_geometry(pair_kml->upper), "#666666FF"};
+// 	write_to_csv_file(csv_file, line3);
+// 	vector<string> line4 = {pair->lower.identifier, "", get_dam_geometry(pair_kml->lower), "#666666FF"};
+// 	write_to_csv_file(csv_file, line4);
+// 	vector<string> line5 = {pair->identifier, get_html(pair), get_point_geometry(pair_kml->point), "small_blue"};
+// 	write_to_csv_file(csv_file, line5);
+// 	vector<string> line6 = {pair->identifier, get_html(pair), get_line_geometry(pair_kml->line), "#66666680"};
+// 	write_to_csv_file(csv_file, line6);
+// }

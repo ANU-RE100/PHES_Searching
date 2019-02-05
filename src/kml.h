@@ -1,8 +1,5 @@
 #ifndef KML_H
 #define KML_H
-//Being risky (for devel only)
-#include <bits/stdc++.h>
-using namespace std;
 
 #include "phes_base.h"
 
@@ -30,7 +27,7 @@ struct Pair_KML{
 
 string output_kml(KML_Holder* kml_holder, string square, Test test);
 void update_kml_holder(KML_Holder* kml_holder, Pair* pair, Pair_KML* pair_kml);
-void write_fusion_csv_header(FILE *csv_file);
-void write_fusion_csv(FILE *csv_file, Pair *pair, Pair_KML* pair_kml);
+// void write_fusion_csv_header(FILE *csv_file);
+// void write_fusion_csv(FILE *csv_file, Pair *pair, Pair_KML* pair_kml);
 
 #endif

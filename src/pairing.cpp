@@ -161,9 +161,9 @@ int main(int nargs, char **argv)
 	printf("Pairing started for %s\n",convert_string(str(square_coordinate)));
 
 	unsigned long t_usec = walltime_usec();
-	parse_variables(convert_string("variables"));
+	parse_variables(convert_string(file_storage_location+"variables"));
 
-	vector<RoughReservoir> upper_reservoirs = read_rough_reservoir_data(convert_string("processing_files/reservoirs/"+str(square_coordinate)+"_reservoirs_data.csv"));
+	vector<RoughReservoir> upper_reservoirs = read_rough_reservoir_data(convert_string(file_storage_location+"processing_files/reservoirs/"+str(square_coordinate)+"_reservoirs_data.csv"));
 	if(display)
 		printf("Read in %zu uppers\n", upper_reservoirs.size());
 	vector<RoughReservoir> lower_reservoirs;
@@ -181,12 +181,12 @@ int main(int nargs, char **argv)
 
 	for(int i = 0; i<9; i++){
 		try{
-			vector<RoughReservoir> temp = read_rough_reservoir_data(convert_string("processing_files/reservoirs/"+str(neighbors[i])+"_reservoirs_data.csv"));
+			vector<RoughReservoir> temp = read_rough_reservoir_data(convert_string(file_storage_location+"processing_files/reservoirs/"+str(neighbors[i])+"_reservoirs_data.csv"));
 			for(uint j = 0; j<temp.size(); j++)
 				lower_reservoirs.push_back(temp[j]);
 		}catch(int e){
 			if(display)
-				printf("Could not import reservoirs from %s\n", convert_string("processing_files/reservoirs/"+str(neighbors[i])+"_reservoirs_data.csv"));
+				printf("Could not import reservoirs from %s\n", convert_string(file_storage_location+"processing_files/reservoirs/"+str(neighbors[i])+"_reservoirs_data.csv"));
 		}
 	}
 	if(display)
@@ -194,16 +194,16 @@ int main(int nargs, char **argv)
 
 	pairing(upper_reservoirs, lower_reservoirs);
 
-	mkdir("output/pairs",0777);
-	FILE *csv_file = fopen(convert_string("output/pairs/"+str(square_coordinate)+"_rough_pairs.csv"), "w");
+	mkdir(convert_string(file_storage_location+"output/pairs"),0777);
+	FILE *csv_file = fopen(convert_string(file_storage_location+"output/pairs/"+str(square_coordinate)+"_rough_pairs.csv"), "w");
 	if (!csv_file) {
 	 	fprintf(stderr, "Failed to open reservoir pair CSV file\n");
 		exit(1);
     }
 	write_rough_pair_csv_header(csv_file);
 
-	mkdir("processing_files/pairs",0777);
-	FILE *csv_data_file = fopen(convert_string("processing_files/pairs/"+str(square_coordinate)+"_rough_pairs_data.csv"), "w");
+	mkdir(convert_string(file_storage_location+"processing_files/pairs"),0777);
+	FILE *csv_data_file = fopen(convert_string(file_storage_location+"processing_files/pairs/"+str(square_coordinate)+"_rough_pairs_data.csv"), "w");
 	if (!csv_data_file) {
 	 	fprintf(stderr, "Failed to open reservoir pair CSV data file\n");
 		exit(1);
@@ -225,6 +225,7 @@ int main(int nargs, char **argv)
 	}
 
 	fclose(csv_file);
+	fclose(csv_data_file);
 
 	printf("Pairing finished for %s. Found %d pairs. Runtime: %.2f sec\n", convert_string(str(square_coordinate)), total, 1.0e-6*(walltime_usec() - t_usec) );
 }

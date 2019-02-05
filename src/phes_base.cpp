@@ -100,7 +100,7 @@ Model_int16* read_DEM_with_borders(GridSquare sc){
 		ArrayCoordinate tile_offset = ArrayCoordinate_init(neighbors[i][3][0], neighbors[i][3][1], get_origin(gs, border));
 
 		try{
-			Model_int16 *DEM_temp = TIFF_Read_int16(convert_string("input/"+str(gs)+"_1arc_v3.tif"), NULL, NULL);
+			Model_int16 *DEM_temp = TIFF_Read_int16(convert_string(file_storage_location+"input/"+str(gs)+"_1arc_v3.tif"), NULL, NULL);
 			if (i==0) {
 				int bordered_shape[2] = {DEM_temp->shape[0]+2*border-1,DEM_temp->shape[1]+2*border-1};
 				DEM = Model_int16_create(bordered_shape, MODEL_SET_ZERO);
@@ -111,7 +111,7 @@ Model_int16* read_DEM_with_borders(GridSquare sc){
 			Model_int16_free(DEM_temp);
 		}catch (int e){
 			if(display)
-				fprintf(stderr, "Could not find file %s: %s\n", convert_string("input/"+str(gs)+"_1arc_v3.tif"), strerror(errno));
+				fprintf(stderr, "Could not find file %s: %s\n", convert_string(file_storage_location+"input/"+str(gs)+"_1arc_v3.tif"), strerror(errno));
 			if (i==0)
 				throw(1);
 		}
@@ -139,7 +139,7 @@ Model<short>* read_DEM_with_borders(GridSquare sc, int border){
 		ArrayCoordinate tile_end = ArrayCoordinate_init(neighbors[i][2][0], neighbors[i][2][1], get_origin(gs, border));
 		ArrayCoordinate tile_offset = ArrayCoordinate_init(neighbors[i][3][0], neighbors[i][3][1], get_origin(gs, border));
 		try{
-			Model<short>* DEM_temp = new Model<short>("input/"+str(gs)+"_1arc_v3.tif", GDT_Int16);
+			Model<short>* DEM_temp = new Model<short>(file_storage_location+"input/"+str(gs)+"_1arc_v3.tif", GDT_Int16);
 			if (i==0) {
 				DEM = new Model<short>(DEM_temp->nrows()+2*border-1,DEM_temp->ncols()+2*border-1, MODEL_SET_ZERO);
 				DEM->set_geodata(DEM_temp->get_geodata());
@@ -152,7 +152,7 @@ Model<short>* read_DEM_with_borders(GridSquare sc, int border){
 			delete DEM_temp;
 		}catch (int e){
 			if(display)
-				fprintf(stderr, "Could not find file %s: %s\n", convert_string("input/"+str(gs)+"_1arc_v3.tif"), strerror(errno));
+				fprintf(stderr, "Could not find file %s: %s\n", convert_string(file_storage_location+"input/"+str(gs)+"_1arc_v3.tif"), strerror(errno));
 			if (i==0)
 				throw(1);
 		}
@@ -198,7 +198,7 @@ BigModel BigModel_init(GridSquare sc){
 	for(int i = 0; i<9; i++){
 		GridSquare gs = big_model.neighbors[i];
 		try{
-			big_model.flow_directions[i] = new Model<char>("processing_files/flow_directions/"+str(gs)+"_flow_directions.tif",GDT_Byte);
+			big_model.flow_directions[i] = new Model<char>(file_storage_location+"processing_files/flow_directions/"+str(gs)+"_flow_directions.tif",GDT_Byte);
 		}catch(int e){
 			if(display)
 				printf("Could not find %s\n", convert_string(str(gs)));

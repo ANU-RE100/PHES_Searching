@@ -19,6 +19,13 @@ vector<double> find_polygon_intersections(int row, vector<GeographicCoordinate> 
 }
 
 void read_shp_filter(string filename, Model<bool>* filter){
+	char *shp_filename = new char[filename.length() + 1];
+	strcpy(shp_filename, filename.c_str());
+    if(!file_exists(shp_filename)){
+		if(display)
+			cout << "No file: "+filename;
+		throw(1);
+	}
 	SHPHandle SHP = SHPOpen(convert_string(filename), "rb" );
 	if(SHP != NULL ){
     	int	nEntities;
@@ -65,6 +72,8 @@ void read_shp_filter(string filename, Model<bool>* filter){
                         	filter->set(row,col,true);
             }
 	    }
+    }else{
+    	throw(1);
     }
     SHPClose(SHP);
 }
@@ -109,7 +118,7 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 			for(GeographicCoordinate corner: DEM->get_corners()){
 				string urban_filename = find_world_urban_filename(corner);
 				if(find(done.begin(), done.end(), urban_filename)==done.end()){
-					read_tif_filter(urban_filename, filter, 201);
+					read_tif_filter(file_storage_location+urban_filename, filter, 201);
 					done.push_back(urban_filename);
 				}
 			}
@@ -128,10 +137,15 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 				(GridSquare){sc.lat-1,sc.lon-1},
 				(GridSquare){sc.lat  ,sc.lon-1}};
 			for(int i = 0; i<9; i++){
-				read_shp_filter("input/shapefile_tiles/"+str(neighbors[i])+"_shapefile_tile.shp", filter);
+				try{
+					read_shp_filter(file_storage_location+"input/shapefile_tiles/"+str(neighbors[i])+"_shapefile_tile.shp", filter);
+				}catch(int e){
+					if(i==0)
+						exit(1);
+				}
 			}
 		}else{
-			read_shp_filter(filename, filter);
+			read_shp_filter(file_storage_location+filename, filter);
 		}		
 	}
 	return filter;
@@ -401,16 +415,16 @@ static RoughReservoir model_reservoir(ArrayCoordinate pour_point, Model<char>* f
 
 static int model_reservoirs(GridSquare square_coordinate, Model<bool>* pour_points, Model<char>* flow_directions, Model<short>* DEM_filled, Model<int>* flow_accumulation, Model<bool>* filter)
 {
-	mkdir("output/reservoirs",0777);
-	FILE *csv_file = fopen(convert_string("output/reservoirs/"+str(square_coordinate)+"_reservoirs.csv"), "w");
+	mkdir(convert_string(file_storage_location+"output/reservoirs"),0777);
+	FILE *csv_file = fopen(convert_string(file_storage_location+"output/reservoirs/"+str(square_coordinate)+"_reservoirs.csv"), "w");
 	if (!csv_file) {
 	 	fprintf(stderr, "failed to open reservoir CSV file\n");
 		exit(1);
     }
 	write_rough_reservoir_csv_header(csv_file);
 
-	mkdir("processing_files/reservoirs",0777);
-	FILE *csv_data_file = fopen(convert_string("processing_files/reservoirs/"+str(square_coordinate)+"_reservoirs_data.csv"), "w");
+	mkdir(convert_string(file_storage_location+"processing_files/reservoirs"),0777);
+	FILE *csv_data_file = fopen(convert_string(file_storage_location+"processing_files/reservoirs/"+str(square_coordinate)+"_reservoirs_data.csv"), "w");
 	if (!csv_file) {
 	 	fprintf(stderr, "failed to open reservoir CSV data file\n");
 		exit(1);
@@ -454,7 +468,7 @@ int main(int nargs, char **argv)
 	printf("Screening started for %s\n",convert_string(str(square_coordinate)));
 
 	GDALAllRegister();
-	parse_variables(convert_string("variables"));
+	parse_variables(convert_string(file_storage_location+"variables"));
 	unsigned long start_usec = walltime_usec();
 	unsigned long t_usec = start_usec;
 
@@ -465,8 +479,8 @@ int main(int nargs, char **argv)
 		DEM->print();
 	}
 	if(debug_output){
-		mkdir("debug",0777);
-		mkdir("debug/input",0777);
+		mkdir(convert_string("debug"),0777);
+		mkdir(convert_string("debug/input"),0777);
 		DEM->write("debug/input/"+str(square_coordinate)+"_input.tif", GDT_Int16);
 	}
 
@@ -477,11 +491,11 @@ int main(int nargs, char **argv)
 	Model<bool>* filter;
 
 	if (debug) {
-		filter = new Model<bool>("debug/filter/"+str(square_coordinate)+"_filter.tif", GDT_Byte);
-		DEM_filled = new Model<short>("debug/DEM_filled/"+str(square_coordinate)+"_DEM_filled.tif", GDT_Int16);
-		flow_directions = new Model<char>("debug/flow_directions/"+str(square_coordinate)+"_flow_directions.tif", GDT_Byte);
-		flow_accumulation =  new Model<int>("debug/flow_accumulation/"+str(square_coordinate)+"_flow_accumulation.tif", GDT_Int32);
-		pour_points = new Model<bool>("debug/pour_points/"+str(square_coordinate)+"_pour_points.tif", GDT_Byte);
+		filter = new Model<bool>(file_storage_location+"debug/filter/"+str(square_coordinate)+"_filter.tif", GDT_Byte);
+		DEM_filled = new Model<short>(file_storage_location+"debug/DEM_filled/"+str(square_coordinate)+"_DEM_filled.tif", GDT_Int16);
+		flow_directions = new Model<char>(file_storage_location+"debug/flow_directions/"+str(square_coordinate)+"_flow_directions.tif", GDT_Byte);
+		flow_accumulation =  new Model<int>(file_storage_location+"debug/flow_accumulation/"+str(square_coordinate)+"_flow_accumulation.tif", GDT_Int32);
+		pour_points = new Model<bool>(file_storage_location+"debug/pour_points/"+str(square_coordinate)+"_pour_points.tif", GDT_Byte);
 	}else {
 		t_usec = walltime_usec();
 		filter = read_filter(DEM, filter_filenames);
@@ -491,8 +505,8 @@ int main(int nargs, char **argv)
 			printf("Filter Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - t_usec) );
 		}
 		if(debug_output){
-			mkdir("debug/filter",0777);
-			filter->write("debug/filter/"+str(square_coordinate)+"_filter.tif", GDT_Byte);
+			mkdir(convert_string(file_storage_location+"debug/filter"),0777);
+			filter->write(file_storage_location+"debug/filter/"+str(square_coordinate)+"_filter.tif", GDT_Byte);
 		}
 
 		t_usec = walltime_usec();
@@ -508,9 +522,9 @@ int main(int nargs, char **argv)
 			printf("Fill Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - t_usec) );
 		}
 		if(debug_output){
-			mkdir("debug/DEM_filled",0777);
-			DEM_filled->write("debug/DEM_filled/"+str(square_coordinate)+"_DEM_filled.tif", GDT_Int16);
-			DEM_filled_no_flat->write("debug/DEM_filled/"+str(square_coordinate)+"_DEM_filled_no_flat.tif",GDT_Float64);
+			mkdir(convert_string(file_storage_location+"debug/DEM_filled"),0777);
+			DEM_filled->write(file_storage_location+"debug/DEM_filled/"+str(square_coordinate)+"_DEM_filled.tif", GDT_Int16);
+			DEM_filled_no_flat->write(file_storage_location+"debug/DEM_filled/"+str(square_coordinate)+"_DEM_filled_no_flat.tif",GDT_Float64);
 		}
 
 		t_usec = walltime_usec();
@@ -521,11 +535,11 @@ int main(int nargs, char **argv)
 			printf("Flow directions Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - t_usec) );
 		}
 		if(debug_output){
-			mkdir("debug/flow_directions",0777);
-			flow_directions->write("debug/flow_directions/"+str(square_coordinate)+"_flow_directions.tif",GDT_Byte);
+			mkdir(convert_string(file_storage_location+"debug/flow_directions"),0777);
+			flow_directions->write(file_storage_location+"debug/flow_directions/"+str(square_coordinate)+"_flow_directions.tif",GDT_Byte);
 		}
-		mkdir("processing_files/flow_directions",0777);
-		flow_directions->write("processing_files/flow_directions/"+str(square_coordinate)+"_flow_directions.tif",GDT_Byte);
+		mkdir(convert_string(file_storage_location+"processing_files/flow_directions"),0777);
+		flow_directions->write(file_storage_location+"processing_files/flow_directions/"+str(square_coordinate)+"_flow_directions.tif",GDT_Byte);
 
 		t_usec = walltime_usec();
 		flow_accumulation = find_flow_accumulation(flow_directions, DEM_filled_no_flat);
@@ -535,8 +549,8 @@ int main(int nargs, char **argv)
 			printf("Flow accumulation Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - t_usec) );
 		}
 		if(debug_output){
-			mkdir("debug/flow_accumulation",0777);
-			flow_accumulation->write("debug/flow_accumulation/"+str(square_coordinate)+"_flow_accumulation.tif", GDT_Int32);
+			mkdir(convert_string(file_storage_location+"debug/flow_accumulation"),0777);
+			flow_accumulation->write(file_storage_location+"debug/flow_accumulation/"+str(square_coordinate)+"_flow_accumulation.tif", GDT_Int32);
 		}
 		delete DEM_filled_no_flat;
 		
@@ -546,8 +560,8 @@ int main(int nargs, char **argv)
 			streams->print();
 		}
 		if(debug_output){
-			mkdir("debug/streams",0777);
-			streams->write("debug/streams/"+str(square_coordinate)+"_streams.tif",GDT_Byte);
+			mkdir(convert_string(file_storage_location+"debug/streams"),0777);
+			streams->write(file_storage_location+"debug/streams/"+str(square_coordinate)+"_streams.tif",GDT_Byte);
 		}
 
 		pour_points = find_pour_points(streams, flow_directions, DEM_filled);
@@ -556,8 +570,8 @@ int main(int nargs, char **argv)
 			pour_points->print();
 		}
 		if(debug_output){
-			mkdir("debug/pour_points",0777);
-			pour_points->write("debug/pour_points/"+str(square_coordinate)+"_pour_points.tif",GDT_Byte);
+			mkdir(convert_string(file_storage_location+"debug/pour_points"),0777);
+			pour_points->write(file_storage_location+"debug/pour_points/"+str(square_coordinate)+"_pour_points.tif",GDT_Byte);
 		}
 		delete streams;
 	}

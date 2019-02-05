@@ -3,6 +3,7 @@ tasks_file = tasks;				// File with list of cells to do line by line in format <
 processes_file = processes;		// File with list of processes to complete
 
 // General
+file_storage_location = ../../PHES_Searching/;	// Where to look for input files and store output files
 border = 600;					// Number of cells to add as border around DEM square
 
 dambatter = 3.0;				// Slope on sides of dam
@@ -19,7 +20,7 @@ min_max_dam_height = 5.0;		// Minimum maximum dam height (m) (Before overlapping
 
 filter = use_world_urban;						// Use world urban data from tifs stored in fileformat input/WORLD_URBAN/55H_hbase_human_built_up_and_settlement_extent_geographic_30m
 filter = use_tiled_filter;						// Use shapefile filters output from shapefile_tiling
-filter_to_tile = input/CLUM/CLUM541550552_WGS84.shp;	// Location of shapefile to be used as a filter
+filter_to_tile = input/CLUM/CLUM541550552_WGS84.shp;	// Location of shapefile to tiled
 filter_to_tile = input/CAPAD/capad.shp;
 filter_to_tile = input/WPAD/WDPA_Nov2018-shapefile-polygons.shp;
 
@@ -53,6 +54,9 @@ volume_accuracy = 0.01;				// Maximum ratio error on final volume
 dam_wall_height_resolution = 0.05;	// Resolution of dam wall height (m)
 good_colour = 255, 0, 0, 255; 		// Opacity, Blue, Green, Red
 bad_colour = 255, 200, 200, 255;
+upper_colour = #88F0AA14;
+lower_colour = #88F03C14;
+
 output_FOM = 0;						// Whether to output exact FOM or Class (A-E)
 
 // Reservoir sizings
