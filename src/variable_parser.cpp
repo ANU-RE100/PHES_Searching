@@ -72,7 +72,7 @@ void parse_variables(char* filename){
 			string variable, value;
 			line.erase(remove(line.begin(), line.end(), ' '), line.end());
 			stringstream ss2(line);
-			if((!getline(ss2, variable, '=') || !getline(ss2, value)) && line[0]!='/'){
+			if((!getline(ss2, variable, '=') || !getline(ss2, value)) && line[0]!='/' && line.length()>=4){
 				printf("Syntax error: %s\n", convert_string(line));
 				continue;
 			}

@@ -21,10 +21,15 @@ int set_worker(string process){
 
 // Deletes the lockfile with the given ID
 void unset_worker(int id, string process){
-	string workerlockfile = file_storage_location+"driver_files/"+process+"_workers/"+to_string(id);
-	if(remove(convert_string(workerlockfile))!=0){
-		printf("Problem removing worker: %d\n", id);
-	}
+	// string workerlockfile = file_storage_location+"driver_files/"+process+"_workers/"+to_string(id);
+	// if(remove(convert_string(workerlockfile))!=0){
+	// 	printf("Problem removing worker: %d\n", id);
+	// }
+	mkdir(convert_string(file_storage_location+"driver_files/done_"+process+"_workers"), 0770);
+	string workerlockfile = file_storage_location+"driver_files/done_"+process+"_workers/"+to_string(id);
+	int fds = open(convert_string(workerlockfile), O_CREAT | O_EXCL | O_WRONLY, 0600);
+	if (fds < 0)
+        throw 1;
 }
 
 // Checks if all drivers have completed the process by checking if any files exist in the processes lockfile directory
@@ -37,9 +42,18 @@ bool all_done(string process)
 	}
 	int n=0;
 	while(readdir(dir)!=NULL) n++;
-	if(n<=2)
-		return true;
-	return false;
+
+	dir = opendir(convert_string(file_storage_location+"driver_files/done_"+process+"_workers"));
+	if (!dir) {
+		fprintf(stderr, "failed to open done dir %s: %s\n", convert_string("driver_files/done_"+process+"_workers"), strerror(errno));
+		exit(1);
+	}
+	int n2=0;
+	while(readdir(dir)!=NULL) n2++;
+
+	return (n == n2);
+
+	// return (n<=2);
 }
 
 // Reads a list of cells to process from the tasks_file (Eg. 148 -36)
