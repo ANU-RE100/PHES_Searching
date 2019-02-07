@@ -90,6 +90,9 @@ void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_t
 			}
 		}
 		delete tif_filter;
+	}catch(exception& e){
+		if(display)
+			printf("Problem with %s\n", convert_string(filename));
 	}catch(int e){
 		if(display)
 			printf("Problem with %s\n", convert_string(filename));

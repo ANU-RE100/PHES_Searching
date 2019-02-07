@@ -105,25 +105,25 @@ Model<T>::Model(string filename, GDALDataType data_type){
 	strcpy(tif_filename, filename.c_str());
     if(!file_exists(tif_filename)){
 		if(display)
-			cout << "No file: "+filename;
+			cout << "No file: "+filename+"\n";
 		throw(1);
 	}
 	GDALDataset* Dataset = (GDALDataset *) GDALOpen(tif_filename, GA_ReadOnly);
 	if( Dataset == NULL ) {
 		if(display)
-			cout << "Cannot Open: "+filename;
+			cout << "Cannot Open: "+filename+"\n";
 		throw(1);
 	}
 	if(Dataset->GetProjectionRef()  != NULL ){
 		geodata.geoprojection =  const_cast<char*> (Dataset->GetProjectionRef());
 	}else{
 		if(display)
-			cout << "Cannot get projection from: "+filename;
+			cout << "Cannot get projection from: "+filename+"\n";
 		throw(1);
 	}
 	if(Dataset->GetGeoTransform(geodata.geotransform) != CE_None ) {
 		if(display)
-			cout << "Cannot get transform from: "+filename;
+			cout << "Cannot get transform from: "+filename+"\n";
 		throw(1);
 	}
 	GDALRasterBand* Band = Dataset->GetRasterBand( 1 );
