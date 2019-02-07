@@ -156,6 +156,7 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 			{
 			    // catch anything thrown within try block that derives from std::exception
 			    std::cerr << exc.what();
+			    cout << file_storage_location+filename;
 			}
 			
 		}		
