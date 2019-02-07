@@ -129,15 +129,28 @@ Model<T>::Model(string filename, GDALDataType data_type){
 	GDALRasterBand* Band = Dataset->GetRasterBand( 1 );
 	rows = Band->GetYSize();
 	cols = Band->GetXSize();
+	int temp_cols = cols;
+	if(cols==1801){
+		cols = 3601;
+		geodata.geotransform[1] = geodata.geotransform[1]/2.0;
+	}
 	data = new T[rows*cols];
-	T temp_arr[rows];
+	T temp_arr[temp_cols];
+
 	for(int row=0; row<rows; row++) {
-		CPLErr err = Band->RasterIO( GF_Read, 0, row, cols, 1,
-                  temp_arr, cols, 1, data_type,
+		CPLErr err = Band->RasterIO( GF_Read, 0, row, temp_cols, 1,
+                  temp_arr, temp_cols, 1, data_type,
                   0, 0 );
 		if (err!=CPLE_None) exit(1);
-		for(int col = 0; col<cols; col++){
-			set(row, col, (T)temp_arr[col]);
+		if (temp_cols==1801){
+			for(int col = 0; col<temp_cols-1; col++){
+				set(row, col*2, (T)temp_arr[col]);
+				set(row, col*2+1, (T)temp_arr[col]);
+			}
+			set(row, 3600, (T)temp_arr[1800]);
+		}else{
+			for(int col = 0; col<temp_cols; col++)
+				set(row, col, (T)temp_arr[col]);
 		}
 	}
 }
