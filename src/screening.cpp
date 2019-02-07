@@ -148,7 +148,16 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 				}
 			}
 		}else{
-			read_shp_filter(file_storage_location+filename, filter);
+			try
+			{
+			    read_shp_filter(file_storage_location+filename, filter);
+			}
+			catch (const std::exception &exc)
+			{
+			    // catch anything thrown within try block that derives from std::exception
+			    std::cerr << exc.what();
+			}
+			
 		}		
 	}
 	return filter;
