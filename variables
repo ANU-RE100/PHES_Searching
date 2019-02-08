@@ -27,7 +27,7 @@ filter_to_tile = input/WPAD/WDPA_Nov2018-shapefile-polygons.shp;
 dam_wall_heights = 10, 20, 30, 40, 50, 60, 70, 80, 90, 100;	//  Wall heights to test and export
 
 // Pairing
-min_head = 75;					// Minimum head (m) to be considered a potential pair
+min_head = 100;					// Minimum head (m) to be considered a potential pair
 min_pair_water_rock = 1.5;		// Minimum pair water to rock ratio based on interpolated values
 min_slope = 0.05;				// Minimum slope based on interpolated nearest point seperation between two reservoirs
 min_pp_slope = 0.03;			// Minimum slope based on pourpoint seperation between two reservoirs

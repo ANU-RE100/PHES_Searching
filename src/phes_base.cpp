@@ -76,49 +76,6 @@ string dtos(double f, int nd) {
 	return ss.str();
 }
 
-	
-Model_int16* read_DEM_with_borders(GridSquare sc){
-	int b[2] = {0,0};
-	Model_int16 *DEM = Model_int16_create(b, MODEL_SET_ZERO);
-	const int neighbors[9][4][2] = {
-		//[(Tile coordinates) , (Tile base)		 		  , (Tile limit)				  , (Tile offset)	 	       ]
-		{ {sc.lat  ,sc.lon  } , {border,      border	 }, {border+3600,  	3600+border	 }, {border-1,    border     } },
-		{ {sc.lat+1,sc.lon-1} , {0,			  0		 	 }, {border, 	    border	 	 }, {border-3601, border-3600} },
-		{ {sc.lat+1,sc.lon  } , {0,	      	  border	 }, {border,	    3600+border	 }, {border-3601, border     } },
-		{ {sc.lat+1,sc.lon+1} , {0,	      	  3600+border}, {border,        3600+2*border}, {border-3601, border+3600} },
-		{ {sc.lat  ,sc.lon+1} , {border-1,    3600+border}, {3600+border,   3600+2*border}, {border-1,    border+3600} },
-		{ {sc.lat-1,sc.lon+1} , {3600+border, 3600+border}, {3600+2*border, 3600+2*border}, {border+3599, border+3600} },
-		{ {sc.lat-1,sc.lon  } , {3600+border, border	 }, {3600+2*border, 3601+border	 }, {border+3599, border     } },
-		{ {sc.lat-1,sc.lon-1} , {3600+border, 0		 	 }, {3600+2*border, border	 	 }, {border+3599, border-3600} },
-		{ {sc.lat  ,sc.lon-1} , {border-1,    0		 	 }, {3600+border,   border	 	 }, {border-1,    border-3600} }
-	};
-
-	for (int i=0; i<9; i++) {
-		GridSquare gs = GridSquare_init(neighbors[i][0][0], neighbors[i][0][1]);
-		ArrayCoordinate tile_start = ArrayCoordinate_init(neighbors[i][1][0], neighbors[i][1][1], get_origin(gs, border));
-		ArrayCoordinate tile_end = ArrayCoordinate_init(neighbors[i][2][0], neighbors[i][2][1], get_origin(gs, border));
-		ArrayCoordinate tile_offset = ArrayCoordinate_init(neighbors[i][3][0], neighbors[i][3][1], get_origin(gs, border));
-
-		try{
-			Model_int16 *DEM_temp = TIFF_Read_int16(convert_string(file_storage_location+"input/"+str(gs)+"_1arc_v3.tif"), NULL, NULL);
-			if (i==0) {
-				int bordered_shape[2] = {DEM_temp->shape[0]+2*border-1,DEM_temp->shape[1]+2*border-1};
-				DEM = Model_int16_create(bordered_shape, MODEL_SET_ZERO);
-			}
-			for(int row = tile_start.row ; row < tile_end.row ; row++)
-				for(int col = tile_start.col ; col < tile_end.col; col++)
-					DEM->d[row][col] = DEM_temp->d[row-tile_offset.row][col-tile_offset.col];
-			Model_int16_free(DEM_temp);
-		}catch (int e){
-			if(display)
-				fprintf(stderr, "Could not find file %s: %s\n", convert_string(file_storage_location+"input/"+str(gs)+"_1arc_v3.tif"), strerror(errno));
-			if (i==0)
-				throw(1);
-		}
-	}
-	return DEM;
-}
-
 Model<short>* read_DEM_with_borders(GridSquare sc, int border){
 	Model<short>* DEM = new Model<short>(0, 0, MODEL_UNSET);
 	const int neighbors[9][4][2] = {
@@ -158,25 +115,6 @@ Model<short>* read_DEM_with_borders(GridSquare sc, int border){
 		}
 	}
 	return DEM;
-}
-
-Models Models_init(GridSquare sc){
-	Models models;
-	GridSquare neighbors[9] = {
-		(GridSquare){sc.lat  ,sc.lon  },
-		(GridSquare){sc.lat+1,sc.lon-1},
-		(GridSquare){sc.lat+1,sc.lon  },
-		(GridSquare){sc.lat+1,sc.lon+1},
-		(GridSquare){sc.lat  ,sc.lon+1},
-		(GridSquare){sc.lat-1,sc.lon+1},
-		(GridSquare){sc.lat-1,sc.lon  },
-		(GridSquare){sc.lat-1,sc.lon-1},
-		(GridSquare){sc.lat  ,sc.lon-1}};
-	for(int i = 0; i<9; i++){
-		models.neighbors[i] = neighbors[i];
-	}
-	models.origin = get_origin(neighbors[1], border);
-	return models;
 }
 
 BigModel BigModel_init(GridSquare sc){

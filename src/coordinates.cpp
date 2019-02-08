@@ -79,19 +79,6 @@ string str(GridSquare square)
 	return to_return;
 }
 
-// Find the slope between two neighbouring points
-double find_slope(ArrayCoordinate c1, ArrayCoordinate c2, Model_double *DEM)
-{
-	//printf("%d %d %d %d %f %f %f %f\n", c2.row,c2.col,c1.row,c1.col,( DEM->d[c2.row][c2.col]-DEM->d[c1.row][c1.col]),find_distance(c1, c2), DEM->d[c2.row][c2.col], DEM->d[c1.row][c1.col]);
-	return ( DEM->d[c2.row][c2.col]-DEM->d[c1.row][c1.col])/find_distance(c1, c2);
-}
-
-
-int flows_to(ArrayCoordinate c1, ArrayCoordinate c2, Model_int16 *flow_directions) {
-	return ( ( c1.row + directions[flow_directions->d[c1.row][c1.col]].row == c2.row ) &&
-		 ( c1.col + directions[flow_directions->d[c1.row][c1.col]].col == c2.col ) );
-}
-
 bool flows_to(ArrayCoordinate c1, ArrayCoordinate c2, Model<char>* flow_directions) {
 	return ( ( c1.row + directions[flow_directions->get(c1.row,c1.col)].row == c2.row ) &&
 		 ( c1.col + directions[flow_directions->get(c1.row,c1.col)].col == c2.col ) );

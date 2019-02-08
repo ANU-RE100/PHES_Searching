@@ -142,17 +142,9 @@ extern vector<CategoryCutoff> category_cutoffs;
 bool file_exists(char* name);
 
 #include "model2D.h"
-#include "TIFF_IO.h"
 #include "coordinates.h"
 #include "reservoir.h"
 #include "csv.h"
-
-struct Models{
-	GridSquare neighbors[9];
-	Model_int16* DEMs[9];
-	Model_int16* flow_directions[9];
-	GeographicCoordinate origin;
-};
 
 struct BigModel{
 	GridSquare neighbors[9];
@@ -172,9 +164,7 @@ char* convert_string(string str);
 void write_to_csv_file(FILE *csv_file, vector<string> cols);
 vector<string> read_from_csv_file(string line);
 string dtos(double f, int nd);
-Model_int16* read_DEM_with_borders(GridSquare sq);
 Model<short>* read_DEM_with_borders(GridSquare sq, int border);
-Models Models_init(GridSquare sc);
 BigModel BigModel_init(GridSquare sc);
 void set_FOM(Pair* pair);
 string str(Test test);

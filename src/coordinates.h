@@ -30,10 +30,7 @@ ArrayCoordinateWithHeight ArrayCoordinateWithHeight_init(int row, int col, doubl
 GeographicCoordinate get_origin(GridSquare square, int border);
 bool check_within(ArrayCoordinateWithHeight c, int shape[2]);
 bool check_within(ArrayCoordinate c, int shape[2]);
-double find_slope(ArrayCoordinate c1, ArrayCoordinate c2, Model_double *DEM);
 string str(GridSquare square);
-int find_lowest_neighbor(ArrayCoordinate c, Model_double *DEM);
-int find_lowest_neighbor(ArrayCoordinate c, Model_double *DEM, double coslat);
 double find_area(ArrayCoordinate c);
 double find_distance(ArrayCoordinate c1, ArrayCoordinate c2);
 double find_distance(ArrayCoordinate c1, ArrayCoordinate c2, double coslat);
@@ -43,7 +40,6 @@ double find_distance(GeographicCoordinate c1, GeographicCoordinate c2);
 double find_distance(GeographicCoordinate c1, GeographicCoordinate c2, double coslat);
 double find_distance_sqd(GeographicCoordinate c1, GeographicCoordinate c2);
 double find_distance_sqd(GeographicCoordinate c1, GeographicCoordinate c2, double coslat);
-int flows_to(ArrayCoordinate c1, ArrayCoordinate c2, Model_int16 *flow_directions);
 bool flows_to(ArrayCoordinate c1, ArrayCoordinate c2, Model<char>* flow_directions);
 GeographicCoordinate convert_coordinates(ArrayCoordinate c);
 ArrayCoordinate convert_coordinates(GeographicCoordinate c, GeographicCoordinate origin);

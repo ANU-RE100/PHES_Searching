@@ -1,7 +1,7 @@
 
 CXXFLAGS = -std=c++11 -O3 -Wall -Wextra -g
 LIBS = -lgdal -lshp
-GEN_OBJS = src/model2D.o src/TIFF_IO.o src/reservoir.o src/coordinates.o src/phes_base.o  src/variable_parser.o src/kml.o src/csv.o
+GEN_OBJS = src/reservoir.o src/coordinates.o src/phes_base.o  src/variable_parser.o src/kml.o src/csv.o
 OBJS0 = src/shapefile_tiling.o $(GEN_OBJS)
 OBJS1 = src/screening.o $(GEN_OBJS)
 OBJS2 = src/pairing.o $(GEN_OBJS)
