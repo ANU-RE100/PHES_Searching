@@ -53,6 +53,11 @@ public:
 	void set(int row, int col, T value){
 		data[row*cols+col] = value;
 	}
+	void set(T value){
+		for(int row=0; row<rows; row++)
+			for(int col=0; col<cols; col++)
+				data[row*cols+col] = value;
+	}
 	Geodata get_geodata(){
 		return geodata;
 	}
