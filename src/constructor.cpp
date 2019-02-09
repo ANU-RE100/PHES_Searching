@@ -276,7 +276,7 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
     	ArrayCoordinate to_check = adjacent[1];
     	if(full_cur_model->get(adjacent[0].row+offset.row,adjacent[0].col+offset.col)==2)
     		to_check = adjacent[0];
-    	vector<GeographicCoordinate> polygon = compress_poly(corner_cut_poly(convert_poly(convert_to_polygon(full_cur_model, offset, to_check, 2))));
+    	vector<GeographicCoordinate> polygon = compress_poly(corner_cut_poly(convert_poly(convert_to_polygon(full_cur_model, offset, to_check, 1))));
     	string polygon_string = str(polygon, reservoir->elevation+reservoir->dam_height+freeboard);
     	coordinates->dam.push_back(polygon_string);
     }else{
