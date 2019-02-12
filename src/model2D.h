@@ -192,7 +192,7 @@ void Model<T>::print(){
 	int ny32 = rows>>5;
 	cout<<"       ";
 	for (int i= 0; i<16; i++) {
-		cout<<" "<<setw(7)<<nx32 + i*nx16<<" ";
+		cout<<" "<<setw(8)<<nx32 + i*nx16<<" ";
 	}
 	cout<<"\n";
 
@@ -201,7 +201,7 @@ void Model<T>::print(){
 		cout<<setw(4)<<iy<<":  ";
 		for (int i= 0; i<16; i++) {
 			int ix = nx32 + i*nx16;
-			cout<<" "<<setw(7)<<+get(iy,ix)<<" ";
+			cout<<" "<<setw(8)<<+get(iy,ix)<<" ";
 		}
 		cout<<"\n";
 	}

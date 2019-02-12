@@ -84,6 +84,7 @@ void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_t
 		GeographicCoordinate point;
 		for(int row = 0; row<filter->nrows(); row++){
 			for(int col = 0; col<filter->ncols(); col++){
+				printf("%d %d\n", row, col);
 				point = filter->get_coordinate(row, col);
 				if(tif_filter->check_within(point) && tif_filter->get(point)==value_to_filter)
 					filter->set(row,col,true);

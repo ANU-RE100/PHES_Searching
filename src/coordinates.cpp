@@ -70,6 +70,7 @@ GridSquare GridSquare_init(int latitude, int longitude)
 string str(GridSquare square)
 {
 	char buf[24];
+	square.lon = (square.lon+180)%360-180;
 	char c1 = (square.lat<0)?'s':'n';
 	int lat = abs(square.lat);
 	char c2 = (square.lon<0)?'w':'e';

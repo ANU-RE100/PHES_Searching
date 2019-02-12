@@ -18,7 +18,9 @@ void write_to_csv_file(FILE *csv_file, vector<string> cols){
 			cols[i] = ReplaceAll(cols[i], string("\n"), string(""));
 			cols[i] = '"'+cols[i]+'"';
 		}
-		fprintf(csv_file, "%s", convert_string(cols[i]));
+		char* s = convert_string(cols[i]);
+		fprintf(csv_file, "%s", s);
+		delete s;
 		if(i!=cols.size()-1)
 			fprintf(csv_file, ",");
 	}

@@ -4,7 +4,7 @@ int display = false;
 
 vector<vector<Pair>> pairs;
 
-vector<GeographicCoordinate> find_points_to_test(vector<array<ArrayCoordinate, directions.size()> > boundary, double wall_height, ArrayCoordinate pour_point)
+vector<GeographicCoordinate> find_points_to_test(vector<array<ArrayCoordinate, directions.size()>>& boundary, double& wall_height, ArrayCoordinate& pour_point)
 {
 	array<ArrayCoordinate, directions.size()> one_point = { pour_point, pour_point, pour_point, pour_point,
 					  pour_point, pour_point, pour_point, pour_point };
@@ -33,7 +33,7 @@ vector<GeographicCoordinate> find_points_to_test(vector<array<ArrayCoordinate, d
 }
 
 
-double find_least_distance_sqd(vector<array<ArrayCoordinate, directions.size()> > upper_boundary, vector<array<ArrayCoordinate, directions.size()> > lower_boundary,
+double find_least_distance_sqd(vector<array<ArrayCoordinate, directions.size()>>& upper_boundary, vector<array<ArrayCoordinate, directions.size()>>& lower_boundary,
 			      double upper_wall_height, double lower_wall_height,
 			      ArrayCoordinate upper_pour_point, ArrayCoordinate lower_pour_point)
 {
