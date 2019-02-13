@@ -2,7 +2,7 @@
 
 int display = false;
 
-vector<vector<Pair>> pairs;
+vector<int> pairs;
 
 vector<GeographicCoordinate> find_points_to_test(vector<array<ArrayCoordinate, directions.size()>>& boundary, double& wall_height, ArrayCoordinate& pour_point)
 {
@@ -116,11 +116,10 @@ Pair *check_good_pair(RoughReservoir& upper, RoughReservoir& lower, int energy_c
 	return pair;
 }
 
-void pairing(vector<RoughReservoir>& upper_reservoirs, vector<RoughReservoir>& lower_reservoirs)
+void pairing(vector<RoughReservoir>& upper_reservoirs, vector<RoughReservoir>& lower_reservoirs, FILE *csv_file, FILE *csv_data_file)
 {
 	for (uint itest=0; itest<tests.size(); itest++) {
-		vector<Pair> t;
-		pairs.push_back(t);
+		pairs.push_back(0);
 	}
 
 	RoughReservoir* upper_reservoir;
@@ -144,7 +143,10 @@ void pairing(vector<RoughReservoir>& upper_reservoirs, vector<RoughReservoir>& l
 			for (uint itest=0; itest<tests.size(); itest++) {
 				Pair temp_pair;
 				if (check_good_pair(*upper_reservoir, *lower_reservoir, tests[itest].energy_capacity, tests[itest].storage_time, &temp_pair, tests[itest].max_FOM)) {
-					pairs[itest].push_back(temp_pair);
+					// pairs[itest].push_back(temp_pair);
+					write_rough_pair_csv(csv_file, &temp_pair);
+			 		write_rough_pair_data(csv_data_file, &temp_pair);
+			 		pairs[itest]++;
 				}
 			}
 		}
@@ -192,8 +194,6 @@ int main(int nargs, char **argv)
 	if(display)
 		printf("Read in %zu lowers\n", lower_reservoirs.size());
 
-	pairing(upper_reservoirs, lower_reservoirs);
-
 	mkdir(convert_string(file_storage_location+"output/pairs"),0777);
 	FILE *csv_file = fopen(convert_string(file_storage_location+"output/pairs/"+str(square_coordinate)+"_rough_pairs.csv"), "w");
 	if (!csv_file) {
@@ -210,18 +210,13 @@ int main(int nargs, char **argv)
     }
 	write_rough_pair_data_header(csv_data_file);
 
+	pairing(upper_reservoirs, lower_reservoirs, csv_file, csv_data_file);
+
 	int total=0;
 	for (uint itest=0; itest<tests.size(); itest++) {
 		if(display)
-			printf("%zu %dGWh %dh pairs\n", pairs[itest].size(), tests[itest].energy_capacity, tests[itest].storage_time);
-
-		total+=pairs[itest].size();
-		Pair pair;
-		for (uint i=0 ; i<pairs[itest].size(); i++) {
-			pair = pairs[itest][i];
-			write_rough_pair_csv(csv_file, &pair);
-			write_rough_pair_data(csv_data_file, &pair);
-		}
+			printf("%d %dGWh %dh pairs\n", pairs[itest], tests[itest].energy_capacity, tests[itest].storage_time);
+		total+=pairs[itest];
 	}
 
 	fclose(csv_file);

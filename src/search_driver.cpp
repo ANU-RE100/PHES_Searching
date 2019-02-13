@@ -113,10 +113,19 @@ int main()
 					exit(1);
 				}
 			}
-			if(system(convert_string("./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)))){
+			bool success;
+			for(int i = 0; i<3; i++){
+				success = system(convert_string("./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)));
+				if(success)
+					break;
+				else
+					cout<<"Retrying command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
+			}
+			if(!success){
 				cout<<"Problem running command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
 				exit(1);
 			}
+			
 		}
 		unset_worker(id, process);
 		while(!all_done(process)){

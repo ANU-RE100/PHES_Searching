@@ -179,7 +179,6 @@ vector<vector<Pair> > read_rough_pair_data(char* filename)
     	gc = GeographicCoordinate_init(stod(line[9]), stod(line[10]));
     	origin = get_origin(GridSquare_init((int)FLOOR(gc.lat)-EPS,(int)FLOOR(gc.lon)+EPS), border);
     	pair.lower = Reservoir_init(convert_coordinates(gc, origin), stoi(line[11]));
-    	//printf("%f %f %d %f\n", gc.lat, origin.lat, convert_coordinates(gc, origin).row, pair.lower.latitude);
 
     	pair.identifier = line[0]; 
 
