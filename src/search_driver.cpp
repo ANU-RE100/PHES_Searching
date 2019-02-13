@@ -113,13 +113,14 @@ int main()
 					exit(1);
 				}
 			}
-			bool success;
+			bool success = false;
 			for(int i = 0; i<3; i++){
-				success = system(convert_string("./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)));
-				if(success)
+				if(!system(convert_string("./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)))){
+					success = true;
 					break;
-				else
+				}else{
 					cout<<"Retrying command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
+				}
 			}
 			if(!success){
 				cout<<"Problem running command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
