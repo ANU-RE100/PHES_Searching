@@ -152,6 +152,10 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 			read_shp_filter(file_storage_location+filename, filter);
 		}		
 	}
+	for(int row = 0; row<DEM->nrows(); row++)
+		for(int col = 0; col<DEM->ncols(); col++)
+			if(DEM->get(row,col)<-1000)
+				filter->set(row,col,true);
 	return filter;
 }
 
