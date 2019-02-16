@@ -131,7 +131,7 @@ void pairing(vector<RoughReservoir>& upper_reservoirs, vector<RoughReservoir>& l
 		    lower_reservoir = &lower_reservoirs[ilower];
 
 		    int head = upper_reservoir->elevation - lower_reservoir->elevation;
-			if ( head < min_head)
+			if ( head < min_head || head>max_head)
 				continue;
 
 			// Pour point separation

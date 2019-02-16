@@ -8,9 +8,11 @@ bool check_reservoir(Reservoir& reservoir, Model<bool>* seen, vector<ArrayCoordi
 	Model<short>* DEM = big_model.DEM;
 	Model<char>* flow_directions = big_model.flow_directions[0];
 
-	for(int i = 0; i<9; i++)
-		if(big_model.neighbors[i].lat == (int)(FLOOR(reservoir.latitude)-EPS) && big_model.neighbors[i].lon == (int)(FLOOR(reservoir.longitude)+EPS))
+	for(int i = 0; i<9; i++){
+		if(big_model.neighbors[i].lat == convert_to_int(FLOOR(reservoir.latitude)) && big_model.neighbors[i].lon == convert_to_int(FLOOR(reservoir.longitude))){
 			flow_directions = big_model.flow_directions[i];
+		}
+	}
 
 	ArrayCoordinate offset = convert_coordinates(convert_coordinates(ArrayCoordinate_init(0,0,flow_directions->get_origin())), DEM->get_origin());
 

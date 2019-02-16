@@ -103,7 +103,6 @@ private:
 	Geodata geodata;
 };
 
-// Check C++ Code for this
 template <typename T> 
 Model<T>::Model(string filename, GDALDataType data_type){ 
 	char *tif_filename = new char[filename.length() + 1];

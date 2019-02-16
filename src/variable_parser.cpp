@@ -28,6 +28,7 @@ vector<double> dam_wall_heights; 	//  Wall heights to test and export
 
 // Pairing
 int min_head;						// Minimum head (m) to be considered a potential pair
+int max_head;						// Maximum head (m) to be considered a potential pair
 double min_pair_water_rock;			// Minimum pair water to rock ratio based on interpolated values
 double min_slope;					// Minimum slope based on interpolated nearest point seperation between two reservoirs
 double min_pp_slope;				// Minimum slope based on pourpoint seperation between two reservoirs
@@ -178,6 +179,8 @@ void parse_variables(char* filename){
 				lower_colour = value;
 			if(variable=="file_storage_location")
 				file_storage_location = value;
+			if(variable=="max_head")
+				max_head = stod(value);
 		}
 	}
 }

@@ -48,6 +48,7 @@ extern vector<double> dam_wall_heights; 	//  Wall heights to test and export
 
 // Pairing
 extern int min_head;						// Minimum head (m) to be considered a potential pair
+extern int max_head;						// Maximum head (m) to be considered a potential pair
 extern double min_pair_water_rock;			// Minimum pair water to rock ratio based on interpolated values
 extern double min_slope;					// Minimum slope based on interpolated nearest point seperation between two reservoirs
 extern double min_pp_slope;					// Minimum slope based on pourpoint seperation between two reservoirs
