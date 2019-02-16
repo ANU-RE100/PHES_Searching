@@ -3,7 +3,6 @@ tasks_file = tasks;				// File with list of cells to do line by line in format <
 processes_file = processes;		// File with list of processes to complete
 
 // General
-file_storage_location = ../PHES_Searching/;	// Where to look for input files and store output files
 border = 600;					// Number of cells to add as border around DEM square
 
 dambatter = 3.0;				// Slope on sides of dam

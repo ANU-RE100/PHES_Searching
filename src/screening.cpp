@@ -475,6 +475,7 @@ int main(int nargs, char **argv)
 	printf("Screening started for %s\n",convert_string(str(square_coordinate)));
 
 	GDALAllRegister();
+	parse_variables(convert_string("storage_location"));
 	parse_variables(convert_string(file_storage_location+"variables"));
 	unsigned long start_usec = walltime_usec();
 	unsigned long t_usec = start_usec;

@@ -94,6 +94,7 @@ int main(int nargs, char **argv)
 	printf("Pretty set started for %s\n",convert_string(str(square_coordinate)));
 
 	GDALAllRegister();
+	parse_variables(convert_string("storage_location"));
 	parse_variables(convert_string(file_storage_location+"variables"));
 	unsigned long t_usec = walltime_usec();
 	

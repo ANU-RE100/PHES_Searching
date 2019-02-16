@@ -163,6 +163,7 @@ int main(int nargs, char **argv)
 	printf("Pairing started for %s\n",convert_string(str(square_coordinate)));
 
 	unsigned long t_usec = walltime_usec();
+	parse_variables(convert_string("storage_location"));
 	parse_variables(convert_string(file_storage_location+"variables"));
 
 	vector<RoughReservoir> upper_reservoirs = read_rough_reservoir_data(convert_string(file_storage_location+"processing_files/reservoirs/"+str(square_coordinate)+"_reservoirs_data.csv"));
