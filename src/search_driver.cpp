@@ -94,7 +94,8 @@ vector<string> read_processlist(char *processes_file)
 
 int main()
 {
-	parse_variables(convert_string("variables"));
+	parse_variables(convert_string("storage_location"));
+	parse_variables(convert_string(file_storage_location+"variables"));
 
 	vector<GridSquare> tasklist = read_tasklist(convert_string(file_storage_location+tasks_file));
 	vector<string> processlist = read_processlist(convert_string(file_storage_location+processes_file));
