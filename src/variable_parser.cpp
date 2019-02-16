@@ -65,6 +65,11 @@ vector<Test> tests;					// Test in format {Volume (GL), Storage time (h), Maximu
 vector<CategoryCutoff> category_cutoffs;
 
 void parse_variables(char* filename){
+    if(!file_exists(filename)){
+		if(display)
+			cout << "No file variable file.\n";
+		throw(1);
+	}
 	ifstream in(filename);
 	string line;
 	while(getline(in, line)){
