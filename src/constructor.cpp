@@ -162,7 +162,7 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
 	Model<char>* flow_directions = big_model.flow_directions[0];
 
 	for(int i = 0; i<9; i++)
-        if(big_model.neighbors[i].lat == convert_to_int(FLOOR(reservoir->latitude)) && big_model.neighbors[i].lon == convert_to_int(FLOOR(reservoir->longitude)))
+        if(big_model.neighbors[i].lat == convert_to_int(FLOOR(reservoir->latitude+EPS)) && big_model.neighbors[i].lon == convert_to_int(FLOOR(reservoir->longitude+EPS)))
             flow_directions = big_model.flow_directions[i];
 
     ArrayCoordinate offset = convert_coordinates(convert_coordinates(ArrayCoordinate_init(0,0,flow_directions->get_origin())), DEM->get_origin());

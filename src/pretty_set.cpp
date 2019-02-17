@@ -9,7 +9,7 @@ bool check_reservoir(Reservoir& reservoir, Model<bool>* seen, vector<ArrayCoordi
 	Model<char>* flow_directions = big_model.flow_directions[0];
 
 	for(int i = 0; i<9; i++)
-		if(big_model.neighbors[i].lat == convert_to_int(FLOOR(reservoir.latitude)) && big_model.neighbors[i].lon == convert_to_int(FLOOR(reservoir.longitude)))
+		if(big_model.neighbors[i].lat == convert_to_int(FLOOR(reservoir.latitude+EPS)) && big_model.neighbors[i].lon == convert_to_int(FLOOR(reservoir.longitude+EPS)))
 			flow_directions = big_model.flow_directions[i];
 
 	ArrayCoordinate offset = convert_coordinates(convert_coordinates(ArrayCoordinate_init(0,0,flow_directions->get_origin())), DEM->get_origin());
@@ -20,7 +20,6 @@ bool check_reservoir(Reservoir& reservoir, Model<bool>* seen, vector<ArrayCoordi
 	vector<ArrayCoordinate> temp_used_points;
 
 	char last = 'd';
-
 
 	while(volume*(1+0.5/reservoir.water_rock)<(1-volume_accuracy)*req_volume || volume*(1+0.5/reservoir.water_rock)>(1+volume_accuracy)*req_volume){
 		temp_used_points.clear();
@@ -79,9 +78,11 @@ bool check_pair(Pair& pair, Model<bool>* seen, BigModel& big_model){
 		return false;
 	if(!check_reservoir(pair.lower, seen, &used_points, big_model))
 		return false;
+
 	for(uint i = 0; i<used_points.size();i++){
 		seen->set(used_points[i].row,used_points[i].col,true);
 	}
+
 	return true;
 }
 

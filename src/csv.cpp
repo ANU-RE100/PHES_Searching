@@ -173,10 +173,10 @@ vector<vector<Pair> > read_rough_pair_data(char* filename)
 
     	Pair pair;
     	GeographicCoordinate gc = GeographicCoordinate_init(stod(line[2]), stod(line[3]));
-    	GeographicCoordinate origin = get_origin(GridSquare_init(convert_to_int(FLOOR(gc.lat)),convert_to_int(FLOOR(gc.lon))), border);
+    	GeographicCoordinate origin = get_origin(GridSquare_init(convert_to_int(FLOOR(gc.lat+EPS)),convert_to_int(FLOOR(gc.lon+EPS))), border);
     	pair.upper = Reservoir_init(convert_coordinates(gc, origin), stoi(line[4]));
     	gc = GeographicCoordinate_init(stod(line[9]), stod(line[10]));
-    	origin = get_origin(GridSquare_init(convert_to_int(FLOOR(gc.lat)),convert_to_int(FLOOR(gc.lon))), border);
+    	origin = get_origin(GridSquare_init(convert_to_int(FLOOR(gc.lat+EPS)),convert_to_int(FLOOR(gc.lon+EPS))), border);
     	pair.lower = Reservoir_init(convert_coordinates(gc, origin), stoi(line[11]));
 
     	pair.identifier = line[0]; 
