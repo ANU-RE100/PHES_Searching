@@ -172,12 +172,11 @@ vector<vector<Pair> > read_rough_pair_data(char* filename)
     	vector<string> line = read_from_csv_file(s);
 
     	Pair pair;
-
     	GeographicCoordinate gc = GeographicCoordinate_init(stod(line[2]), stod(line[3]));
-    	GeographicCoordinate origin = get_origin(GridSquare_init((int)(FLOOR(gc.lat)-EPS),(int)(FLOOR(gc.lon)+EPS)), border);
+    	GeographicCoordinate origin = get_origin(GridSquare_init(convert_to_int(FLOOR(gc.lat)),convert_to_int(FLOOR(gc.lon))), border);
     	pair.upper = Reservoir_init(convert_coordinates(gc, origin), stoi(line[4]));
     	gc = GeographicCoordinate_init(stod(line[9]), stod(line[10]));
-    	origin = get_origin(GridSquare_init((int)FLOOR(gc.lat)-EPS,(int)FLOOR(gc.lon)+EPS), border);
+    	origin = get_origin(GridSquare_init(convert_to_int(FLOOR(gc.lat)),convert_to_int(FLOOR(gc.lon))), border);
     	pair.lower = Reservoir_init(convert_coordinates(gc, origin), stoi(line[11]));
 
     	pair.identifier = line[0]; 

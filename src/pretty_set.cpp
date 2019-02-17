@@ -8,11 +8,9 @@ bool check_reservoir(Reservoir& reservoir, Model<bool>* seen, vector<ArrayCoordi
 	Model<short>* DEM = big_model.DEM;
 	Model<char>* flow_directions = big_model.flow_directions[0];
 
-	for(int i = 0; i<9; i++){
-		if(big_model.neighbors[i].lat == convert_to_int(FLOOR(reservoir.latitude)) && big_model.neighbors[i].lon == convert_to_int(FLOOR(reservoir.longitude))){
+	for(int i = 0; i<9; i++)
+		if(big_model.neighbors[i].lat == convert_to_int(FLOOR(reservoir.latitude)) && big_model.neighbors[i].lon == convert_to_int(FLOOR(reservoir.longitude)))
 			flow_directions = big_model.flow_directions[i];
-		}
-	}
 
 	ArrayCoordinate offset = convert_coordinates(convert_coordinates(ArrayCoordinate_init(0,0,flow_directions->get_origin())), DEM->get_origin());
 
@@ -31,6 +29,7 @@ bool check_reservoir(Reservoir& reservoir, Model<bool>* seen, vector<ArrayCoordi
 		q.push(reservoir.pour_point);
 		ArrayCoordinate reservoir_big_ac = convert_coordinates(convert_coordinates(reservoir.pour_point), DEM->get_origin());
 		ArrayCoordinate neighbor;
+		// printf("%d %d %d %d\n", reservoir_big_ac.row, reservoir_big_ac.col, reservoir.pour_point.row, reservoir.pour_point.col);
 		while (!q.empty()) {
 			ArrayCoordinate p = q.front();
 			q.pop();
@@ -38,10 +37,12 @@ bool check_reservoir(Reservoir& reservoir, Model<bool>* seen, vector<ArrayCoordi
 
 			temp_used_points.push_back(big_ac);
 
-			if (seen->get(big_ac.row,big_ac.col))
+			if (seen->get(big_ac.row,big_ac.col)||DEM->get(big_ac.row, big_ac.col)<-2000)
 				return false;
 
-			volume+=(wall_height-(DEM->get(big_ac.row,big_ac.col)-DEM->get(reservoir_big_ac.row,reservoir_big_ac.col)))*find_area(p)/100; // 4sec optimization with coslat?
+			volume+=(wall_height-(DEM->get(big_ac.row,big_ac.col)-DEM->get(reservoir_big_ac.row,reservoir_big_ac.col)))*find_area(p)/100; // Minor optimization with coslat?
+			// if(wall_height<0)
+			// 	printf("%d %d %f %f %d %d %f\n", big_ac.row, big_ac.col, wall_height, (wall_height-(DEM->get(big_ac.row,big_ac.col)-DEM->get(reservoir_big_ac.row,reservoir_big_ac.col)))*find_area(p)/100, DEM->get(big_ac.row,big_ac.col), DEM->get(reservoir_big_ac.row,reservoir_big_ac.col), find_area(p));
 			for (uint d=0; d<directions.size(); d++) {
 				neighbor = {p.row+directions[d].row, p.col+directions[d].col, p.origin};
 				if (flow_directions->check_within(neighbor.row, neighbor.col) &&
@@ -51,7 +52,7 @@ bool check_reservoir(Reservoir& reservoir, Model<bool>* seen, vector<ArrayCoordi
 				}
 			}
 		}
-		
+		// printf("%f %f %d\n", volume, wall_height, DEM->get(reservoir_big_ac.row, reservoir_big_ac.col));
 		if(volume*(1+0.5/reservoir.water_rock)<(1-volume_accuracy)*req_volume){
 			wall_height+=dam_wall_height_resolution;
             if(wall_height>reservoir.max_dam_height)

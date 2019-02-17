@@ -67,7 +67,7 @@ vector<CategoryCutoff> category_cutoffs;
 void parse_variables(char* filename){
     if(!file_exists(filename)){
 		if(display)
-			cout << "No file variable file.\n";
+			cout << "No file: " << filename << "\n";
 		throw(1);
 	}
 	ifstream in(filename);

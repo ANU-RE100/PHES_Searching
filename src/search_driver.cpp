@@ -38,7 +38,7 @@ bool all_done(string process)
 	DIR *dir = opendir(convert_string(file_storage_location+"driver_files/"+process+"_workers"));
 	if (!dir) {
 		fprintf(stderr, "failed to open done dir %s: %s\n", convert_string("driver_files/"+process+"_workers"), strerror(errno));
-		exit(1);
+		return false;
 	}
 	int n=0;
 	while(readdir(dir)!=NULL) n++;
@@ -46,7 +46,7 @@ bool all_done(string process)
 	dir = opendir(convert_string(file_storage_location+"driver_files/done_"+process+"_workers"));
 	if (!dir) {
 		fprintf(stderr, "failed to open done dir %s: %s\n", convert_string("driver_files/done_"+process+"_workers"), strerror(errno));
-		exit(1);
+		return false;
 	}
 	int n2=0;
 	while(readdir(dir)!=NULL) n2++;
@@ -131,7 +131,7 @@ int main()
 		}
 		unset_worker(id, process);
 		while(!all_done(process)){
-		 	sleep(5);
+		 	sleep(10);
 		}
 	}
 	printf("Done\n");

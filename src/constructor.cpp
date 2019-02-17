@@ -162,8 +162,8 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
 	Model<char>* flow_directions = big_model.flow_directions[0];
 
 	for(int i = 0; i<9; i++)
-		if(big_model.neighbors[i].lat == (int)(FLOOR(reservoir->latitude)-EPS) && big_model.neighbors[i].lon == (int)(FLOOR(reservoir->longitude)+EPS))
-			flow_directions = big_model.flow_directions[i];
+        if(big_model.neighbors[i].lat == convert_to_int(FLOOR(reservoir->latitude)) && big_model.neighbors[i].lon == convert_to_int(FLOOR(reservoir->longitude)))
+            flow_directions = big_model.flow_directions[i];
 
     ArrayCoordinate offset = convert_coordinates(convert_coordinates(ArrayCoordinate_init(0,0,flow_directions->get_origin())), DEM->get_origin());
     ArrayCoordinate reservoir_big_ac = convert_coordinates(convert_coordinates(reservoir->pour_point), DEM->get_origin());
@@ -172,7 +172,7 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
 	reservoir->volume = 0;
 	reservoir->area = 0;
 	vector<ArrayCoordinate> temp_used_points;
-	
+
 	// RESERVOIR
 	char last_dir = 'd';
 	while(reservoir->volume*(1+0.5/reservoir->water_rock)<(1-volume_accuracy)*req_volume || reservoir->volume*(1+0.5/reservoir->water_rock)>(1+volume_accuracy)*req_volume){
@@ -191,9 +191,10 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
             ArrayCoordinate full_big_ac = {p.row+offset.row, p.col+offset.col, DEM->get_origin()};
 
 			temp_used_points.push_back(full_big_ac);
-			if (seen->get(full_big_ac.row,full_big_ac.col)){
+			if (seen->get(full_big_ac.row,full_big_ac.col))
 				*non_overlap = false;
-			}
+            if(DEM->get(full_big_ac.row, full_big_ac.col)<-2000)
+                return false;
 
             reservoir->volume+=(reservoir->dam_height-(DEM->get(full_big_ac.row,full_big_ac.col)-DEM->get(reservoir_big_ac.row,reservoir_big_ac.col)))*find_area(full_big_ac)/100;
 			reservoir->area+=find_area(p);
@@ -227,7 +228,7 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
 	for(uint i = 0; i<temp_used_points.size(); i++){
 		used_points->push_back(temp_used_points[i]);
 	}
-	
+
 	// DAM
 	reservoir->dam_volume = 0;
 	reservoir->dam_length = 0;
@@ -264,13 +265,13 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
         	last = false;
         }
 	}
-	if(polygon_bool[0] && polygon_bool[dam_polygon.size()-1] && !is_turkeys_nest){
+    
+	if(polygon_bool[0] && polygon_bool[dam_polygon.size()-1] && !is_turkeys_nest && dam_polygon.size()>1){
 		for(uint i = 0; i<dam_polygon[dam_polygon.size()-1].size();i++){
 			dam_polygon[0].push_back(dam_polygon[dam_polygon.size()-1][i]);
 		}
         dam_polygon.pop_back();
     }
-
     if(is_turkeys_nest){
     	ArrayCoordinate* adjacent = get_adjacent_cells(dam_polygon[0][0], dam_polygon[0][1]);
     	ArrayCoordinate to_check = adjacent[1];
