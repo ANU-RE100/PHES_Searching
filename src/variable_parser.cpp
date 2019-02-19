@@ -32,6 +32,7 @@ int max_head;						// Maximum head (m) to be considered a potential pair
 double min_pair_water_rock;			// Minimum pair water to rock ratio based on interpolated values
 double min_slope;					// Minimum slope based on interpolated nearest point seperation between two reservoirs
 double min_pp_slope;				// Minimum slope based on pourpoint seperation between two reservoirs
+int max_lowers_per_upper;			// Maximum number of lower reservoirs to keep per upper reservoir
 
 // Common
 double gravity;						// Acceleration due to gravity (m/s/s)
@@ -186,6 +187,8 @@ void parse_variables(char* filename){
 				file_storage_location = value;
 			if(variable=="max_head")
 				max_head = stod(value);
+			if(variable=="max_lowers_per_upper")
+				max_lowers_per_upper = stoi(value);
 		}
 	}
 }

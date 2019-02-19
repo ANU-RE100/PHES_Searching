@@ -20,7 +20,6 @@ void write_to_csv_file(FILE *csv_file, vector<string> cols){
 		}
 		char* s = convert_string(cols[i]);
 		fprintf(csv_file, "%s", s);
-		delete s;
 		if(i!=cols.size()-1)
 			fprintf(csv_file, ",");
 	}

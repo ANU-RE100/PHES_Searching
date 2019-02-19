@@ -72,15 +72,14 @@ bool is_dam_wall(ArrayCoordinate point1, ArrayCoordinate point2, Model<short>* D
     return false;
 }
 
+int dir_def[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
+int dir_to_do[4][3] = {{2,0,3},{3,1,2},{1,2,0},{0,3,1}};
+int testsa[] = {1, 2, 0, 3};
 
 // Converts a raster model to a polygon given a raster model and a point on the interior edge of the polygon
 vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate offset, ArrayCoordinate pour_point, int threshold){
-    
     vector<ArrayCoordinate> to_return;
-    int dir_def[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
-    int dir_to_do[4][3] = {{2,0,3},{3,1,2},{1,2,0},{0,3,1}};
-
-    int tests[] = {1, 2, 0, 3};
+    
     ArrayCoordinate test_coordinates[] = {
         ArrayCoordinate_init(pour_point.row+1, pour_point.col+1, pour_point.origin),
         ArrayCoordinate_init(pour_point.row+1, pour_point.col, pour_point.origin),
@@ -89,7 +88,7 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
 
     for(int i = 0; i<4; i++){
         vector<ArrayCoordinate> temp_to_return;
-        int last_dir = tests[i];
+        int last_dir = testsa[i];
         ArrayCoordinate initial = test_coordinates[i];
         ArrayCoordinate last = initial;
         while(true){
@@ -265,7 +264,6 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
         	last = false;
         }
 	}
-    
 	if(polygon_bool[0] && polygon_bool[dam_polygon.size()-1] && !is_turkeys_nest && dam_polygon.size()>1){
 		for(uint i = 0; i<dam_polygon[dam_polygon.size()-1].size();i++){
 			dam_polygon[0].push_back(dam_polygon[dam_polygon.size()-1][i]);
@@ -277,7 +275,7 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
     	ArrayCoordinate to_check = adjacent[1];
     	if(full_cur_model->get(adjacent[0].row+offset.row,adjacent[0].col+offset.col)==2)
     		to_check = adjacent[0];
-    	vector<GeographicCoordinate> polygon = compress_poly(corner_cut_poly(convert_poly(convert_to_polygon(full_cur_model, offset, to_check, 1))));
+    	vector<GeographicCoordinate> polygon = compress_poly(corner_cut_poly(convert_poly(convert_to_polygon(full_cur_model, offset, to_check, 2))));
     	string polygon_string = str(polygon, reservoir->elevation+reservoir->dam_height+freeboard);
     	coordinates->dam.push_back(polygon_string);
     }else{

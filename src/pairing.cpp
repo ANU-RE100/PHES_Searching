@@ -118,8 +118,11 @@ Pair *check_good_pair(RoughReservoir& upper, RoughReservoir& lower, int energy_c
 
 void pairing(vector<RoughReservoir>& upper_reservoirs, vector<RoughReservoir>& lower_reservoirs, FILE *csv_file, FILE *csv_data_file)
 {
+	vector<set<Pair>> temp_pairs;
 	for (uint itest=0; itest<tests.size(); itest++) {
 		pairs.push_back(0);
+		set<Pair> a;
+		temp_pairs.push_back(a);
 	}
 
 	RoughReservoir* upper_reservoir;
@@ -144,11 +147,22 @@ void pairing(vector<RoughReservoir>& upper_reservoirs, vector<RoughReservoir>& l
 				Pair temp_pair;
 				if (check_good_pair(*upper_reservoir, *lower_reservoir, tests[itest].energy_capacity, tests[itest].storage_time, &temp_pair, tests[itest].max_FOM)) {
 					// pairs[itest].push_back(temp_pair);
-					write_rough_pair_csv(csv_file, &temp_pair);
-			 		write_rough_pair_data(csv_data_file, &temp_pair);
-			 		pairs[itest]++;
+					// write_rough_pair_csv(csv_file, &temp_pair);
+			 	// 	write_rough_pair_data(csv_data_file, &temp_pair);
+			 		// pairs[itest]++;
+			 		temp_pairs[itest].insert(temp_pair);
+			 		if((int)temp_pairs[itest].size()>max_lowers_per_upper)
+			 			temp_pairs[itest].erase(prev(temp_pairs[itest].end())); 
 				}
 			}
+		}
+		for (uint itest=0; itest<tests.size(); itest++) {
+			for(Pair pair : temp_pairs[itest]){
+				write_rough_pair_csv(csv_file, &pair);
+			 	write_rough_pair_data(csv_data_file, &pair);
+			 	pairs[itest]++;
+			}
+			temp_pairs[itest].clear();
 		}
 	}
 }

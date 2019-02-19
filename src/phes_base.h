@@ -52,6 +52,7 @@ extern int max_head;						// Maximum head (m) to be considered a potential pair
 extern double min_pair_water_rock;			// Minimum pair water to rock ratio based on interpolated values
 extern double min_slope;					// Minimum slope based on interpolated nearest point seperation between two reservoirs
 extern double min_pp_slope;					// Minimum slope based on pourpoint seperation between two reservoirs
+extern int max_lowers_per_upper;			// Maximum number of lower reservoirs to keep per upper reservoir
 
 // Common
 extern double gravity;						// Acceleration due to gravity (m/s/s)
