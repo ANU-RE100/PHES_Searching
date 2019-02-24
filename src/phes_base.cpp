@@ -149,18 +149,10 @@ void set_FOM(Pair* pair){
 	double seperation = pair->distance;
 	double head = (double)pair->head;
 	double power = 1000*pair->energy_capacity/pair->storage_time;
-	if(head>800){
-		power = min(power, 600.0);
-		if(head>1200)
-			power = min(power, 600-200*(head-1200)/300.0);
-		head = head/2;
-		seperation = seperation/2;
-
-	}
 	double power_house_cost = powerhouse_coeff*pow(MIN(power,800),(power_exp))/pow(head,head_exp);
 	double tunnel_cost = ((power_slope_factor*MIN(power,800)+slope_int)*pow(head,head_coeff)*seperation*1000)+(power_offset*MIN(power,800)+tunnel_fixed);
 	double power_cost = 0.001*(power_house_cost+tunnel_cost)/MIN(power, 800);
-	double energy_cost = dam_cost*1/(pair->water_rock*generation_efficiency * usable_volume*water_density*gravity*head)*J_GWh_conversion/cubic_metres_GL_conversion;
+	double energy_cost = dam_cost*1/(pair->water_rock*generation_efficiency * usable_volume*water_density*gravity*pair->head)*J_GWh_conversion/cubic_metres_GL_conversion;
 	pair->FOM = power_cost+energy_cost*pair->storage_time;
 	pair->category = 'Z';
 	uint i = 0;

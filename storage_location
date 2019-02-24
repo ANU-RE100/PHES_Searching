@@ -1,1 +1,1 @@
-file_storage_location = ../../../../../p/PHES_Searching/;	// Where to look for input files and store output files
+file_storage_location = ../PHES_Searching/;	// Where to look for input files and store output files

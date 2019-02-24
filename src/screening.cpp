@@ -100,7 +100,7 @@ void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_t
 }
 
 string find_world_urban_filename(GeographicCoordinate point){
-	char clat = 'A'+floor((point.lat+90)/8+1);
+	char clat = 'A'+floor((point.lat+96)/8);
 	if(clat>=73)clat++;
 	if(clat>=79)clat++;
 	int nlon = floor((point.lon+180)/6+1);

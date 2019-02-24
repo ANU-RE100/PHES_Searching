@@ -2,6 +2,8 @@
 #include <dirent.h>
 
 #include "phes_base.h"
+#include "boost/filesystem.hpp"
+namespace fs = boost::filesystem;
 
 int display = true;
 
@@ -14,16 +16,18 @@ int set_worker(string process){
 		int fds = open(convert_string(workerlockfile), O_CREAT | O_EXCL | O_WRONLY, 0600);
 		if (!(fds < 0)) {
 			close(fds);
+			mkdir(convert_string(file_storage_location+"driver_files/"+process+"_done_workers/"), 0770);
+			mkdir(convert_string(file_storage_location+"driver_files/"+process+"_done_workers/"+to_string(i)), 0770);
             return i;
 		}
+		close(fds);
 		i++;
 	}
 }
 
 // Deletes the lockfile with the given ID
 void unset_worker(int id, string process){
-	mkdir(convert_string(file_storage_location+"driver_files/done_"+process+"_workers"), 0770);
-	string workerlockfile = file_storage_location+"driver_files/done_"+process+"_workers/"+to_string(id);
+	string workerlockfile = file_storage_location+"driver_files/"+process+"_done_workers/"+to_string(id)+"/done";
 	int fds = open(convert_string(workerlockfile), O_CREAT | O_EXCL | O_WRONLY, 0600);
 	if (fds < 0)
         throw 1;
@@ -33,22 +37,19 @@ void unset_worker(int id, string process){
 // Checks if all drivers have completed the process by checking if any files exist in the processes lockfile directory
 bool all_done(string process)
 {
-	DIR *dir = opendir(convert_string(file_storage_location+"driver_files/"+process+"_workers"));
-	if (!dir) {
-		fprintf(stderr, "failed to open done dir %s: %s\n", convert_string("driver_files/"+process+"_workers"), strerror(errno));
-		return false;
-	}
-	int n=0;
-	while(readdir(dir)!=NULL) n++;
+	fs::path p(file_storage_location+"driver_files/"+process+"_done_workers/");
+    std::vector<fs::directory_entry> v; // To save the file names in a vector.
 
-	dir = opendir(convert_string(file_storage_location+"driver_files/done_"+process+"_workers"));
-	if (!dir) {
-		fprintf(stderr, "failed to open done dir %s: %s\n", convert_string("driver_files/done_"+process+"_workers"), strerror(errno));
-		return false;
-	}
-	int n2=0;
-	while(readdir(dir)!=NULL) n2++;
-	return (n == n2);
+    copy(fs::directory_iterator(p), fs::directory_iterator(), back_inserter(v));
+
+    for ( std::vector<fs::directory_entry>::const_iterator it = v.begin(); it != v.end();  ++ it )
+    {
+        struct stat buffer;   
+  		if(!(stat (((*it).path().string()+"/done").c_str(), &buffer) == 0))
+  			return false; 
+    }    
+
+    return true;
 }
 
 // Reads a list of cells to process from the tasks_file (Eg. 148 -36)
@@ -110,17 +111,18 @@ int main()
 				}
 			}
 			bool success = false;
-			for(int i = 0; i<3; i++){
+			for(int i = 0; i<5; i++){
 				if(!system(convert_string("./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)))){
 					success = true;
 					break;
 				}else{
 					cout<<"Retrying command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
+					sleep(100);
 				}
 			}
 			if(!success){
 				cout<<"Problem running command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
-				exit(1);
+				// exit(1);
 			}
 			
 		}

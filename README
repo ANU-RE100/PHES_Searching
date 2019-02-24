@@ -1,8 +1,9 @@
-Building requires shapelib and gdal
+Building requires shapelib, gdal and boost
 
 Install using:
 sudo apt-get install libgdal-dev
 sudo apt-get install libshp-dev
+sudo apt-get install libboost-all-dev
 
 Place all input files in PHES_Searching/input/
 
