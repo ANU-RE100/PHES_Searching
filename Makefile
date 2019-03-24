@@ -44,4 +44,4 @@ run:
 	bin/start_drivers.sh $(n)
 
 install:
-	sudo apt-get install libgdal-dev && sudo apt-get install libshp-dev && sudo apt-get install libboost-all-dev
+	sudo apt-get install libgdal-dev && sudo apt-get install libshp-dev && sudo apt-get install libboost-all-dev && sudo apt-get install gdal-bin

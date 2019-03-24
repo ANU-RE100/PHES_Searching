@@ -33,7 +33,7 @@ string kml_end =
 "  </Document>\n"
 "</kml>\n";
 
-string get_html(Reservoir* reservoir){
+string get_html(Reservoir* reservoir, Pair* pair){
 	return
 "              <html>\n"
 "              <head><META http-equiv=\"Content-Type\" content=\"text/html\"><meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"></head>\n"
@@ -42,7 +42,8 @@ string get_html(Reservoir* reservoir){
 "              <tr style=\"text-align:center;font-weight:bold;background:#9CBCE2\"><td>"+reservoir->identifier+"</td></tr>\n"
 "              <tr><td>\n"
 "              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">\n"
-"              <tr><td>Reservoir Ref.</td><td>"+reservoir->identifier+"</td></tr>\n"
+//"              <tr><td>Reservoir Ref.</td><td>"+reservoir->identifier+"</td></tr>\n"
+"              <tr><td>"+(output_FOM?"Figure of Merit":"Class")+"</td><td>"+(output_FOM?dtos(pair->FOM,0):string(1,pair->category))+"</td></tr>\n"
 "              <tr bgcolor=\"#D4E4F3\"><td>Elevation</td><td>"+to_string(reservoir->elevation)+"</td></tr>\n"
 "              <tr><td>Latitude</td><td>"+dtos(reservoir->latitude,4)+"</td></tr>\n"
 "              <tr bgcolor=\"#D4E4F3\"><td>Longitude</td><td>"+dtos(reservoir->longitude,4)+"</td></tr>\n"
@@ -52,6 +53,7 @@ string get_html(Reservoir* reservoir){
 "              <tr bgcolor=\"#D4E4F3\"><td>Dam Length (m)</td><td>"+dtos(reservoir->dam_length,0)+"</td></tr>\n"
 "              <tr><td>Dam Volume (GL)</td><td>"+dtos(reservoir->dam_volume,1)+"</td></tr>\n"
 "              <tr bgcolor=\"#D4E4F3\"><td>Water/Rock Ratio</td><td>"+dtos(reservoir->water_rock,1)+"</td></tr>\n"
+"              <tr><td>Country</td><td>"+reservoir->country+"</td></tr>\n"
 "              </table></td></tr></table></body></html>\n";
 }
 
@@ -73,6 +75,7 @@ string get_html(Pair* pair){
 "              <tr bgcolor=\"#D4E4F3\"><td>Water to Rock (Pair)</td><td>"+dtos(pair->water_rock,1)+"</td></tr>\n"
 "              <tr><td>Energy (GWh)</td><td>"+to_string(pair->energy_capacity)+"</td></tr>\n"
 "              <tr bgcolor=\"#D4E4F3\"><td>Storage time (h)</td><td>"+to_string(pair->storage_time)+"</td></tr>\n"
+"              <tr><td>Country</td><td>"+pair->country+"</td></tr>\n"
 "              </table>\n"
 "              </body>\n"
 "              </html>\n";
@@ -139,7 +142,7 @@ string get_point_geometry(string coordinates){
 "        </Point>\n";
 }
 
-string get_reservoir_kml(Reservoir* reservoir, string colour, Reservoir_KML_Coordinates coordinates){
+string get_reservoir_kml(Reservoir* reservoir, string colour, Reservoir_KML_Coordinates coordinates, Pair* pair){
 	return
 "      <Placemark>\n"
 "        <name><![CDATA["+reservoir->identifier+"]]></name>\n"
@@ -152,7 +155,7 @@ string get_reservoir_kml(Reservoir* reservoir, string colour, Reservoir_KML_Coor
 			+get_reservoir_geometry(coordinates)+
 "        <description>\n"
 "           <![CDATA[\n"
-			+get_html(reservoir)+
+			+get_html(reservoir, pair)+
 "           ]]>\n"
 "        </description>\n"
 "      </Placemark>\n";
@@ -251,9 +254,9 @@ string output_kml(KML_Holder* kml_holder, string square, Test test){
 void update_kml_holder(KML_Holder* kml_holder, Pair* pair, Pair_KML* pair_kml){
 	kml_holder->points.push_back(get_point_kml(pair, pair_kml->point));
 	kml_holder->lines.push_back(get_line_kml(pair, pair_kml->line));
-	kml_holder->uppers.push_back(get_reservoir_kml(&pair->upper, upper_colour, pair_kml->upper));
+	kml_holder->uppers.push_back(get_reservoir_kml(&pair->upper, upper_colour, pair_kml->upper, pair));
 	kml_holder->upper_dams.push_back(get_dam_kml(&pair->upper, pair_kml->upper));
-	kml_holder->lowers.push_back(get_reservoir_kml(&pair->lower, lower_colour, pair_kml->lower));
+	kml_holder->lowers.push_back(get_reservoir_kml(&pair->lower, lower_colour, pair_kml->lower, pair));
 	kml_holder->lower_dams.push_back(get_dam_kml(&pair->lower, pair_kml->lower));
 }
 
@@ -279,3 +282,4 @@ void update_kml_holder(KML_Holder* kml_holder, Pair* pair, Pair_KML* pair_kml){
 // 	vector<string> line6 = {pair->identifier, get_html(pair), get_line_geometry(pair_kml->line), "#66666680"};
 // 	write_to_csv_file(csv_file, line6);
 // }
+

@@ -37,6 +37,7 @@ struct Reservoir{
 	double average_water_depth;
 	double dam_height;
 	double max_dam_height;
+	string country;
 	array<ArrayCoordinate, directions.size()> shape_bound;
 	bool operator<(const Reservoir &o) const
 	    {
@@ -59,6 +60,8 @@ struct Pair {
 	int energy_capacity;
 	int storage_time;
 	int head;
+	int non_overlap;
+	string country;
 	bool operator<(const Pair &o) const
 	    {
 		return FOM < o.FOM;
