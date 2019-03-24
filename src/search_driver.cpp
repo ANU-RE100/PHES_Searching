@@ -98,6 +98,10 @@ int main()
 
 	for (auto process : processlist) {
 		int id = set_worker(process);
+		mkdir(convert_string(file_storage_location+"debug"), 0770);
+		mkdir(convert_string(file_storage_location+"debug/"+process+"_logfiles"), 0770);
+		ofstream logfile;
+  		logfile.open (file_storage_location+"debug/"+process+"_logfiles/"+process+"_"+to_string(id));
 		for(auto task : tasklist){
 			mkdir(convert_string(file_storage_location+"driver_files/lockfiles"), 0770);
 			string tasklockfile = file_storage_location+"driver_files/lockfiles/"+process+"_task_"+to_string(task.lon)+"_"+to_string(task.lat);
@@ -117,16 +121,20 @@ int main()
 					break;
 				}else{
 					cout<<"Retrying command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
-					sleep(100);
+					logfile<<"Retrying command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
+					//sleep(100);
 				}
 			}
 			if(!success){
 				cout<<"Problem running command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
+				logfile<<"Problem running command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
 				// exit(1);
 			}
 			
 		}
 		unset_worker(id, process);
+		logfile<<"Done\n";
+		logfile.close();
 		while(!all_done(process)){
 		 	sleep(10);
 		}
