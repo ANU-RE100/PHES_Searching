@@ -61,11 +61,14 @@ bool check_reservoir(Reservoir& reservoir, Model<bool>* seen, vector<ArrayCoordi
                 
         if(volume*(1+0.5/reservoir.water_rock)>(1+volume_accuracy)*req_volume){
         	if (last == 'u')
-                break;
+                return false;
             wall_height-=dam_wall_height_resolution;
             last = 'd';
         }            
 	}
+	if(wall_height<minimum_dam_height){
+        return false;
+    }
 	for(uint i = 0; i<temp_used_points.size(); i++){
 		used_points->push_back(temp_used_points[i]);
 	}

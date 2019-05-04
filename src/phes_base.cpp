@@ -117,6 +117,7 @@ Model<short>* read_DEM_with_borders(GridSquare sc, int border){
 	return DEM;
 }
 
+
 BigModel BigModel_init(GridSquare sc){
 	BigModel big_model;
 	GridSquare neighbors[9] = {

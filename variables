@@ -51,8 +51,9 @@ tunnel_fixed = 17000000;
 dam_cost = 168;
 
 // Output
-volume_accuracy = 0.01;				// Maximum ratio error on final volume
-dam_wall_height_resolution = 0.05;	// Resolution of dam wall height (m)
+volume_accuracy = 0.05;				// Maximum ratio error on final volume
+dam_wall_height_resolution = 0.5;	// Resolution of dam wall height (m)
+minimum_dam_height = 5.0;
 good_colour = 255, 0, 0, 255; 		// Opacity, Blue, Green, Red
 bad_colour = 255, 200, 200, 255;
 upper_colour = #88F0AA14;

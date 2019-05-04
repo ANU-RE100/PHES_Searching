@@ -49,6 +49,7 @@ string upper_colour;
 string lower_colour;
 double volume_accuracy;				// Maximum ratio error on final volume
 double dam_wall_height_resolution;	// Resolution of dam wall height (m)
+double minimum_dam_height;
 
 // FOM Calculations
 double powerhouse_coeff;
@@ -189,6 +190,8 @@ void parse_variables(char* filename){
 				max_head = stod(value);
 			if(variable=="max_lowers_per_upper")
 				max_lowers_per_upper = stoi(value);
+			if(variable=="minimum_dam_height")
+				minimum_dam_height = stod(value);
 		}
 	}
 }

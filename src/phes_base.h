@@ -69,6 +69,7 @@ extern string upper_colour;
 extern string lower_colour;
 extern double volume_accuracy;				// Maximum ratio error on final volume
 extern double dam_wall_height_resolution;	// Resolution of dam wall height (m)
+extern double minimum_dam_height;
 
 // FOM Calculations
 extern double powerhouse_coeff;

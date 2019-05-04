@@ -111,6 +111,8 @@ int main()
 					continue;
 	            } else {
 					fprintf(stderr, "failed to to open lock file %s: %s\n", convert_string(tasklockfile), strerror(errno));
+					logfile<<"Failed to open lock file "+tasklockfile+"\n";
+					logfile.close();
 					exit(1);
 				}
 			}
@@ -122,7 +124,7 @@ int main()
 				}else{
 					cout<<"Retrying command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
 					logfile<<"Retrying command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
-					//sleep(100);
+					sleep(100);
 				}
 			}
 			if(!success){

@@ -134,6 +134,7 @@ int testsa[] = {1, 2, 0, 3};
 
 // Converts a raster model to a polygon given a raster model and a point on the interior edge of the polygon
 vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate offset, ArrayCoordinate pour_point, int threshold){
+
     vector<ArrayCoordinate> to_return;
     
     ArrayCoordinate test_coordinates[] = {
@@ -142,12 +143,16 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
         ArrayCoordinate_init(pour_point.row, pour_point.col, pour_point.origin),
         ArrayCoordinate_init(pour_point.row, pour_point.col+1, pour_point.origin)};
 
+    bool succesful_path = false;
     for(int i = 0; i<4; i++){
         vector<ArrayCoordinate> temp_to_return;
         int last_dir = testsa[i];
         ArrayCoordinate initial = test_coordinates[i];
         ArrayCoordinate last = initial;
+        bool found_path;
+
         while(true){
+            found_path = false;
             for(int id = 0; id<3; id++){
                 int d = dir_to_do[last_dir][id];
                 ArrayCoordinate next = ArrayCoordinate_init(last.row+dir_def[d][0],last.col+dir_def[d][1], pour_point.origin);
@@ -155,11 +160,16 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
                     temp_to_return.push_back(next);
                     last = next;
                     last_dir = d;
+                    found_path = true;
                     break;
                 }
             }
-            if(last.row==initial.row && last.col == initial.col)
+            if(!found_path)
                 break;
+            if(last.row==initial.row && last.col == initial.col){
+                succesful_path = true;
+                break;
+            }
         }
         if(temp_to_return.size()>to_return.size()){
             to_return.clear();
@@ -167,6 +177,9 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
                 to_return.push_back(temp_to_return[j]);
             }
         }
+    }
+    if(!succesful_path){
+        throw 1;
     }
     return to_return;
 }
@@ -212,7 +225,7 @@ string str(vector<GeographicCoordinate> polygon, double elevation){
 }
 
 bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinates, Model<bool>* seen, bool* non_overlap, vector<ArrayCoordinate> *used_points, BigModel big_model, Model<char>* full_cur_model, vector<vector<vector<GeographicCoordinate>>>& countries, vector<string>& country_names){
-	
+	// cout << reservoir->identifier << "\n";
     Model<short>* DEM = big_model.DEM;
 	Model<char>* flow_directions = big_model.flow_directions[0];
 
@@ -221,6 +234,9 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
             flow_directions = big_model.flow_directions[i];
 
     ArrayCoordinate offset = convert_coordinates(convert_coordinates(ArrayCoordinate_init(0,0,flow_directions->get_origin())), DEM->get_origin());
+    // cout << offset.row << " " << offset.col << "\n";
+    // cout << flow_directions->get_origin().lat << " " << flow_directions->get_origin().lon << "\n";
+    // cout << DEM->get_origin().lat << " " << DEM->get_origin().lon << "\n";
     ArrayCoordinate reservoir_big_ac = convert_coordinates(convert_coordinates(reservoir->pour_point), DEM->get_origin());
 
 	double req_volume = reservoir->volume;
@@ -274,12 +290,23 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
                 
         if(reservoir->volume*(1+0.5/reservoir->water_rock)>(1+volume_accuracy)*req_volume){
         	if (last_dir == 'u')
-                break;
+                return false;
             reservoir->dam_height-=dam_wall_height_resolution;
             last_dir = 'd';
         }            
 	}
-    vector<ArrayCoordinate> reservoir_polygon = convert_to_polygon(full_cur_model, offset, reservoir->pour_point, 1);
+
+    if(reservoir->dam_height<minimum_dam_height){
+        return false;
+    }
+
+    vector<ArrayCoordinate> reservoir_polygon;
+    try{
+        reservoir_polygon = convert_to_polygon(full_cur_model, offset, reservoir->pour_point, 1);
+    }catch(int e){
+        return false;
+    }
+
 	for(uint i = 0; i<temp_used_points.size(); i++){
 		used_points->push_back(temp_used_points[i]);
 	}
@@ -320,18 +347,25 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
         	last = false;
         }
 	}
+
 	if(polygon_bool[0] && polygon_bool[dam_polygon.size()-1] && !is_turkeys_nest && dam_polygon.size()>1){
 		for(uint i = 0; i<dam_polygon[dam_polygon.size()-1].size();i++){
 			dam_polygon[0].push_back(dam_polygon[dam_polygon.size()-1][i]);
 		}
         dam_polygon.pop_back();
     }
+
     if(is_turkeys_nest){
     	ArrayCoordinate* adjacent = get_adjacent_cells(dam_polygon[0][0], dam_polygon[0][1]);
     	ArrayCoordinate to_check = adjacent[1];
     	if(full_cur_model->get(adjacent[0].row+offset.row,adjacent[0].col+offset.col)==2)
     		to_check = adjacent[0];
-    	vector<GeographicCoordinate> polygon = compress_poly(corner_cut_poly(convert_poly(convert_to_polygon(full_cur_model, offset, to_check, 2))));
+        vector<GeographicCoordinate> polygon;
+        try{
+            polygon = compress_poly(corner_cut_poly(convert_poly(convert_to_polygon(full_cur_model, offset, to_check, 2))));
+        }catch (int e){
+            return false;
+        }
     	string polygon_string = str(polygon, reservoir->elevation+reservoir->dam_height+freeboard);
     	coordinates->dam.push_back(polygon_string);
     }else{
@@ -340,8 +374,13 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
 	    	ArrayCoordinate to_check = adjacent[1];
 	    	if(full_cur_model->get(adjacent[0].row+offset.row,adjacent[0].col+offset.col)==2)
 	    		to_check = adjacent[0];
-	    	vector<GeographicCoordinate> polygon = compress_poly(corner_cut_poly(convert_poly(convert_to_polygon(full_cur_model, offset, to_check, 2))));
-	    	string polygon_string = str(polygon, reservoir->elevation+reservoir->dam_height+freeboard);
+	    	vector<GeographicCoordinate> polygon;
+            try{
+                polygon = compress_poly(corner_cut_poly(convert_poly(convert_to_polygon(full_cur_model, offset, to_check, 2))));
+	    	}catch (int e){
+                return false;
+            }
+            string polygon_string = str(polygon, reservoir->elevation+reservoir->dam_height+freeboard);
 	    	coordinates->dam.push_back(polygon_string);
     	}
     }
