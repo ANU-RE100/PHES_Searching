@@ -262,8 +262,10 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
             ArrayCoordinate full_big_ac = {p.row+offset.row, p.col+offset.col, DEM->get_origin()};
 
 			temp_used_points.push_back(full_big_ac);
-			if (seen->get(full_big_ac.row,full_big_ac.col))
+			if (seen->get(full_big_ac.row,full_big_ac.col)){
 				*non_overlap = false;
+                cout << seen->get(full_big_ac.row,full_big_ac.col) << " " << full_big_ac.row << " " << full_big_ac.col << " " << p.row << " " << p.col << "\n";
+            }
             if(DEM->get(full_big_ac.row, full_big_ac.col)<-2000)
                 return false;
 
