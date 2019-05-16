@@ -262,10 +262,8 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
             ArrayCoordinate full_big_ac = {p.row+offset.row, p.col+offset.col, DEM->get_origin()};
 
 			temp_used_points.push_back(full_big_ac);
-			if (seen->get(full_big_ac.row,full_big_ac.col)){
+			if (seen->get(full_big_ac.row,full_big_ac.col))
 				*non_overlap = false;
-                cout << seen->get(full_big_ac.row,full_big_ac.col) << " " << full_big_ac.row << " " << full_big_ac.col << " " << p.row << " " << p.col << "\n";
-            }
             if(DEM->get(full_big_ac.row, full_big_ac.col)<-2000)
                 return false;
 
@@ -434,14 +432,7 @@ bool model_pair(Pair* pair, Pair_KML* pair_kml, Model<bool>* seen, bool* non_ove
 
     pair->country = pair->upper.country;
 
-	if(*non_overlap){
-		for(uint i = 0; i<used_points.size();i++){
-			seen->set(used_points[i].row,used_points[i].col,true);
-		}
-        pair->non_overlap = 1;
-	}else{
-        pair->non_overlap = 0;
-    }
+	
 
 	ArrayCoordinate upper_closest_point = pair->upper.pour_point;
     ArrayCoordinate lower_closest_point = pair->lower.pour_point;
@@ -462,6 +453,16 @@ bool model_pair(Pair* pair, Pair_KML* pair_kml, Model<bool>* seen, bool* non_ove
     if(pair->FOM>max_FOM || pair->category=='Z'){
         return false;
     }
+
+    if(*non_overlap){
+        for(uint i = 0; i<used_points.size();i++){
+            seen->set(used_points[i].row,used_points[i].col,true);
+        }
+        pair->non_overlap = 1;
+    }else{
+        pair->non_overlap = 0;
+    }
+
     GeographicCoordinate average = GeographicCoordinate_init((convert_coordinates(upper_closest_point).lat+convert_coordinates(lower_closest_point).lat)/2,
     	((convert_coordinates(upper_closest_point).lon+convert_coordinates(lower_closest_point).lon)/2));
     pair_kml->point = dtos(average.lon,5)+","+dtos(average.lat,5)+",0";
