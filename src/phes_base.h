@@ -54,6 +54,7 @@ extern double min_pair_water_rock;			// Minimum pair water to rock ratio based o
 extern double min_slope;					// Minimum slope based on interpolated nearest point seperation between two reservoirs
 extern double min_pp_slope;					// Minimum slope based on pourpoint seperation between two reservoirs
 extern int max_lowers_per_upper;			// Maximum number of lower reservoirs to keep per upper reservoir
+extern double tolerance_on_FOM;
 
 // Common
 extern double gravity;						// Acceleration due to gravity (m/s/s)
@@ -85,7 +86,6 @@ extern double dam_cost;
 struct Test{
 	double energy_capacity;
 	int storage_time;
-	int max_FOM;
 	bool operator<(const Test &o) const
 	    {
 	    	if(abs(energy_capacity-o.energy_capacity)<EPS){

@@ -34,6 +34,7 @@ double min_pair_water_rock;			// Minimum pair water to rock ratio based on inter
 double min_slope;					// Minimum slope based on interpolated nearest point seperation between two reservoirs
 double min_pp_slope;				// Minimum slope based on pourpoint seperation between two reservoirs
 int max_lowers_per_upper;			// Maximum number of lower reservoirs to keep per upper reservoir
+double tolerance_on_FOM;
 
 // Common
 double gravity;						// Acceleration due to gravity (m/s/s)
@@ -129,7 +130,7 @@ void parse_variables(char* filename){
 			}
 			if(variable=="test"){
 				vector<string> t = read_from_csv_file(value);
-				Test test = {stod(t[0]), stoi(t[1]), stoi(t[2])};
+				Test test = {stod(t[0]), stoi(t[1])};
 				tests.push_back(test);
 				sort(tests.begin(), tests.end());
 			}
@@ -193,6 +194,8 @@ void parse_variables(char* filename){
 				minimum_dam_height = stod(value);
 			if(variable=="existing_reservoirs_file")
 				existing_reservoirs_file = value;
+			if(variable=="tolerance_on_FOM")
+				tolerance_on_FOM = stod(value);
 		}
 	}
 }

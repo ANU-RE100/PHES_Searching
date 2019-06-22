@@ -160,7 +160,8 @@ void pairing(vector<RoughReservoir>& upper_reservoirs, vector<RoughReservoir>& l
 
 			for (uint itest=0; itest<tests.size(); itest++) {
 				Pair temp_pair;
-				if (check_good_pair(*upper_reservoir, *lower_reservoir, tests[itest].energy_capacity, tests[itest].storage_time, &temp_pair, tests[itest].max_FOM)) {
+				int max_FOM = (category_cutoffs[0].storage_cost*tests[itest].storage_time+category_cutoffs[0].power_cost)*(1+tolerance_on_FOM);
+				if (check_good_pair(*upper_reservoir, *lower_reservoir, tests[itest].energy_capacity, tests[itest].storage_time, &temp_pair, max_FOM)) {
 					// pairs[itest].push_back(temp_pair);
 					// write_rough_pair_csv(csv_file, &temp_pair);
 			 	// 	write_rough_pair_data(csv_data_file, &temp_pair);

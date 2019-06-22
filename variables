@@ -33,6 +33,7 @@ min_pair_water_rock = 1.5;		// Minimum pair water to rock ratio based on interpo
 min_slope = 0.05;				// Minimum slope based on interpolated nearest point seperation between two reservoirs
 min_pp_slope = 0.03;			// Minimum slope based on pourpoint seperation between two reservoirs
 max_lowers_per_upper = 100;		// Maximum number of lower reservoirs to keep per upper reservoir
+tolerance_on_FOM = 0.1;
 
 // Common
 gravity = 9.8;					// Acceleration due to gravity (m/s/s)

@@ -574,7 +574,8 @@ int main(int nargs, char **argv)
         for(uint j=0; j<pairs[i].size(); j++){
             Pair_KML pair_kml;
             bool non_overlap;
-            if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, tests[i].max_FOM, big_model, full_cur_model, countries, country_names)){
+            int max_FOM = category_cutoffs[0].storage_cost*tests[i].storage_time+category_cutoffs[0].power_cost;
+            if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, max_FOM, big_model, full_cur_model, countries, country_names)){
                 write_pair_csv(csv_file_classes, &pairs[i][j], false);
                 write_pair_csv(csv_file_FOM, &pairs[i][j], true);
                 update_kml_holder(&kml_holder, &pairs[i][j], &pair_kml);
