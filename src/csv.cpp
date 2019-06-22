@@ -159,7 +159,12 @@ vector<RoughReservoir> read_rough_reservoir_data(char* filename)
 				reservoir.shape_bound[ih][idir].origin = origin;
 			}
 		}
-		reservoir.brownfield = stoi(line[6+2*dam_wall_heights.size()+(dam_wall_heights.size()*directions.size())*2]);
+		try{
+			reservoir.brownfield = stoi(line[6+2*dam_wall_heights.size()+(dam_wall_heights.size()*directions.size())*2]);
+		}
+		catch(exception e){
+			reservoir.brownfield = false;
+		}
         reservoirs.push_back(reservoir);
     }
     if(header){
