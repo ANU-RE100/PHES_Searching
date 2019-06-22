@@ -22,6 +22,7 @@ const double resolution = 30.87;
 // Search Driver
 extern string tasks_file;					// File with list of cells to do line by line in format <lon> <lat>
 extern string processes_file;				// File with list of processes to complete
+extern string existing_reservoirs_file;
 
 // General
 extern string file_storage_location;				// Where to look for input files and store output files
@@ -62,7 +63,6 @@ extern double water_density;				// Density of water (kg/m^3)
 extern int max_wall_height;
 
 // Output
-extern bool output_FOM;						// Whether to output exact FOM or category split
 extern int good_colour[4];
 extern int bad_colour[4];
 extern string upper_colour;
@@ -83,12 +83,12 @@ extern double tunnel_fixed;
 extern double dam_cost;
 
 struct Test{
-	int energy_capacity;
+	double energy_capacity;
 	int storage_time;
 	int max_FOM;
 	bool operator<(const Test &o) const
 	    {
-	    	if(energy_capacity==o.energy_capacity){
+	    	if(abs(energy_capacity-o.energy_capacity)<EPS){
 	    		return storage_time > o.storage_time;
 	    	}
 			return energy_capacity > o.energy_capacity;
@@ -171,5 +171,7 @@ Model<short>* read_DEM_with_borders(GridSquare sq, int border);
 BigModel BigModel_init(GridSquare sc);
 void set_FOM(Pair* pair);
 string str(Test test);
+string energy_capacity_to_string(double energy_capacity);
+string format_for_filename(string s);
 
 #endif

@@ -5,6 +5,7 @@
 
 struct RoughReservoir{
 	string identifier;
+	bool brownfield;
 	double latitude;
 	double longitude;
 	int elevation;
@@ -22,8 +23,19 @@ struct RoughReservoir{
 	    }
 };
 
+struct ExistingReservoir{
+	string identifier;
+	double latitude;
+	double longitude;
+	int elevation;
+	//ArrayCoordinate pour_point;
+	double volume;
+	vector<GeographicCoordinate> polygon;
+};
+
 struct Reservoir{
 	string identifier;
+	bool brownfield;
 	double latitude;
 	double longitude;
 	int elevation;
@@ -57,7 +69,7 @@ struct Pair {
 	double FOM;
 	char category;
 	double water_rock;
-	int energy_capacity;
+	double energy_capacity;
 	int storage_time;
 	int head;
 	int non_overlap;
@@ -72,5 +84,7 @@ void update_reservoir_boundary(vector<array<ArrayCoordinate, directions.size()> 
 void update_reservoir_boundary(array<ArrayCoordinate, directions.size()> &dam_shape_bounds, ArrayCoordinate point);
 RoughReservoir RoughReservoir_init(ArrayCoordinate pour_point, int elevation);
 Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation);
+ExistingReservoir ExistingReservoir_init(string identifier, double latitude, double longitude, int elevation, double volume);
+GridSquare get_square_coordinate(ExistingReservoir reservoir);
 
 #endif

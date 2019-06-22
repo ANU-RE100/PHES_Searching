@@ -53,21 +53,22 @@ bool all_done(string process)
 }
 
 // Reads a list of cells to process from the tasks_file (Eg. 148 -36)
-vector<GridSquare> read_tasklist(char *tasks_file)
+vector<string> read_tasklist(char *tasks_file)
 {
-	FILE *fd = fopen(tasks_file, "r");
+	ifstream fd(tasks_file);
 	if (!fd)  {
 		fprintf(stderr, "failed to open task file %s: %s\n", tasks_file, strerror(errno));
 		exit(1);
 	}
-	vector<GridSquare> tasklist;
-	int lon, lat, rc=0;
-	while (rc != EOF) {	
-		rc = fscanf(fd, "%d %d", &lon, &lat);
-		tasklist.push_back(GridSquare_init(lat, lon));
+	vector<string> tasklist;
+	string line;
+	while(getline(fd, line)){
+		line.erase(remove(line.begin(), line.end(), '\n'), line.end());
+		line.erase(remove(line.begin(), line.end(), '\r'), line.end());
+		tasklist.push_back(line);
 	}
 	printf("read %zu tasks\n", tasklist.size());
-	fclose(fd);
+	fd.close();
 	return tasklist;
 }
 
@@ -80,7 +81,10 @@ vector<string> read_processlist(char *processes_file)
 		exit(1);
 	}
 	vector<string> processlist;
-	for(string line; getline(fd, line);){
+	string line;
+	while(getline(fd, line)){
+		line.erase(remove(line.begin(), line.end(), '\n'), line.end());
+		line.erase(remove(line.begin(), line.end(), '\r'), line.end());
 		processlist.push_back(line);
 	}
 	printf("read %zu processes\n", processlist.size());
@@ -93,7 +97,7 @@ int main()
 	parse_variables(convert_string("storage_location"));
 	parse_variables(convert_string(file_storage_location+"variables"));
 
-	vector<GridSquare> tasklist = read_tasklist(convert_string(file_storage_location+tasks_file));
+	vector<string> tasklist = read_tasklist(convert_string(file_storage_location+tasks_file));
 	vector<string> processlist = read_processlist(convert_string(file_storage_location+processes_file));
 
 	for (auto process : processlist) {
@@ -104,7 +108,7 @@ int main()
   		logfile.open (file_storage_location+"debug/"+process+"_logfiles/"+process+"_"+to_string(id));
 		for(auto task : tasklist){
 			mkdir(convert_string(file_storage_location+"driver_files/lockfiles"), 0770);
-			string tasklockfile = file_storage_location+"driver_files/lockfiles/"+process+"_task_"+to_string(task.lon)+"_"+to_string(task.lat);
+			string tasklockfile = file_storage_location+"driver_files/lockfiles/"+process+"_task_"+format_for_filename(task);
 			int fds = open(convert_string(tasklockfile), O_CREAT | O_EXCL | O_WRONLY, 0600);
 			if (fds < 0) {
                 if (errno == EEXIST) {
@@ -118,18 +122,18 @@ int main()
 			}
 			bool success = false;
 			for(int i = 0; i<5; i++){
-				if(!system(convert_string("./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)))){
+				if(!system(convert_string("./bin/"+process+" "+task))){
 					success = true;
 					break;
 				}else{
-					cout<<"Retrying command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
-					logfile<<"Retrying command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
+					cout<<"Retrying command: ./bin/"+process+" "+task+"\n";
+					logfile<<"Retrying command: ./bin/"+process+" "+task+"\n";
 					sleep(100);
 				}
 			}
 			if(!success){
-				cout<<"Problem running command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
-				logfile<<"Problem running command: ./bin/"+process+" "+to_string(task.lon)+" "+to_string(task.lat)+"\n";
+				cout<<"Problem running command: ./bin/"+process+" "+task+"\n";
+				logfile<<"Problem running command: ./bin/"+process+" "+task+"\n";
 				// exit(1);
 			}
 			

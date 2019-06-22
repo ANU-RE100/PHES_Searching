@@ -163,11 +163,24 @@ void set_FOM(Pair* pair){
 	}
 }
 
+string energy_capacity_to_string(double energy_capacity){
+	if(energy_capacity<10-EPS)
+		return dtos(energy_capacity,1);
+	else
+		return to_string((int)(energy_capacity+EPS));
+}
+
 string str(Test test){
-	return to_string(test.energy_capacity)+"GWh_"+to_string(test.storage_time)+"h";
+	return energy_capacity_to_string(test.energy_capacity)+"GWh_"+to_string(test.storage_time)+"h";
 }
 
 bool file_exists (char* name) {
 	ifstream infile(name);
     return infile.good();
+}
+
+string format_for_filename(string s){
+	replace(s.begin(), s.end(), ' ' , '_');
+	s.erase(remove(s.begin(), s.end(), '"'), s.end());
+	return s;
 }

@@ -1,6 +1,7 @@
 // Search Driver
 tasks_file = tasks;				// File with list of cells to do line by line in format <lon> <lat>
 processes_file = processes;		// File with list of processes to complete
+existing_reservoirs_file = res.csv;
 
 // General
 border = 600;					// Number of cells to add as border around DEM square
@@ -17,8 +18,8 @@ min_reservoir_volume = 1.0;		// Minimum reservoir volume (GL) at maximum dam wal
 min_reservoir_water_rock = 3.0;	// Minimum reservoir water to rock ratio at optimal dam wall height
 min_max_dam_height = 5.0;		// Minimum maximum dam height (m) (Before overlapping filters) to be considered a potential reservoir
 
-filter = use_world_urban;						// Use world urban data from tifs stored in fileformat input/WORLD_URBAN/55H_hbase_human_built_up_and_settlement_extent_geographic_30m
-filter = use_tiled_filter;						// Use shapefile filters output from shapefile_tiling
+// filter = use_world_urban;						// Use world urban data from tifs stored in fileformat input/WORLD_URBAN/55H_hbase_human_built_up_and_settlement_extent_geographic_30m
+// filter = use_tiled_filter;						// Use shapefile filters output from shapefile_tiling
 filter = input/CLUM/CLUM541550552_WGS84.shp;	// Location of shapefile to tiled
 filter = input/CAPAD/capad.shp;
 filter_to_tile = input/WPAD/WDPA_Nov2018-shapefile-polygons.shp;
@@ -59,10 +60,8 @@ bad_colour = 255, 200, 200, 255;
 upper_colour = #88F0AA14;
 lower_colour = #88F03C14;
 
-output_FOM = 0;						// Whether to output exact FOM or Class (A-E)
-
 // Reservoir sizings
-test = 150, 18, 3500;			// Test in format {Volume (GL), Storage time (h), Maximum FOM}
+test = 150, 18, 3500;			// Test in format {Storage (GWh), Storage time (h), Maximum FOM}
 test = 50, 18, 3500;
 test = 50, 6, 1800;
 test = 15, 18, 3500;

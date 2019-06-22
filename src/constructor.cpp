@@ -4,6 +4,7 @@
 int display = false;
 
 vector<vector<Pair>> pairs;
+bool brownfield = false;
 
 // find_polygon_intersections returns an array containing the longitude of all line. Assumes last coordinate is same as first
 vector<double> find_polygon_intersections(double lat, vector<GeographicCoordinate> &polygon){
@@ -419,15 +420,46 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
 	return true;
 }
 
+bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinates, vector<vector<vector<GeographicCoordinate>>>& countries, vector<string>& country_names){
+    vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(file_storage_location+"input/"+existing_reservoirs_file));
+
+    for(ExistingReservoir r : reservoirs)
+        if(r.identifier==reservoir->identifier){
+            reservoir->volume = r.volume;
+            string polygon_string = str(compress_poly(corner_cut_poly(r.polygon)), r.elevation);
+            coordinates->reservoir = polygon_string;
+
+            GridSquare square_coordinate = get_square_coordinate(r);
+            Model<short>* DEM = read_DEM_with_borders(square_coordinate, border);
+            GeographicCoordinate origin = DEM->get_origin();
+            for(GeographicCoordinate p : r.polygon)
+                update_reservoir_boundary(reservoir->shape_bound, convert_coordinates(p, origin));
+        }
+    //KML
+    for(uint i = 0; i< countries.size();i++){
+        if(check_within(GeographicCoordinate_init(reservoir->latitude, reservoir->longitude), countries[i])){
+            reservoir->country = country_names[i];
+            break;
+        }
+    }
+    return true;
+}
+
 bool model_pair(Pair* pair, Pair_KML* pair_kml, Model<bool>* seen, bool* non_overlap, int max_FOM, BigModel big_model, Model<char>* full_cur_model, vector<vector<vector<GeographicCoordinate>>>& countries, vector<string>& country_names){
 
 	vector<ArrayCoordinate> used_points;
 	*non_overlap = true;
 
-	if(!model_reservoir(&pair->upper, &pair_kml->upper, seen, non_overlap, &used_points, big_model, full_cur_model, countries, country_names))
+    if(pair->upper.brownfield){
+        if(!model_existing_reservoir(&pair->upper, &pair_kml->upper, countries, country_names))
+            return false;
+    }else if(!model_reservoir(&pair->upper, &pair_kml->upper, seen, non_overlap, &used_points, big_model, full_cur_model, countries, country_names))
 		return false;
 
-	if(!model_reservoir(&pair->lower, &pair_kml->lower, seen, non_overlap, &used_points, big_model, full_cur_model, countries, country_names))
+	if(pair->lower.brownfield){
+        if(!model_existing_reservoir(&pair->lower, &pair_kml->lower, countries, country_names))
+            return false;
+    }else if(!model_reservoir(&pair->lower, &pair_kml->lower, seen, non_overlap, &used_points, big_model, full_cur_model, countries, country_names))
 		return false;
 
     pair->country = pair->upper.country;
@@ -472,144 +504,100 @@ bool model_pair(Pair* pair, Pair_KML* pair_kml, Model<bool>* seen, bool* non_ove
 
 int main(int nargs, char **argv)
 {
-    if(nargs<=2){
-        display = true;
-        string shape_name(argv[1]);
+    GridSquare square_coordinate;
+    string fname;
+    string arg1(argv[1]);
 
-        printf("Constructor started for %s\n",argv[1]);
-
-        GDALAllRegister();
-        parse_variables(convert_string("storage_location"));
-        parse_variables(convert_string(file_storage_location+"variables"));
-        unsigned long t_usec = walltime_usec();
-
-        vector<string> country_names;
-        vector<vector<vector<GeographicCoordinate>>> countries = read_countries(file_storage_location+"input/countries/countries.txt", country_names);
-
-        //vector<GridSquare> squares_to_check = find_overlapping_squares(shape);
-
-        mkdir(convert_string(file_storage_location+"output/final_output"), 0777);
-        mkdir(convert_string(file_storage_location+"output/final_output/"+shape_name),0777);
-
-        FILE *total_csv_file = fopen(convert_string(file_storage_location+"output/final_output/"+shape_name+"/"+shape_name+"_total.csv"), "w");
-        write_total_csv_header(total_csv_file);
-
-        int total_count = 0;
-        int total_capacity = 0;
-        // for(uint i = 0; i<tests.size(); i++){
-        //     FILE *csv_file = fopen(convert_string(file_storage_location+"output/final_output/"+shape_name+"/"+shape_name+"_"+str(tests[i])+".csv"), "w");
-        //     write_pair_csv_header(csv_file);
-
-        //     ofstream kml_file(convert_string(file_storage_location+"output/final_output/"+shape_name+"/"+shape_name+"_"+str(tests[i])+".kml"), ios::out);
-        //     KML_Holder kml_holder;
-
-        //     //FILE *fusion_csv_file = fopen(convert_string(file_storage_location+"Output/Final Output/"+shape_name+"/"+shape_name+"_"+str(tests[i])+"_Fusion_Table.csv"), "w");
-        //     //write_fusion_csv_header(fusion_csv_file);
-        //     int count = 0;
-        //     for(GridSquare square_coordinate:squares_to_check){
-        //         cout << "Doing grid square: "+str(square_coordinate)+" test: "+to_string(i);
-        //         try{
-        //             pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+str(square_coordinate)+"_rough_pretty_set_pairs_data.csv"));
-        //             if(pairs[i].size()<=0)
-        //                 continue;
-        //             sort(pairs[i].begin(), pairs[i].end());
-        //             BigModel big_model = BigModel_init(square_coordinate);
-
-        //             Model<bool>* seen = new Model<bool>(big_model.DEM->nrows(), big_model.DEM->nrows(), MODEL_SET_ZERO);
-        //             seen->set_geodata(big_model.DEM->get_geodata());
-        //             Model<char>* full_cur_model = new Model<char>(big_model.DEM->nrows(), big_model.DEM->ncols(), MODEL_SET_ZERO);
-        //             for(uint j=0; j<pairs[i].size(); j++){
-        //                 Pair_KML pair_kml;
-        //                 bool non_overlap;
-        //                 if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, tests[i].max_FOM, big_model, full_cur_model)){
-        //                     write_pair_csv(csv_file, &pairs[i][j]);
-        //                     //write_fusion_csv(fusion_csv_file, &pairs[i][j], &pair_kml);
-        //                     update_kml_holder(&kml_holder, &pairs[i][j], &pair_kml);
-        //                     count++;
-        //                     if(non_overlap){
-        //                         total_count++;
-        //                         total_capacity+=tests[i].energy_capacity;
-        //                     }
-        //                 }
-        //             }
-        //         }catch(exception e){
-        //             continue;
-        //         }
-        //     }
-            
-        //     kml_file << output_kml(&kml_holder, shape_name, tests[i]);
-        //     if(display)
-        //         printf("%d %dGWh %dh Pairs\n", count, tests[i].energy_capacity, tests[i].storage_time);
-        //     kml_file.close();
-        //     fclose(csv_file);
-        // }
-        // write_total_csv(total_csv_file, shape_name, total_count, total_capacity);
-        printf("Constructor finished for %s. Found %d non-overlapping pairs with a total of %dGWh. Runtime: %.2f sec\n", convert_string(shape_name), total_count, total_capacity, 1.0e-6*(walltime_usec() - t_usec) );
-    }else{
-        GridSquare square_coordinate = GridSquare_init(atoi(argv[2]), atoi(argv[1]));
+    try{
+        int lon = stoi(arg1);
+        square_coordinate = GridSquare_init(atoi(argv[2]), lon);
         if(nargs>3)
             display = atoi(argv[3]);
-
+        fname=str(square_coordinate);
         printf("Constructor started for %s\n",convert_string(str(square_coordinate)));
+    }catch(exception e){
+        brownfield = true;
+        fname = format_for_filename(arg1);
+        if(nargs>2)
+            display = atoi(argv[2]);
+        printf("Constructor started for %s\n",argv[1]);
+    }
 
-        GDALAllRegister();
-        parse_variables(convert_string("storage_location"));
-        parse_variables(convert_string(file_storage_location+"variables"));
-        unsigned long t_usec = walltime_usec();
+    GDALAllRegister();
+    parse_variables(convert_string("storage_location"));
+    parse_variables(convert_string(file_storage_location+"variables"));
+    unsigned long t_usec = walltime_usec();
 
-        BigModel big_model = BigModel_init(square_coordinate);
-        vector<string> country_names;
-        vector<vector<vector<GeographicCoordinate>>> countries = read_countries(file_storage_location+"input/countries/countries.txt", country_names);
+    if(brownfield){
+        vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(file_storage_location+"input/"+existing_reservoirs_file));
+        for(ExistingReservoir r : reservoirs)
+            if(r.identifier==arg1){
+                square_coordinate = get_square_coordinate(r);
+            }
+        
+    }
+    BigModel big_model = BigModel_init(square_coordinate);
+    vector<string> country_names;
+    vector<vector<vector<GeographicCoordinate>>> countries = read_countries(file_storage_location+"input/countries/countries.txt", country_names);
 
-        Model<bool>* seen = new Model<bool>(big_model.DEM->nrows(), big_model.DEM->nrows(), MODEL_SET_ZERO);
-        seen->set_geodata(big_model.DEM->get_geodata());
-        Model<char>* full_cur_model = new Model<char>(big_model.DEM->nrows(), big_model.DEM->ncols(), MODEL_SET_ZERO);
+    Model<bool>* seen = new Model<bool>(big_model.DEM->nrows(), big_model.DEM->nrows(), MODEL_SET_ZERO);
+    seen->set_geodata(big_model.DEM->get_geodata());
+    Model<char>* full_cur_model = new Model<char>(big_model.DEM->nrows(), big_model.DEM->ncols(), MODEL_SET_ZERO);
 
-        pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+str(square_coordinate)+"_rough_pretty_set_pairs_data.csv"));
-        mkdir(convert_string(file_storage_location+"output/final_output"), 0777);
-        mkdir(convert_string(file_storage_location+"output/final_output/"+str(square_coordinate)),0777);
+    pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+fname+"_rough_pretty_set_pairs_data.csv"));
+    mkdir(convert_string(file_storage_location+"output/final_output_classes"), 0777);
+    mkdir(convert_string(file_storage_location+"output/final_output_classes/"+fname),0777);
+    mkdir(convert_string(file_storage_location+"output/final_output_FOM"), 0777);
+    mkdir(convert_string(file_storage_location+"output/final_output_FOM/"+fname),0777);
 
-        FILE *total_csv_file = fopen(convert_string(file_storage_location+"output/final_output/"+str(square_coordinate)+"/"+str(square_coordinate)+"_total.csv"), "w");
-        write_total_csv_header(total_csv_file);
+    FILE *total_csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+fname+"/"+fname+"_total.csv"), "w");
+    write_total_csv_header(total_csv_file_classes);
+    FILE *total_csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+fname+"/"+fname+"_total.csv"), "w");
+    write_total_csv_header(total_csv_file_FOM);
 
-        int total_count = 0;
-        int total_capacity = 0;
-        for(uint i = 0; i<tests.size(); i++){
-            sort(pairs[i].begin(), pairs[i].end());
-            
-            FILE *csv_file = fopen(convert_string(file_storage_location+"output/final_output/"+str(square_coordinate)+"/"+str(square_coordinate)+"_"+str(tests[i])+".csv"), "w");
-            write_pair_csv_header(csv_file);
+    int total_count = 0;
+    int total_capacity = 0;
+    for(uint i = 0; i<tests.size(); i++){
+        sort(pairs[i].begin(), pairs[i].end());
+        
+        FILE *csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+fname+"/"+fname+"_"+str(tests[i])+".csv"), "w");
+        write_pair_csv_header(csv_file_classes, false);
+        FILE *csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+fname+"/"+fname+"_"+str(tests[i])+".csv"), "w");
+        write_pair_csv_header(csv_file_FOM, true);
 
-            ofstream kml_file(convert_string(file_storage_location+"output/final_output/"+str(square_coordinate)+"/"+str(square_coordinate)+"_"+str(tests[i])+".kml"), ios::out);
-            KML_Holder kml_holder;
+        ofstream kml_file_classes(convert_string(file_storage_location+"output/final_output_classes/"+fname+"/"+fname+"_"+str(tests[i])+".kml"), ios::out);
+        ofstream kml_file_FOM(convert_string(file_storage_location+"output/final_output_FOM/"+fname+"/"+fname+"_"+str(tests[i])+".kml"), ios::out);
+        KML_Holder kml_holder;
 
-            //FILE *fusion_csv_file = fopen(convert_string(file_storage_location+"Output/Final Output/"+str(square_coordinate)+"/"+str(square_coordinate)+"_"+str(tests[i])+"_Fusion_Table.csv"), "w");
-            //write_fusion_csv_header(fusion_csv_file);
-
-            sort(pairs[i].begin(), pairs[i].end());
-            int count = 0;
-            for(uint j=0; j<pairs[i].size(); j++){
-                Pair_KML pair_kml;
-                bool non_overlap;
-                if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, tests[i].max_FOM, big_model, full_cur_model, countries, country_names)){
-                    write_pair_csv(csv_file, &pairs[i][j]);
-                    //write_fusion_csv(fusion_csv_file, &pairs[i][j], &pair_kml);
-                    update_kml_holder(&kml_holder, &pairs[i][j], &pair_kml);
-                    count++;
-                    if(non_overlap){
-                        total_count++;
-                        total_capacity+=tests[i].energy_capacity;
-                    }
+        sort(pairs[i].begin(), pairs[i].end());
+        int count = 0;
+        for(uint j=0; j<pairs[i].size(); j++){
+            Pair_KML pair_kml;
+            bool non_overlap;
+            if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, tests[i].max_FOM, big_model, full_cur_model, countries, country_names)){
+                write_pair_csv(csv_file_classes, &pairs[i][j], false);
+                write_pair_csv(csv_file_FOM, &pairs[i][j], true);
+                update_kml_holder(&kml_holder, &pairs[i][j], &pair_kml);
+                count++;
+                if(non_overlap){
+                    total_count++;
+                    total_capacity+=tests[i].energy_capacity;
                 }
             }
-
-            kml_file << output_kml(&kml_holder, str(square_coordinate), tests[i]);
-            if(display)
-                printf("%d %dGWh %dh Pairs\n", count, tests[i].energy_capacity, tests[i].storage_time);
-            kml_file.close();
-            fclose(csv_file);
         }
-        write_total_csv(total_csv_file, str(square_coordinate), total_count, total_capacity);
-        printf("Constructor finished for %s. Found %d non-overlapping pairs with a total of %dGWh. Runtime: %.2f sec\n", convert_string(str(square_coordinate)), total_count, total_capacity, 1.0e-6*(walltime_usec() - t_usec) );
+
+        kml_file_classes << output_kml(&kml_holder, fname, tests[i]);
+        kml_file_FOM << output_kml(&kml_holder, fname, tests[i]);
+        if(display)
+            printf("%d %.1fGWh %dh Pairs\n", count, tests[i].energy_capacity, tests[i].storage_time);
+        kml_file_classes.close();
+        kml_file_FOM.close();
+        fclose(csv_file_classes);
+        fclose(csv_file_FOM);
     }
+    write_total_csv(total_csv_file_classes, str(square_coordinate), total_count, total_capacity);
+    write_total_csv(total_csv_file_FOM, str(square_coordinate), total_count, total_capacity);
+    fclose(total_csv_file_classes);
+    fclose(total_csv_file_FOM);
+    printf("Constructor finished for %s. Found %d non-overlapping pairs with a total of %dGWh. Runtime: %.2f sec\n", convert_string(fname), total_count, total_capacity, 1.0e-6*(walltime_usec() - t_usec) );
 }

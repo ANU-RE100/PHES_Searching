@@ -32,6 +32,7 @@ bool check_reservoir(Reservoir& reservoir, Model<bool>* seen, vector<ArrayCoordi
 		while (!q.empty()) {
 			ArrayCoordinate p = q.front();
 			q.pop();
+
 			ArrayCoordinate big_ac = {p.row+offset.row, p.col+offset.col, DEM->get_origin()};
 
 			temp_used_points.push_back(big_ac);
@@ -66,6 +67,7 @@ bool check_reservoir(Reservoir& reservoir, Model<bool>* seen, vector<ArrayCoordi
             last = 'd';
         }            
 	}
+
 	if(wall_height<minimum_dam_height){
         return false;
     }
@@ -77,9 +79,9 @@ bool check_reservoir(Reservoir& reservoir, Model<bool>* seen, vector<ArrayCoordi
 
 bool check_pair(Pair& pair, Model<bool>* seen, BigModel& big_model){
 	vector<ArrayCoordinate> used_points;
-	if(!check_reservoir(pair.upper, seen, &used_points, big_model))
+	if(!pair.upper.brownfield && !check_reservoir(pair.upper, seen, &used_points, big_model))
 		return false;
-	if(!check_reservoir(pair.lower, seen, &used_points, big_model))
+	if(!pair.lower.brownfield && !check_reservoir(pair.lower, seen, &used_points, big_model))
 		return false;
 
 	for(uint i = 0; i<used_points.size();i++){
@@ -92,23 +94,45 @@ bool check_pair(Pair& pair, Model<bool>* seen, BigModel& big_model){
 int main(int nargs, char **argv)
 {
 
-	GridSquare square_coordinate = GridSquare_init(atoi(argv[2]), atoi(argv[1]));
-	if(nargs>3)
-		display = atoi(argv[3]);
+	GridSquare square_coordinate;
+	string fname;
+	string arg1(argv[1]);
+	bool brownfield = false;
 
-	printf("Pretty set started for %s\n",convert_string(str(square_coordinate)));
+	try{
+		int lon = stoi(arg1);
+		square_coordinate = GridSquare_init(atoi(argv[2]), lon);
+		if(nargs>3)
+			display = atoi(argv[3]);
+		fname=str(square_coordinate);
+		printf("Pretty set started for %s\n",convert_string(str(square_coordinate)));
+	}catch(exception e){
+		brownfield = true;
+		fname = format_for_filename(arg1);
+		if(nargs>2)
+			display = atoi(argv[2]);
+		printf("Pretty set started for %s\n",argv[1]);
+	}
 
 	GDALAllRegister();
 	parse_variables(convert_string("storage_location"));
 	parse_variables(convert_string(file_storage_location+"variables"));
 	unsigned long t_usec = walltime_usec();
 	
+	if(brownfield){
+		vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(file_storage_location+"input/"+existing_reservoirs_file));
+		for(ExistingReservoir r : reservoirs)
+	        if(r.identifier==arg1){
+	            square_coordinate = get_square_coordinate(r);
+	        }
+		
+	}
 	BigModel big_model = BigModel_init(square_coordinate);
 
-	pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pairs/"+str(square_coordinate)+"_rough_pairs_data.csv"));
+	pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pairs/"+fname+"_rough_pairs_data.csv"));
 
 	mkdir(convert_string(file_storage_location+"processing_files/pretty_set_pairs"),0777);
-	FILE *csv_data_file = fopen(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+str(square_coordinate)+"_rough_pretty_set_pairs_data.csv"), "w");
+	FILE *csv_data_file = fopen(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+fname+"_rough_pretty_set_pairs_data.csv"), "w");
 	write_rough_pair_data_header(csv_data_file);
 
 	for(uint i = 0; i<tests.size(); i++){
@@ -116,14 +140,15 @@ int main(int nargs, char **argv)
 		Model<bool>* seen = new Model<bool>(big_model.DEM->nrows(), big_model.DEM->nrows(), MODEL_SET_ZERO);
 		seen->set_geodata(big_model.DEM->get_geodata());
 		int count = 0;
-		for(uint j=0; j<pairs[i].size(); j++)
+		for(uint j=0; j<pairs[i].size(); j++){
 			if(check_pair(pairs[i][j], seen, big_model)){
 				write_rough_pair_data(csv_data_file, &pairs[i][j]);
 				count++;
 			}
+		}
 		delete seen;
 		if(display)
-			printf("%d %dGWh %dh Pairs\n", count, tests[i].energy_capacity, tests[i].storage_time);
+			printf("%d %.1fGWh %dh Pairs\n", count, tests[i].energy_capacity, tests[i].storage_time);
 	}
-	printf("Pretty set finished for %s. Runtime: %.2f sec\n", convert_string(str(square_coordinate)), 1.0e-6*(walltime_usec() - t_usec) );
+	printf("Pretty set finished for %s. Runtime: %.2f sec\n", convert_string(fname), 1.0e-6*(walltime_usec() - t_usec) );
 }

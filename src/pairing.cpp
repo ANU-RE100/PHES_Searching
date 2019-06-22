@@ -60,14 +60,21 @@ Pair *check_good_pair(RoughReservoir& upper, RoughReservoir& lower, int energy_c
 	     (max(lower.volumes) < required_volume) )
 		return NULL;
 
-	double upper_dam_wall_height = linear_interpolate(required_volume, upper.volumes, dam_wall_heights);
-	double lower_dam_wall_height = linear_interpolate(required_volume, lower.volumes, dam_wall_heights);
+	double upper_dam_wall_height = 0;
+	double lower_dam_wall_height = 0;
+	double upper_water_rock_estimate = INF;
+	double lower_water_rock_estimate = INF;
 
-	if ( (upper_dam_wall_height > upper.max_dam_height) || (lower_dam_wall_height > lower.max_dam_height) )
+	if(!upper.brownfield){
+		upper_dam_wall_height = linear_interpolate(required_volume, upper.volumes, dam_wall_heights);
+		upper_water_rock_estimate = required_volume/linear_interpolate(upper_dam_wall_height, dam_wall_heights, upper.dam_volumes);
+	}
+	if(!lower.brownfield){
+		lower_dam_wall_height = linear_interpolate(required_volume, lower.volumes, dam_wall_heights);
+		lower_water_rock_estimate = required_volume/linear_interpolate(lower_dam_wall_height, dam_wall_heights, lower.dam_volumes);
+	}
+	if ( (!upper.brownfield && upper_dam_wall_height > upper.max_dam_height) || (!lower.brownfield && lower_dam_wall_height > lower.max_dam_height) )
 		return NULL;
-
-	double upper_water_rock_estimate = required_volume/linear_interpolate(upper_dam_wall_height, dam_wall_heights, upper.dam_volumes);
-	double lower_water_rock_estimate = required_volume/linear_interpolate(lower_dam_wall_height, dam_wall_heights, lower.dam_volumes);
 
 	if ( (upper_water_rock_estimate*lower_water_rock_estimate) < min_pair_water_rock*(upper_water_rock_estimate+lower_water_rock_estimate) )
 		return NULL;
@@ -87,17 +94,23 @@ Pair *check_good_pair(RoughReservoir& upper, RoughReservoir& lower, int energy_c
 
 	upper_reservoir.identifier = upper.identifier;
 	upper_reservoir.volume = required_volume;
+	if(upper.brownfield)
+		upper_reservoir.volume = upper.volumes[0];
 	upper_reservoir.dam_volume = linear_interpolate(upper_dam_wall_height, dam_wall_heights, upper.dam_volumes);
 	upper_reservoir.water_rock = upper_water_rock_estimate;
 	upper_reservoir.dam_height = upper_dam_wall_height;
 	upper_reservoir.max_dam_height = upper.max_dam_height;
+	upper_reservoir.brownfield = upper.brownfield;
 
 	lower_reservoir.identifier = lower.identifier;
 	lower_reservoir.volume = required_volume;
+	if(lower.brownfield)
+		lower_reservoir.volume = lower.volumes[0];
 	lower_reservoir.dam_volume = linear_interpolate(lower_dam_wall_height, dam_wall_heights, lower.dam_volumes);
 	lower_reservoir.water_rock = lower_water_rock_estimate;
 	lower_reservoir.dam_height = lower_dam_wall_height;
 	lower_reservoir.max_dam_height = lower.max_dam_height;
+	lower_reservoir.brownfield = lower.brownfield;
 
 	pair->identifier = upper.identifier+" & "+lower.identifier;
 	pair->upper = upper_reservoir;
@@ -110,7 +123,9 @@ Pair *check_good_pair(RoughReservoir& upper, RoughReservoir& lower, int energy_c
 	pair->required_volume = required_volume;
     pair->slope = pair->head/(pair->distance)*0.001;
     pair->water_rock = 1/(1/pair->upper.water_rock+1/pair->lower.water_rock);
+
 	set_FOM(pair);
+
 	if(pair->FOM>max_FOM)
 		return NULL;
 	return pair;
@@ -170,17 +185,43 @@ void pairing(vector<RoughReservoir>& upper_reservoirs, vector<RoughReservoir>& l
 
 int main(int nargs, char **argv)
 {
-	GridSquare square_coordinate = GridSquare_init(atoi(argv[2]), atoi(argv[1]));
-	if(nargs>3)
-		display = atoi(argv[3]);
 
-	printf("Pairing started for %s\n",convert_string(str(square_coordinate)));
+	GridSquare square_coordinate;
+	bool brownfield = false;
+	string fname;
+	string arg1(argv[1]);
+
+	try{
+		int lon = stoi(arg1);
+		square_coordinate = GridSquare_init(atoi(argv[2]), lon);
+		if(nargs>3)
+			display = atoi(argv[3]);
+		fname=str(square_coordinate);
+		printf("Pairing started for %s\n",convert_string(str(square_coordinate)));
+	}catch(exception e){
+		brownfield = true;
+		fname = format_for_filename(arg1);
+		if(nargs>2)
+			display = atoi(argv[2]);
+		printf("Pairing started for %s\n",argv[1]);
+	}
 
 	unsigned long t_usec = walltime_usec();
 	parse_variables(convert_string("storage_location"));
 	parse_variables(convert_string(file_storage_location+"variables"));
 
-	vector<RoughReservoir> upper_reservoirs = read_rough_reservoir_data(convert_string(file_storage_location+"processing_files/reservoirs/"+str(square_coordinate)+"_reservoirs_data.csv"));
+	if(brownfield){
+		vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(file_storage_location+"input/"+existing_reservoirs_file));
+		for(ExistingReservoir r : reservoirs)
+	        if(r.identifier==arg1){
+	            square_coordinate = get_square_coordinate(r);
+	        }
+		
+	}
+
+	vector<RoughReservoir> upper_reservoirs;
+	upper_reservoirs = read_rough_reservoir_data(convert_string(file_storage_location+"processing_files/reservoirs/"+fname+"_reservoirs_data.csv"));
+	
 	if(display)
 		printf("Read in %zu uppers\n", upper_reservoirs.size());
 	vector<RoughReservoir> lower_reservoirs;
@@ -210,7 +251,7 @@ int main(int nargs, char **argv)
 		printf("Read in %zu lowers\n", lower_reservoirs.size());
 
 	mkdir(convert_string(file_storage_location+"output/pairs"),0777);
-	FILE *csv_file = fopen(convert_string(file_storage_location+"output/pairs/"+str(square_coordinate)+"_rough_pairs.csv"), "w");
+	FILE *csv_file = fopen(convert_string(file_storage_location+"output/pairs/"+fname+"_rough_pairs.csv"), "w");
 	if (!csv_file) {
 	 	fprintf(stderr, "Failed to open reservoir pair CSV file\n");
 		exit(1);
@@ -218,7 +259,7 @@ int main(int nargs, char **argv)
 	write_rough_pair_csv_header(csv_file);
 
 	mkdir(convert_string(file_storage_location+"processing_files/pairs"),0777);
-	FILE *csv_data_file = fopen(convert_string(file_storage_location+"processing_files/pairs/"+str(square_coordinate)+"_rough_pairs_data.csv"), "w");
+	FILE *csv_data_file = fopen(convert_string(file_storage_location+"processing_files/pairs/"+fname+"_rough_pairs_data.csv"), "w");
 	if (!csv_data_file) {
 	 	fprintf(stderr, "Failed to open reservoir pair CSV data file\n");
 		exit(1);
@@ -226,16 +267,18 @@ int main(int nargs, char **argv)
 	write_rough_pair_data_header(csv_data_file);
 
 	pairing(upper_reservoirs, lower_reservoirs, csv_file, csv_data_file);
+	if(brownfield)
+		pairing(lower_reservoirs, upper_reservoirs, csv_file, csv_data_file);
 
 	int total=0;
 	for (uint itest=0; itest<tests.size(); itest++) {
 		if(display)
-			printf("%d %dGWh %dh pairs\n", pairs[itest], tests[itest].energy_capacity, tests[itest].storage_time);
+			printf("%d %.1fGWh %dh pairs\n", pairs[itest], tests[itest].energy_capacity, tests[itest].storage_time);
 		total+=pairs[itest];
 	}
 
 	fclose(csv_file);
 	fclose(csv_data_file);
 
-	printf("Pairing finished for %s. Found %d pairs. Runtime: %.2f sec\n", convert_string(str(square_coordinate)), total, 1.0e-6*(walltime_usec() - t_usec) );
+	printf("Pairing finished for %s. Found %d pairs. Runtime: %.2f sec\n", convert_string(fname), total, 1.0e-6*(walltime_usec() - t_usec) );
 }
