@@ -1,7 +1,7 @@
 // Search Driver
 tasks_file = tasks;				// File with list of cells to do line by line in format <lon> <lat>
 processes_file = processes;		// File with list of processes to complete
-existing_reservoirs_file = res.csv;
+existing_reservoirs_file = Cressbrook.csv;
 
 // General
 border = 600;					// Number of cells to add as border around DEM square
@@ -62,14 +62,26 @@ upper_colour = #88F0AA14;
 lower_colour = #88F03C14;
 
 // Reservoir sizings
-test = 150, 18, 3500;			// Test in format {Storage (GWh), Storage time (h), Maximum FOM}
-test = 50, 18, 3500;
-test = 50, 6, 1800;
-test = 15, 18, 3500;
-test = 15, 6, 1800;
-test = 5, 18, 3500;
-test = 5, 6, 1800;
-test = 2, 6, 1800;
+// test = 150, 18, 3500;			// Test in format {Volume (GL), Storage time (h), Maximum FOM}
+// test = 50, 18, 3500;
+// test = 50, 6, 1800;
+// test = 15, 18, 3500;
+// test = 15, 6, 1800;
+// test = 5, 18, 3500;
+// test = 5, 6, 1800;
+// test = 2, 6, 1800;
+test = 1.5, 6;			// Test in format {Volume (GL), Storage time (h), Maximum FOM}
+test = 3, 12;
+test = 6, 24;
+test = 12, 48;
+test = 3, 6;
+test = 6, 12;
+test = 12, 24;
+test = 24, 48;
+test = 6, 6;
+test = 12, 12;
+test = 24, 24;
+test = 48, 48;
 
 // Class Cutoffs
 A = 533, 47;					// Class cutoffs in the format {Power Cost, Storage Cost}

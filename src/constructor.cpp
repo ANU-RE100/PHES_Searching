@@ -426,7 +426,7 @@ bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* c
     for(ExistingReservoir r : reservoirs)
         if(r.identifier==reservoir->identifier){
             reservoir->volume = r.volume;
-            string polygon_string = str(compress_poly(corner_cut_poly(r.polygon)), r.elevation);
+            string polygon_string = str(compress_poly(corner_cut_poly(r.polygon)), r.elevation+2);
             coordinates->reservoir = polygon_string;
 
             GridSquare square_coordinate = get_square_coordinate(r);
