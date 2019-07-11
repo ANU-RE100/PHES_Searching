@@ -119,14 +119,9 @@ int main(int nargs, char **argv)
 	parse_variables(convert_string(file_storage_location+"variables"));
 	unsigned long t_usec = walltime_usec();
 	
-	if(brownfield){
-		vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(file_storage_location+"input/"+existing_reservoirs_file));
-		for(ExistingReservoir r : reservoirs)
-	        if(r.identifier==arg1){
-	            square_coordinate = get_square_coordinate(r);
-	        }
-		
-	}
+	if(brownfield)
+		square_coordinate = get_square_coordinate(get_existing_reservoir(arg1));
+	
 	BigModel big_model = BigModel_init(square_coordinate);
 
 	pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pairs/"+fname+"_rough_pairs_data.csv"));

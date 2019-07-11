@@ -412,7 +412,6 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
     for(uint i = 0; i< countries.size();i++){
         if(check_within(convert_coordinates(reservoir->pour_point), countries[i])){
             reservoir->country = country_names[i];
-            //cout << convert_coordinates(reservoir->pour_point).lat <<" "<<convert_coordinates(reservoir->pour_point).lon<<" "<<country_names[i] << "\n";
             break;
         }
     }
@@ -421,20 +420,15 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
 }
 
 bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinates, vector<vector<vector<GeographicCoordinate>>>& countries, vector<string>& country_names){
-    vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(file_storage_location+"input/"+existing_reservoirs_file));
+    ExistingReservoir r = get_existing_reservoir(reservoir->identifier);
+    reservoir->volume = r.volume;
+    string polygon_string = str(compress_poly(corner_cut_poly(r.polygon)), r.elevation+2);
+    coordinates->reservoir = polygon_string;
 
-    for(ExistingReservoir r : reservoirs)
-        if(r.identifier==reservoir->identifier){
-            reservoir->volume = r.volume;
-            string polygon_string = str(compress_poly(corner_cut_poly(r.polygon)), r.elevation+2);
-            coordinates->reservoir = polygon_string;
+    GeographicCoordinate origin = get_origin(r.latitude, r.longitude, border);
+    for(GeographicCoordinate p : r.polygon)
+        update_reservoir_boundary(reservoir->shape_bound, convert_coordinates(p, origin));
 
-            GridSquare square_coordinate = get_square_coordinate(r);
-            Model<short>* DEM = read_DEM_with_borders(square_coordinate, border);
-            GeographicCoordinate origin = DEM->get_origin();
-            for(GeographicCoordinate p : r.polygon)
-                update_reservoir_boundary(reservoir->shape_bound, convert_coordinates(p, origin));
-        }
     //KML
     for(uint i = 0; i< countries.size();i++){
         if(check_within(GeographicCoordinate_init(reservoir->latitude, reservoir->longitude), countries[i])){
@@ -528,14 +522,9 @@ int main(int nargs, char **argv)
     parse_variables(convert_string(file_storage_location+"variables"));
     unsigned long t_usec = walltime_usec();
 
-    if(brownfield){
-        vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(file_storage_location+"input/"+existing_reservoirs_file));
-        for(ExistingReservoir r : reservoirs)
-            if(r.identifier==arg1){
-                square_coordinate = get_square_coordinate(r);
-            }
-        
-    }
+    if(brownfield)
+        square_coordinate = get_square_coordinate(get_existing_reservoir(arg1));
+    
     BigModel big_model = BigModel_init(square_coordinate);
     vector<string> country_names;
     vector<vector<vector<GeographicCoordinate>>> countries = read_countries(file_storage_location+"input/countries/countries.txt", country_names);

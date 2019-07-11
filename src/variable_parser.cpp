@@ -3,7 +3,9 @@
 // Search Driver
 string tasks_file;					// File with list of cells to do line by line in format <lon> <lat>
 string processes_file;				// File with list of processes to complete
-string existing_reservoirs_file;
+string existing_reservoirs_csv;
+string existing_reservoirs_shp;
+string existing_reservoirs_shp_names;
 
 // General
 string file_storage_location;		// Where to look for input files and store output files
@@ -192,8 +194,12 @@ void parse_variables(char* filename){
 				max_lowers_per_upper = stoi(value);
 			if(variable=="minimum_dam_height")
 				minimum_dam_height = stod(value);
-			if(variable=="existing_reservoirs_file")
-				existing_reservoirs_file = value;
+			if(variable=="existing_reservoirs_csv")
+				existing_reservoirs_csv = value;
+			if(variable=="existing_reservoirs_shp")
+				existing_reservoirs_shp = value;
+			if(variable=="existing_reservoirs_shp_names")
+				existing_reservoirs_shp_names = value;
 			if(variable=="tolerance_on_FOM")
 				tolerance_on_FOM = stod(value);
 		}

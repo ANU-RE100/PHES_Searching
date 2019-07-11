@@ -621,91 +621,11 @@ int main(int nargs, char **argv)
 	    }
 		write_rough_reservoir_data_header(csv_data_file);
 
-		vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(file_storage_location+"input/"+existing_reservoirs_file));
+		RoughReservoir reservoir = get_existing_rough_reservoir(arg1);
 
-		for(ExistingReservoir r : reservoirs)
-			if(r.identifier==arg1){
-				RoughReservoir reservoir;
-				reservoir.identifier = r.identifier;
-		        reservoir.brownfield = true;
-				reservoir.latitude = r.latitude;
-				reservoir.longitude = r.longitude;
-				reservoir.elevation = r.elevation;
-				for(uint i = 0; i<dam_wall_heights.size(); i++){
-					reservoir.volumes.push_back(r.volume);
-					reservoir.dam_volumes.push_back(0);
-					reservoir.areas.push_back(0);
-					reservoir.water_rocks.push_back(1000000000);
-				}
-				for (uint ih=0; ih < dam_wall_heights.size(); ih++) {
-					array<ArrayCoordinate, directions.size()> temp_array;
-					for (uint idir=0; idir < directions.size(); idir++) {
-						temp_array[idir].row = -100000 * directions[idir].row;
-						temp_array[idir].col = -100000 * directions[idir].col;
-					}
-					reservoir.shape_bound.push_back(temp_array);
-				}
-				square_coordinate = get_square_coordinate(r);
-				Model<short>* DEM = read_DEM_with_borders(square_coordinate, border);
-				GeographicCoordinate origin = DEM->get_origin();
-				
-				for(GeographicCoordinate c : r.polygon){
-					ArrayCoordinate p = convert_coordinates(c, origin);
-					update_reservoir_boundary(reservoir.shape_bound, p, 0);
-				}
+		write_rough_reservoir_csv(csv_file, reservoir);
+		write_rough_reservoir_data(csv_data_file, reservoir);
 
-				write_rough_reservoir_csv(csv_file, reservoir);
-				write_rough_reservoir_data(csv_data_file, reservoir);
-			}
-
-		// ifstream inputFile(convert_string(file_storage_location+"input/"+arg1+".csv"));
-		// bool header = true;
-		// string s;
-	 //    while (getline(inputFile, s)) {
-	 //    	if(header){
-	 //    		header = false;
-	 //    		continue;
-	 //    	}
-	 //        vector<string> line = read_from_csv_file(s);
-
-	 //        RoughReservoir reservoir;
-
-	 //        reservoir.identifier = line[0];
-	 //        reservoir.brownfield = true;
-		// 	reservoir.latitude = stod(line[1]);
-		// 	reservoir.longitude = stod(line[2]);
-		// 	reservoir.elevation = stoi(line[3]);
-		// 	for(uint i = 0; i<dam_wall_heights.size(); i++){
-		// 		reservoir.volumes.push_back(stod(line[4]));
-		// 		reservoir.dam_volumes.push_back(0);
-		// 		reservoir.areas.push_back(0);
-		// 		reservoir.water_rocks.push_back(1000000000);
-		// 	}
-
-		// 	for (uint ih=0; ih < dam_wall_heights.size(); ih++) {
-		// 		array<ArrayCoordinate, directions.size()> temp_array;
-		// 		for (uint idir=0; idir < directions.size(); idir++) {
-		// 			temp_array[idir].row = -100000 * directions[idir].row;
-		// 			temp_array[idir].col = -100000 * directions[idir].col;
-		// 		}
-		// 		reservoir.shape_bound.push_back(temp_array);
-		// 	}
-
-		// 	square_coordinate = GridSquare_init(floor(reservoir.latitude), floor(reservoir.longitude));
-		// 	Model<short>* DEM = read_DEM_with_borders(square_coordinate, border);
-		// 	GeographicCoordinate origin = DEM->get_origin();
-			
-		// 	for(string coordinate : read_from_csv_file(line[5], ' ')){
-		// 		vector<string> pair = read_from_csv_file(coordinate);
-		// 		double lon = stod(pair[0]);
-		// 		double lat = stod(pair[1]);
-		// 		ArrayCoordinate p = convert_coordinates(GeographicCoordinate_init(lat, lon), origin);
-		// 		update_reservoir_boundary(reservoir.shape_bound, p, 0);
-		// 	}
-
-		// 	write_rough_reservoir_csv(csv_file, reservoir);
-		// 	write_rough_reservoir_data(csv_data_file, reservoir);
-	 //    }
 	    fclose(csv_file);
 		fclose(csv_data_file);
 		printf(convert_string("Screening finished for "+arg1+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );

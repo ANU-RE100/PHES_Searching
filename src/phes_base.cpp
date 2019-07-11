@@ -184,3 +184,99 @@ string format_for_filename(string s){
 	s.erase(remove(s.begin(), s.end(), '"'), s.end());
 	return s;
 }
+
+GeographicCoordinate get_origin(double latitude, double longitude, int border){
+	//TODO
+	GridSquare sc = GridSquare_init((int)FLOOR(latitude)-EPS,(int)FLOOR(longitude)+EPS);
+	return GeographicCoordinate_init( sc.lat+1+(border/3600.0),sc.lon-(border/3600.0));
+}
+
+ExistingReservoir get_existing_reservoir(string name){
+	ExistingReservoir to_return;
+	vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_csv));
+
+	for(ExistingReservoir r : reservoirs)
+		if(r.identifier==name)
+			to_return = r;
+
+	int i = 0;
+	for(string s : read_names(convert_string(file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_shp_names))){
+		if(s==name)
+			break;
+		else
+			i++;
+	}
+	
+	string filename = file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_shp;
+	char *shp_filename = new char[filename.length() + 1];
+	strcpy(shp_filename, filename.c_str());
+    if(!file_exists(shp_filename)){
+		if(display)
+			cout << "No file: "+filename;
+		throw(1);
+	}
+	SHPHandle SHP = SHPOpen(convert_string(filename), "rb" );
+	if(SHP != NULL ){
+    	int	nEntities;
+    	vector<vector<GeographicCoordinate>> relevant_polygons;
+    	SHPGetInfo(SHP, &nEntities, NULL, NULL, NULL );
+
+        SHPObject *shape;
+        shape = SHPReadObject( SHP, i );
+        if( shape == NULL ){
+            fprintf( stderr,"Unable to read shape %d, terminating object reading.\n",i);
+        }
+        vector<GeographicCoordinate> temp_poly;
+        for(int j = 0, iPart = 1; j < shape->nVertices; j++ )
+        {
+            if(shape->panPartStart[iPart] == j )
+	            break;
+            GeographicCoordinate temp_point = GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
+            to_return.polygon.push_back(temp_point);
+        }
+        SHPDestroyObject( shape );
+    }else{
+    	throw(1);
+    }
+    SHPClose(SHP);
+
+
+
+
+
+
+	
+	return to_return;
+}
+
+RoughReservoir get_existing_rough_reservoir(string name){
+	RoughReservoir reservoir;
+	ExistingReservoir r = get_existing_reservoir(name);
+	reservoir.identifier = r.identifier;
+    reservoir.brownfield = true;
+	reservoir.latitude = r.latitude;
+	reservoir.longitude = r.longitude;
+	reservoir.elevation = r.elevation;
+	for(uint i = 0; i<dam_wall_heights.size(); i++){
+		reservoir.volumes.push_back(r.volume);
+		reservoir.dam_volumes.push_back(0);
+		reservoir.areas.push_back(0);
+		reservoir.water_rocks.push_back(1000000000);
+	}
+	for (uint ih=0; ih < dam_wall_heights.size(); ih++) {
+		array<ArrayCoordinate, directions.size()> temp_array;
+		for (uint idir=0; idir < directions.size(); idir++) {
+			temp_array[idir].row = -100000 * directions[idir].row;
+			temp_array[idir].col = -100000 * directions[idir].col;
+		}
+		reservoir.shape_bound.push_back(temp_array);
+	}
+
+	GeographicCoordinate origin = get_origin(r.latitude, r.longitude, border);
+	
+	for(GeographicCoordinate c : r.polygon){
+		ArrayCoordinate p = convert_coordinates(c, origin);
+		update_reservoir_boundary(reservoir.shape_bound, p, 0);
+	}
+	return reservoir;
+}

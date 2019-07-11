@@ -40,6 +40,8 @@ vector<string> read_from_csv_file(string line){
 // 	return cols;
 // }
 vector<string> read_from_csv_file(string line, char delimeter){
+	line.erase(remove(line.begin(), line.end(), '\n'), line.end());
+	line.erase(remove(line.begin(), line.end(), '\r'), line.end());
 	vector<string> cols;
 	string cur = "";
 	bool instring = false;
@@ -70,12 +72,12 @@ vector<ExistingReservoir> read_existing_reservoir_data(char* filename)
     	}
         vector<string> line = read_from_csv_file(s);
         ExistingReservoir reservoir = ExistingReservoir_init(line[0], stod(line[1]), stod(line[2]), stod(line[3]), stod(line[4]));
-		for(string coordinate : read_from_csv_file(line[5], ' ')){
-			vector<string> pair = read_from_csv_file(coordinate);
-			double lon = stod(pair[0]);
-			double lat = stod(pair[1]);
-			reservoir.polygon.push_back(GeographicCoordinate_init(lat, lon));
-		}
+		// for(string coordinate : read_from_csv_file(line[5], ' ')){
+		// 	vector<string> pair = read_from_csv_file(coordinate);
+		// 	double lon = stod(pair[0]);
+		// 	double lat = stod(pair[1]);
+		// 	reservoir.polygon.push_back(GeographicCoordinate_init(lat, lon));
+		// }
 		reservoirs.push_back(reservoir);
     }
     if(header){
@@ -83,6 +85,25 @@ vector<ExistingReservoir> read_existing_reservoir_data(char* filename)
     }
 
 	return reservoirs;
+}
+
+vector<string> read_names(char* filename)
+{
+	vector<string> names;
+	ifstream inputFile(filename);
+	bool header = true;
+	string s;
+    while (getline(inputFile, s)) {
+    	if(header){
+    		header = false;
+    		continue;
+    	}
+		names.push_back(read_from_csv_file(s)[0]);
+    }
+    if(header){
+    	throw 1;
+    }
+	return names;
 }
 
 

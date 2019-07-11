@@ -22,7 +22,9 @@ const double resolution = 30.87;
 // Search Driver
 extern string tasks_file;					// File with list of cells to do line by line in format <lon> <lat>
 extern string processes_file;				// File with list of processes to complete
-extern string existing_reservoirs_file;
+extern string existing_reservoirs_csv;
+extern string existing_reservoirs_shp;
+extern string existing_reservoirs_shp_names;
 
 // General
 extern string file_storage_location;				// Where to look for input files and store output files
@@ -30,7 +32,7 @@ extern int border;							// Number of cells to add as border around DEM square
 extern double dambatter;					// Slope on sides of dam
 extern double cwidth;						// Width of top of dam
 extern double freeboard;            		// Freeboard on dam
-extern int display;							// Whether to display full output
+extern int display;							// Whether to display full output (Debug info)
 
 // Shapefile tiling
 extern vector<string> filter_filenames_to_tile; // Shapefiles to split into tiles
@@ -173,5 +175,8 @@ void set_FOM(Pair* pair);
 string str(Test test);
 string energy_capacity_to_string(double energy_capacity);
 string format_for_filename(string s);
+GeographicCoordinate get_origin(double latitude, double longitude, int border);
+RoughReservoir get_existing_rough_reservoir(string name);
+ExistingReservoir get_existing_reservoir(string name);
 
 #endif

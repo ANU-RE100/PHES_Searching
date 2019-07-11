@@ -1,7 +1,9 @@
 // Search Driver
 tasks_file = tasks;				// File with list of cells to do line by line in format <lon> <lat>
 processes_file = processes;		// File with list of processes to complete
-existing_reservoirs_file = Cressbrook.csv;
+existing_reservoirs_csv = rescsv.csv;
+existing_reservoirs_shp = resshp.shp;
+existing_reservoirs_shp_names = resnames.csv;
 
 // General
 border = 600;					// Number of cells to add as border around DEM square

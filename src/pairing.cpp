@@ -68,10 +68,16 @@ Pair *check_good_pair(RoughReservoir& upper, RoughReservoir& lower, int energy_c
 	if(!upper.brownfield){
 		upper_dam_wall_height = linear_interpolate(required_volume, upper.volumes, dam_wall_heights);
 		upper_water_rock_estimate = required_volume/linear_interpolate(upper_dam_wall_height, dam_wall_heights, upper.dam_volumes);
+	}else{
+		upper_dam_wall_height = dam_wall_heights[0];
+		upper_water_rock_estimate = INF;
 	}
 	if(!lower.brownfield){
 		lower_dam_wall_height = linear_interpolate(required_volume, lower.volumes, dam_wall_heights);
 		lower_water_rock_estimate = required_volume/linear_interpolate(lower_dam_wall_height, dam_wall_heights, lower.dam_volumes);
+	}else{
+		lower_dam_wall_height = dam_wall_heights[0];
+		lower_water_rock_estimate = INF;
 	}
 	if ( (!upper.brownfield && upper_dam_wall_height > upper.max_dam_height) || (!lower.brownfield && lower_dam_wall_height > lower.max_dam_height) )
 		return NULL;
@@ -211,14 +217,8 @@ int main(int nargs, char **argv)
 	parse_variables(convert_string("storage_location"));
 	parse_variables(convert_string(file_storage_location+"variables"));
 
-	if(brownfield){
-		vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(file_storage_location+"input/"+existing_reservoirs_file));
-		for(ExistingReservoir r : reservoirs)
-	        if(r.identifier==arg1){
-	            square_coordinate = get_square_coordinate(r);
-	        }
-		
-	}
+	if(brownfield)
+		square_coordinate = get_square_coordinate(get_existing_reservoir(arg1));
 
 	vector<RoughReservoir> upper_reservoirs;
 	upper_reservoirs = read_rough_reservoir_data(convert_string(file_storage_location+"processing_files/reservoirs/"+fname+"_reservoirs_data.csv"));
