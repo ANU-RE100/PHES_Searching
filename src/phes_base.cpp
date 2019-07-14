@@ -96,7 +96,7 @@ Model<short>* read_DEM_with_borders(GridSquare sc, int border){
 		ArrayCoordinate tile_end = ArrayCoordinate_init(neighbors[i][2][0], neighbors[i][2][1], get_origin(gs, border));
 		ArrayCoordinate tile_offset = ArrayCoordinate_init(neighbors[i][3][0], neighbors[i][3][1], get_origin(gs, border));
 		try{
-			Model<short>* DEM_temp = new Model<short>(file_storage_location+"input/"+str(gs)+"_1arc_v3.tif", GDT_Int16);
+			Model<short>* DEM_temp = new Model<short>(file_storage_location+"input/DEMs/"+str(gs)+"_1arc_v3.tif", GDT_Int16);
 			if (i==0) {
 				DEM = new Model<short>(DEM_temp->nrows()+2*border-1,DEM_temp->ncols()+2*border-1, MODEL_SET_ZERO);
 				DEM->set_geodata(DEM_temp->get_geodata());
@@ -109,7 +109,7 @@ Model<short>* read_DEM_with_borders(GridSquare sc, int border){
 			delete DEM_temp;
 		}catch (int e){
 			if(display)
-				fprintf(stderr, "Could not find file %s: %s\n", convert_string(file_storage_location+"input/"+str(gs)+"_1arc_v3.tif"), strerror(errno));
+				fprintf(stderr, "Could not find file %s: %s\n", convert_string(file_storage_location+"input/DEMs/"+str(gs)+"_1arc_v3.tif"), strerror(errno));
 			if (i==0)
 				throw(1);
 		}

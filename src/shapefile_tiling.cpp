@@ -2,23 +2,27 @@
 
 int display = false;
 
-
 // Reads a list of cells to process from the tasks_file (Eg. 148 -36)
 vector<GridSquare> read_tasklist(char *tasks_file)
 {
-	FILE *fd = fopen(tasks_file, "r");
+	ifstream fd(tasks_file);
 	if (!fd)  {
 		fprintf(stderr, "failed to open task file %s: %s\n", tasks_file, strerror(errno));
 		exit(1);
 	}
 	vector<GridSquare> tasklist;
-	int lon, lat, rc=0;
-	while (rc != EOF) {	
-		rc = fscanf(fd, "%d %d", &lon, &lat);
-		tasklist.push_back(GridSquare_init(lat, lon));
+	string line;
+	while(getline(fd, line)){
+		line.erase(remove(line.begin(), line.end(), '\n'), line.end());
+		line.erase(remove(line.begin(), line.end(), '\r'), line.end());
+		istringstream is(line);
+	    int lon, lat;
+	    if(is>>lon)
+	    	if(is>>lat)
+	    		tasklist.push_back(GridSquare_init(lat, lon));
 	}
 	printf("read %zu tasks\n", tasklist.size());
-	fclose(fd);
+	fd.close();
 	return tasklist;
 }
 
@@ -26,6 +30,7 @@ int main()
 {
 	printf("Tiling started\n");
 
+	parse_variables(convert_string("storage_location"));
 	parse_variables(convert_string(file_storage_location+"variables"));
 	unsigned long start_usec = walltime_usec();
 
@@ -91,8 +96,6 @@ int main()
 	int z = 0;
 	for(GridSquare gs:tasklist){
 		z++;
-		// if(z<44557)
-		// 	continue;
 		int lat = gs.lat;
 		int lon = gs.lon;
 		SHPHandle SHP = SHPCreate(convert_string(file_storage_location+"input/shapefile_tiles/"+str(gs)+"_shapefile_tile.shp"), SHPT_POLYGON);
