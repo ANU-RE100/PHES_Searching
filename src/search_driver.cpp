@@ -104,6 +104,7 @@ int main()
 		int id = set_worker(process);
 		mkdir(convert_string(file_storage_location+"debug"), 0770);
 		mkdir(convert_string(file_storage_location+"debug/"+process+"_logfiles"), 0770);
+		mkdir(convert_string(file_storage_location+"driver_files"), 0770);
 		ofstream logfile;
   		logfile.open (file_storage_location+"debug/"+process+"_logfiles/"+process+"_"+to_string(id));
 		for(auto task : tasklist){
