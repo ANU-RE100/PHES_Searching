@@ -66,6 +66,13 @@ double power_offset;
 double tunnel_fixed;
 double dam_cost;
 
+// Ocean FOM Calculations
+double lining_cost;
+double sea_power_scaling;
+double ref_marine_cost;
+double ref_power;
+double ref_head;
+
 // Reservoir Sizings
 vector<Test> tests;					// Test in format {Volume (GL), Storage time (h), Maximum FOM}
 vector<CategoryCutoff> category_cutoffs;
@@ -202,6 +209,17 @@ void parse_variables(char* filename){
 				existing_reservoirs_shp_names = value;
 			if(variable=="tolerance_on_FOM")
 				tolerance_on_FOM = stod(value);
+
+			if(variable=="lining_cost")
+				lining_cost = stod(value);
+			if(variable=="sea_power_scaling")
+				sea_power_scaling = stod(value);
+			if(variable=="ref_marine_cost")
+				ref_marine_cost = stod(value);
+			if(variable=="ref_power")
+				ref_power = stod(value);
+			if(variable=="ref_head")
+				ref_head = stod(value);
 		}
 	}
 }

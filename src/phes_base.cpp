@@ -154,6 +154,15 @@ void set_FOM(Pair* pair){
 	double tunnel_cost = ((power_slope_factor*MIN(power,800)+slope_int)*pow(head,head_coeff)*seperation*1000)+(power_offset*MIN(power,800)+tunnel_fixed);
 	double power_cost = 0.001*(power_house_cost+tunnel_cost)/MIN(power, 800);
 	double energy_cost = dam_cost*1/(pair->water_rock*generation_efficiency * usable_volume*water_density*gravity*pair->head)*J_GWh_conversion/cubic_metres_GL_conversion;
+
+	if(pair->lower.ocean){
+		double total_lining_cost = lining_cost*pair->upper.area;
+		power_house_cost = power_house_cost*sea_power_scaling;
+		double marine_outlet_cost = ref_marine_cost*power*ref_head/(ref_power*head);
+		power_cost = 0.001*(power_house_cost+tunnel_cost)/MIN(power, 800) + marine_outlet_cost/power;
+		energy_cost += 0.000001*total_lining_cost/pair->energy_capacity;
+	}
+
 	pair->FOM = power_cost+energy_cost*pair->storage_time;
 	pair->category = 'Z';
 	uint i = 0;

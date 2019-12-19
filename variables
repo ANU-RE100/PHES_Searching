@@ -54,6 +54,13 @@ power_offset = 66429;
 tunnel_fixed = 17000000;
 dam_cost = 168;
 
+// Ocean FOM Calculations
+lining_cost = 60;
+sea_power_scaling = 1.5;
+ref_marine_cost = 25;
+ref_power = 225;
+ref_head = 260;
+
 // Output
 volume_accuracy = 0.05;				// Maximum ratio error on final volume
 dam_wall_height_resolution = 0.5;	// Resolution of dam wall height (m)

@@ -276,8 +276,9 @@ void update_kml_holder(KML_Holder* kml_holder, Pair* pair, Pair_KML* pair_kml){
 	kml_holder->uppers.push_back(get_reservoir_kml(&pair->upper, upper_colour, pair_kml->upper, pair));
 	if(!pair->upper.brownfield)
 		kml_holder->upper_dams.push_back(get_dam_kml(&pair->upper, pair_kml->upper));
-	kml_holder->lowers.push_back(get_reservoir_kml(&pair->lower, lower_colour, pair_kml->lower, pair));
-	if(!pair->lower.brownfield)
+	if(!pair->lower.ocean)
+		kml_holder->lowers.push_back(get_reservoir_kml(&pair->lower, lower_colour, pair_kml->lower, pair));
+	if(!pair->lower.brownfield && !pair->lower.ocean)
 		kml_holder->lower_dams.push_back(get_dam_kml(&pair->lower, pair_kml->lower));
 }
 

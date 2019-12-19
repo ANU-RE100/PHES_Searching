@@ -5,6 +5,7 @@ int display = false;
 
 vector<vector<Pair>> pairs;
 bool brownfield = false;
+bool ocean = false;
 
 // find_polygon_intersections returns an array containing the longitude of all line. Assumes last coordinate is same as first
 vector<double> find_polygon_intersections(double lat, vector<GeographicCoordinate> &polygon){
@@ -453,7 +454,7 @@ bool model_pair(Pair* pair, Pair_KML* pair_kml, Model<bool>* seen, bool* non_ove
 	if(pair->lower.brownfield){
         if(!model_existing_reservoir(&pair->lower, &pair_kml->lower, countries, country_names))
             return false;
-    }else if(!model_reservoir(&pair->lower, &pair_kml->lower, seen, non_overlap, &used_points, big_model, full_cur_model, countries, country_names))
+    }else if(!pair->lower.ocean && !model_reservoir(&pair->lower, &pair_kml->lower, seen, non_overlap, &used_points, big_model, full_cur_model, countries, country_names))
 		return false;
 
     pair->country = pair->upper.country;
@@ -501,19 +502,28 @@ int main(int nargs, char **argv)
     GridSquare square_coordinate;
     string fname;
     string arg1(argv[1]);
+    string ocean_prefix = "";
+
+    int adj = 0;
+    if(arg1.compare("ocean")==0){
+        ocean = true;
+        ocean_prefix = "ocean_";
+        adj = 1;
+        arg1 = argv[1+adj];
+    }
 
     try{
         int lon = stoi(arg1);
-        square_coordinate = GridSquare_init(atoi(argv[2]), lon);
-        if(nargs>3)
-            display = atoi(argv[3]);
-        fname=str(square_coordinate);
-        printf("Constructor started for %s\n",convert_string(str(square_coordinate)));
+        square_coordinate = GridSquare_init(atoi(argv[2+adj]), lon);
+        if(nargs>3+adj)
+            display = atoi(argv[3+adj]);
+        fname=ocean_prefix+str(square_coordinate);
+        printf("Constructor started for %s\n",convert_string(ocean_prefix+str(square_coordinate)));
     }catch(exception e){
         brownfield = true;
-        fname = format_for_filename(arg1);
-        if(nargs>2)
-            display = atoi(argv[2]);
+        fname = ocean_prefix+format_for_filename(arg1);
+        if(nargs>2+adj)
+            display = atoi(argv[2+adj]);
         printf("Constructor started for %s\n",argv[1]);
     }
 

@@ -33,6 +33,7 @@ extern double dambatter;					// Slope on sides of dam
 extern double cwidth;						// Width of top of dam
 extern double freeboard;            		// Freeboard on dam
 extern int display;							// Whether to display full output (Debug info)
+extern bool ocean;
 
 // Shapefile tiling
 extern vector<string> filter_filenames_to_tile; // Shapefiles to split into tiles
@@ -84,6 +85,13 @@ extern double head_coeff;
 extern double power_offset;
 extern double tunnel_fixed;
 extern double dam_cost;
+
+// Ocean FOM Calculations
+extern double lining_cost;
+extern double sea_power_scaling;
+extern double ref_marine_cost;
+extern double ref_power;
+extern double ref_head;
 
 struct Test{
 	double energy_capacity;

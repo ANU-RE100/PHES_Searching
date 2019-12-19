@@ -1,6 +1,7 @@
 #include "phes_base.h"
 
 int display = false;
+bool ocean = false;
 
 vector<vector<Pair>> pairs;
 
@@ -81,7 +82,7 @@ bool check_pair(Pair& pair, Model<bool>* seen, BigModel& big_model){
 	vector<ArrayCoordinate> used_points;
 	if(!pair.upper.brownfield && !check_reservoir(pair.upper, seen, &used_points, big_model))
 		return false;
-	if(!pair.lower.brownfield && !check_reservoir(pair.lower, seen, &used_points, big_model))
+	if(!pair.lower.brownfield && !pair.lower.ocean && !check_reservoir(pair.lower, seen, &used_points, big_model))
 		return false;
 
 	for(uint i = 0; i<used_points.size();i++){
@@ -97,22 +98,30 @@ int main(int nargs, char **argv)
 	GridSquare square_coordinate;
 	string fname;
 	string arg1(argv[1]);
+	string ocean_prefix = "";
 	bool brownfield = false;
+
+	int adj = 0;
+	if(arg1.compare("ocean")==0){
+		ocean = true;
+		ocean_prefix = "ocean_";
+		adj = 1;
+		arg1 = argv[1+adj];
+	}
 
 	try{
 		int lon = stoi(arg1);
-		square_coordinate = GridSquare_init(atoi(argv[2]), lon);
-		if(nargs>3)
-			display = atoi(argv[3]);
-		fname=str(square_coordinate);
-		printf("Pretty set started for %s\n",convert_string(str(square_coordinate)));
+		square_coordinate = GridSquare_init(atoi(argv[2+adj]), lon);
+		if(nargs>3+adj)
+			display = atoi(argv[3+adj]);
+		fname=ocean_prefix+str(square_coordinate);
 	}catch(exception e){
 		brownfield = true;
-		fname = format_for_filename(arg1);
-		if(nargs>2)
-			display = atoi(argv[2]);
-		printf("Pretty set started for %s\n",argv[1]);
+		fname = ocean_prefix+format_for_filename(arg1);
+		if(nargs>2+adj)
+			display = atoi(argv[2+adj]);
 	}
+	printf("Pretty set started for %s\n",convert_string(fname));
 
 	GDALAllRegister();
 	parse_variables(convert_string("storage_location"));
