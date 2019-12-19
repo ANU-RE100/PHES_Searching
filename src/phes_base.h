@@ -18,6 +18,7 @@ const double INF = 1.0e18;
 const double J_GWh_conversion = 3.6e12;
 const double cubic_metres_GL_conversion = 1.0e6;
 const double resolution = 30.87;
+const double meters_per_hectare = 10000;
 
 // Search Driver
 extern string tasks_file;					// File with list of cells to do line by line in format <lon> <lat>
