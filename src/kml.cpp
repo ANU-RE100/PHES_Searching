@@ -281,27 +281,3 @@ void update_kml_holder(KML_Holder* kml_holder, Pair* pair, Pair_KML* pair_kml){
 	if(!pair->lower.brownfield && !pair->lower.ocean)
 		kml_holder->lower_dams.push_back(get_dam_kml(&pair->lower, pair_kml->lower));
 }
-
-
-// void write_fusion_csv_header(FILE *csv_file)
-// {
-// 	vector<string> header = {"name", "description", "geometry", "color"};
-// 	write_to_csv_file(csv_file, header);
-// }
-
-// void write_fusion_csv(FILE *csv_file, Pair *pair, Pair_KML* pair_kml)
-// {
-// 	vector<string> line1 = {pair->upper.identifier, get_html(&pair->upper), get_reservoir_geometry(pair_kml->upper), "#00FFFF80"};
-// 	write_to_csv_file(csv_file, line1);
-// 	vector<string> line2 = {pair->lower.identifier, get_html(&pair->lower), get_reservoir_geometry(pair_kml->lower), "#0000FF80"};
-// 	write_to_csv_file(csv_file, line2);
-// 	vector<string> line3 = {pair->upper.identifier, "", get_dam_geometry(pair_kml->upper), "#666666FF"};
-// 	write_to_csv_file(csv_file, line3);
-// 	vector<string> line4 = {pair->lower.identifier, "", get_dam_geometry(pair_kml->lower), "#666666FF"};
-// 	write_to_csv_file(csv_file, line4);
-// 	vector<string> line5 = {pair->identifier, get_html(pair), get_point_geometry(pair_kml->point), "small_blue"};
-// 	write_to_csv_file(csv_file, line5);
-// 	vector<string> line6 = {pair->identifier, get_html(pair), get_line_geometry(pair_kml->line), "#66666680"};
-// 	write_to_csv_file(csv_file, line6);
-// }
-
