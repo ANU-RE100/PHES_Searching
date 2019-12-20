@@ -543,7 +543,7 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool>* pour_poin
 				ArrayCoordinate pour_point = {row, col , get_origin(square_coordinate, border)};
 				i++;
 				RoughReservoir reservoir = model_reservoir(pour_point, flow_directions, DEM_filled, filter, model, i);
-
+				reservoir.ocean = false;
 				if ( max(reservoir.volumes)>=min_reservoir_volume &&
 				     max(reservoir.water_rocks)>min_reservoir_water_rock &&
 				     reservoir.max_dam_height>=min_max_dam_height) {
@@ -740,7 +740,7 @@ int main(int nargs, char **argv)
 		write_rough_reservoir_data_header(csv_data_file);
 
 		RoughReservoir reservoir = get_existing_rough_reservoir(arg1);
-
+		reservoir.ocean = false;
 		write_rough_reservoir_csv(csv_file, reservoir);
 		write_rough_reservoir_data(csv_data_file, reservoir);
 
