@@ -263,6 +263,7 @@ RoughReservoir get_existing_rough_reservoir(string name){
 	ExistingReservoir r = get_existing_reservoir(name);
 	reservoir.identifier = r.identifier;
     reservoir.brownfield = true;
+    reservoir.ocean = false;
 	reservoir.latitude = r.latitude;
 	reservoir.longitude = r.longitude;
 	reservoir.elevation = r.elevation;

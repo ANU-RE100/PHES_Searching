@@ -37,7 +37,7 @@ struct ExistingReservoir{
 struct Reservoir{
 	string identifier;
 	bool brownfield;
-	bool ocean = 0;
+	bool ocean;
 	double latitude;
 	double longitude;
 	int elevation;
