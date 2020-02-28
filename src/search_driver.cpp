@@ -12,14 +12,17 @@ int set_worker(string process){
 	mkdir(convert_string(file_storage_location+"driver_files/"+process+"_workers"), 0770);
 	int i = 0;
 	while(true){
+		cout<<i<<"\n";
 		string workerlockfile = file_storage_location+"driver_files/"+process+"_workers/"+to_string(i);
 		int fds = open(convert_string(workerlockfile), O_CREAT | O_EXCL | O_WRONLY, 0600);
-		close(fds);
+		
 		if (!(fds < 0)) {
 			mkdir(convert_string(file_storage_location+"driver_files/"+process+"_done_workers/"), 0770);
 			mkdir(convert_string(file_storage_location+"driver_files/"+process+"_done_workers/"+to_string(i)), 0770);
+			close(fds);
             return i;
 		}
+		close(fds);
 		i++;
 	}
 }
@@ -93,7 +96,7 @@ vector<string> read_processlist(char *processes_file)
 
 void write_to_logfile(int id, string process, string message){
 	ofstream logfile;
-  	logfile.open(file_storage_location+"debug/"+process+"_logfiles/"+process+"_"+to_string(id));
+  	logfile.open(file_storage_location+"debug1/"+process+"_logfiles/"+process+"_"+to_string(id));
   	logfile<<message;
   	logfile.close();
 }
@@ -108,8 +111,8 @@ int main()
 
 	for (auto process : processlist) {
 		int id = set_worker(process);
-		mkdir(convert_string(file_storage_location+"debug"), 0770);
-		mkdir(convert_string(file_storage_location+"debug/"+process+"_logfiles"), 0770);
+		mkdir(convert_string(file_storage_location+"debug1"), 0770);
+		mkdir(convert_string(file_storage_location+"debug1/"+process+"_logfiles"), 0770);
 		mkdir(convert_string(file_storage_location+"driver_files"), 0770);
 		
 		for(auto task : tasklist){
