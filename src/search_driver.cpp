@@ -12,7 +12,6 @@ int set_worker(string process){
 	mkdir(convert_string(file_storage_location+"driver_files/"+process+"_workers"), 0770);
 	int i = 0;
 	while(true){
-		cout<<i<<"\n";
 		string workerlockfile = file_storage_location+"driver_files/"+process+"_workers/"+to_string(i);
 		int fds = open(convert_string(workerlockfile), O_CREAT | O_EXCL | O_WRONLY, 0600);
 		
