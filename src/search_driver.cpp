@@ -14,13 +14,12 @@ int set_worker(string process){
 	while(true){
 		string workerlockfile = file_storage_location+"driver_files/"+process+"_workers/"+to_string(i);
 		int fds = open(convert_string(workerlockfile), O_CREAT | O_EXCL | O_WRONLY, 0600);
+		close(fds);
 		if (!(fds < 0)) {
-			close(fds);
 			mkdir(convert_string(file_storage_location+"driver_files/"+process+"_done_workers/"), 0770);
 			mkdir(convert_string(file_storage_location+"driver_files/"+process+"_done_workers/"+to_string(i)), 0770);
             return i;
 		}
-		close(fds);
 		i++;
 	}
 }
@@ -29,9 +28,9 @@ int set_worker(string process){
 void unset_worker(int id, string process){
 	string workerlockfile = file_storage_location+"driver_files/"+process+"_done_workers/"+to_string(id)+"/done";
 	int fds = open(convert_string(workerlockfile), O_CREAT | O_EXCL | O_WRONLY, 0600);
+	close(fds);
 	if (fds < 0)
         throw 1;
-    close(fds);
 }
 
 // Checks if all drivers have completed the process by checking if any files exist in the processes lockfile directory
@@ -92,6 +91,13 @@ vector<string> read_processlist(char *processes_file)
 	return processlist;
 }
 
+void write_to_logfile(int id, string process, string message){
+	ofstream logfile;
+  	logfile.open(file_storage_location+"debug/"+process+"_logfiles/"+process+"_"+to_string(id));
+  	logfile<<message;
+  	logfile.close();
+}
+
 int main()
 {
 	parse_variables(convert_string("storage_location"));
@@ -105,8 +111,7 @@ int main()
 		mkdir(convert_string(file_storage_location+"debug"), 0770);
 		mkdir(convert_string(file_storage_location+"debug/"+process+"_logfiles"), 0770);
 		mkdir(convert_string(file_storage_location+"driver_files"), 0770);
-		ofstream logfile;
-  		logfile.open (file_storage_location+"debug/"+process+"_logfiles/"+process+"_"+to_string(id));
+		
 		for(auto task : tasklist){
 			mkdir(convert_string(file_storage_location+"driver_files/lockfiles"), 0770);
 			string tasklockfile = file_storage_location+"driver_files/lockfiles/"+process+"_task_"+format_for_filename(task);
@@ -116,11 +121,11 @@ int main()
 					continue;
 	            } else {
 					fprintf(stderr, "failed to to open lock file %s: %s\n", convert_string(tasklockfile), strerror(errno));
-					logfile<<"Failed to open lock file "+tasklockfile+"\n";
-					logfile.close();
+					write_to_logfile(id, process, "Failed to open lock file "+tasklockfile+"\n");
 					exit(1);
 				}
 			}
+			close(fds);
 			bool success = false;
 			for(int i = 0; i<5; i++){
 				if(!system(convert_string("./bin/"+process+" "+task))){
@@ -128,20 +133,19 @@ int main()
 					break;
 				}else{
 					cout<<"Retrying command: ./bin/"+process+" "+task+"\n";
-					logfile<<"Retrying command: ./bin/"+process+" "+task+"\n";
+					write_to_logfile(id, process, "Retrying command: ./bin/"+process+" "+task+"\n");
 					sleep(100);
 				}
 			}
 			if(!success){
 				cout<<"Problem running command: ./bin/"+process+" "+task+"\n";
-				logfile<<"Problem running command: ./bin/"+process+" "+task+"\n";
+				write_to_logfile(id, process, "Problem running command: ./bin/"+process+" "+task+"\n");
 				// exit(1);
 			}
 			
 		}
 		unset_worker(id, process);
-		logfile<<"Done\n";
-		logfile.close();
+		write_to_logfile(id, process, "Done\n");
 		while(!all_done(process)){
 		 	sleep(10);
 		}
