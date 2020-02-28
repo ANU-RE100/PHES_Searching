@@ -95,7 +95,7 @@ vector<string> read_processlist(char *processes_file)
 
 void write_to_logfile(int id, string process, string message){
 	ofstream logfile;
-  	logfile.open(file_storage_location+"debug1/"+process+"_logfiles/"+process+"_"+to_string(id));
+  	logfile.open(file_storage_location+"debug1/"+process+"_logfiles/"+process+"_"+to_string(id), ios_base::app);
   	logfile<<message;
   	logfile.close();
 }
