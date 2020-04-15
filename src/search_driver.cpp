@@ -109,10 +109,10 @@ int main()
 	vector<string> processlist = read_processlist(convert_string(file_storage_location+processes_file));
 
 	for (auto process : processlist) {
-		int id = set_worker(process);
 		mkdir(convert_string(file_storage_location+"debug1"), 0770);
-		mkdir(convert_string(file_storage_location+"debug1/"+process+"_logfiles"), 0770);
 		mkdir(convert_string(file_storage_location+"driver_files"), 0770);
+		int id = set_worker(process);
+		mkdir(convert_string(file_storage_location+"debug1/"+process+"_logfiles"), 0770);
 		
 		for(auto task : tasklist){
 			mkdir(convert_string(file_storage_location+"driver_files/lockfiles"), 0770);

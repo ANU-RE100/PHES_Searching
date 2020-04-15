@@ -384,7 +384,7 @@ static Model<bool>* find_streams(Model<int>* flow_accumulation)
 }
 
 
-// Find dam sites to check given the streams, flow diresctions and DEM
+// Find dam sites to check given the streams, flow directions and DEM
 static Model<bool>* find_pour_points(Model<bool>* streams, Model<char>* flow_directions, Model<short>* DEM_filled)
 {
 	Model<bool>* pour_points = new Model<bool>(streams->nrows(), streams->ncols(), MODEL_SET_ZERO);

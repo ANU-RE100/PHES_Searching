@@ -227,11 +227,15 @@ int main(int nargs, char **argv)
 	parse_variables(convert_string("storage_location"));
 	parse_variables(convert_string(file_storage_location+"variables"));
 
-	if(brownfield)
-		square_coordinate = get_square_coordinate(get_existing_reservoir(arg1));
-
 	vector<RoughReservoir> upper_reservoirs;
-	upper_reservoirs = read_rough_reservoir_data(convert_string(file_storage_location+"processing_files/reservoirs/"+str(square_coordinate)+"_reservoirs_data.csv"));
+	if(brownfield){
+		square_coordinate = get_square_coordinate(get_existing_reservoir(arg1));
+		upper_reservoirs = read_rough_reservoir_data(convert_string(file_storage_location+"processing_files/reservoirs/"+fname+"_reservoirs_data.csv"));
+
+	} else
+		upper_reservoirs = read_rough_reservoir_data(convert_string(file_storage_location+"processing_files/reservoirs/"+str(square_coordinate)+"_reservoirs_data.csv"));
+
+	
 	
 	if(display)
 		printf("Read in %zu uppers\n", upper_reservoirs.size());
