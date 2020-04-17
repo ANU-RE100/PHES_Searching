@@ -98,28 +98,37 @@ int main(int nargs, char **argv)
 	GridSquare square_coordinate;
 	string fname;
 	string arg1(argv[1]);
-	string ocean_prefix = "";
+	string prefix = "";
 	bool brownfield = false;
 
 	int adj = 0;
 	if(arg1.compare("ocean")==0){
 		ocean = true;
-		ocean_prefix = "ocean_";
+		prefix = "ocean_";
 		adj = 1;
 		arg1 = argv[1+adj];
 	}
-
-	try{
-		int lon = stoi(arg1);
-		square_coordinate = GridSquare_init(atoi(argv[2+adj]), lon);
-		if(nargs>3+adj)
-			display = atoi(argv[3+adj]);
-		fname=ocean_prefix+str(square_coordinate);
-	}catch(exception e){
+	if(arg1.compare("pit")==0){
 		brownfield = true;
-		fname = ocean_prefix+format_for_filename(arg1);
+		prefix = "pit_";
+		adj = 1;
+		arg1 = argv[1+adj];
+		fname = prefix+format_for_filename(arg1);
 		if(nargs>2+adj)
 			display = atoi(argv[2+adj]);
+	}else{
+		try{
+			int lon = stoi(arg1);
+			square_coordinate = GridSquare_init(atoi(argv[2+adj]), lon);
+			if(nargs>3+adj)
+				display = atoi(argv[3+adj]);
+			fname=prefix+str(square_coordinate);
+		}catch(exception e){
+			brownfield = true;
+			fname = prefix+format_for_filename(arg1);
+			if(nargs>2+adj)
+				display = atoi(argv[2+adj]);
+		}
 	}
 	printf("Pretty set started for %s\n",convert_string(fname));
 
