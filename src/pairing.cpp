@@ -198,12 +198,14 @@ int main(int nargs, char **argv)
 	bool brownfield = false;
 	string fname;
 	string prefix = "";
+	string ocean_prefix = "";
 	string arg1(argv[1]);
 
 	int adj = 0;
 	if(arg1.compare("ocean")==0){
 		ocean = true;
 		prefix = "ocean_";
+		ocean_prefix = "ocean_";
 		adj = 1;
 		arg1 = argv[1+adj];
 	}
@@ -264,12 +266,12 @@ int main(int nargs, char **argv)
 
 	for(int i = 0; i<9; i++){
 		try{
-			vector<RoughReservoir> temp = read_rough_reservoir_data(convert_string(file_storage_location+"processing_files/reservoirs/"+prefix+str(neighbors[i])+"_reservoirs_data.csv"));
+			vector<RoughReservoir> temp = read_rough_reservoir_data(convert_string(file_storage_location+"processing_files/reservoirs/"+ocean_prefix+str(neighbors[i])+"_reservoirs_data.csv"));
 			for(uint j = 0; j<temp.size(); j++)
 				lower_reservoirs.push_back(temp[j]);
 		}catch(int e){
 			if(display)
-				printf("Could not import reservoirs from %s\n", convert_string(file_storage_location+"processing_files/reservoirs/"+prefix+str(neighbors[i])+"_reservoirs_data.csv"));
+				printf("Could not import reservoirs from %s\n", convert_string(file_storage_location+"processing_files/reservoirs/"+ocean_prefix+str(neighbors[i])+"_reservoirs_data.csv"));
 		}
 	}
 	if(display)
