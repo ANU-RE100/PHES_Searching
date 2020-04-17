@@ -201,6 +201,7 @@ GeographicCoordinate get_origin(double latitude, double longitude, int border){
 }
 
 ExistingReservoir get_existing_reservoir(string name){
+	cout << name << "\n";
 	ExistingReservoir to_return;
 	vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_csv));
 
@@ -231,15 +232,20 @@ ExistingReservoir get_existing_reservoir(string name){
     	SHPGetInfo(SHP, &nEntities, NULL, NULL, NULL );
 
         SHPObject *shape;
-        shape = SHPReadObject( SHP, i );
+        shape = SHPReadObject( SHP, i);
+        cout << shape->nParts << "\n";
+        cout << shape->nVertices << "\n";
+        cout << shape->nSHPType << "\n";
         if( shape == NULL ){
             fprintf( stderr,"Unable to read shape %d, terminating object reading.\n",i);
         }
+        cout << shape->panPartStart[1] << "\n";
         vector<GeographicCoordinate> temp_poly;
         for(int j = 0, iPart = 1; j < shape->nVertices; j++ )
         {
-            if(shape->panPartStart[iPart] == j )
-	            break;
+        	cout << "j" << j << "\n";
+            // if(shape->panPartStart[iPart] == j )
+	           //  break;
             GeographicCoordinate temp_point = GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
             to_return.polygon.push_back(temp_point);
         }
@@ -248,12 +254,7 @@ ExistingReservoir get_existing_reservoir(string name){
     	throw(1);
     }
     SHPClose(SHP);
-
-
-
-
-
-
+    cout << to_return.polygon[0].lat << "\n";
 	
 	return to_return;
 }

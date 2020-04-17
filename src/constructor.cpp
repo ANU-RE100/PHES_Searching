@@ -519,7 +519,7 @@ int main(int nargs, char **argv)
         fname = prefix+format_for_filename(arg1);
         if(nargs>2+adj)
             display = atoi(argv[2+adj]);
-        printf("Constructor started for %s\n",argv[1]);
+        cout << convert_string("Constructor started for "+fname+"\n");
     }else{
         try{
             int lon = stoi(arg1);
