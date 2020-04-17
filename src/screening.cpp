@@ -566,28 +566,37 @@ int main(int nargs, char **argv)
 {
 	GridSquare square_coordinate;
 	bool brownfield = false;
-	string ocean_prefix = "";
+	string prefix = "";
 	string arg1(argv[1]);
 
 	int adj = 0;
 	if(arg1.compare("ocean")==0){
 		ocean = true;
-		ocean_prefix = "ocean_";
+		prefix = "ocean_";
 		adj = 1;
 		arg1 = argv[1+adj];
 	}
-
-	try{
-		int lon = stoi(arg1);
-		square_coordinate = GridSquare_init(atoi(argv[2+adj]), lon);
-		if(nargs>3+adj)
-			display = atoi(argv[3+adj]);
-		printf("Screening started for %s\n",convert_string(ocean_prefix+str(square_coordinate)));
-	}catch(exception e){
+	if(arg1.compare("pit")==0){
 		brownfield = true;
+		prefix = "pit_";
+		adj = 1;
+		arg1 = argv[1+adj];
 		if(nargs>2+adj)
 			display = atoi(argv[2+adj]);
-		printf("Screening started for %s%s\n",convert_string(ocean_prefix),argv[1+adj]);
+		printf("Screening started for %s%s\n",convert_string(prefix),argv[1+adj]);
+	}else{
+		try{
+			int lon = stoi(arg1);
+			square_coordinate = GridSquare_init(atoi(argv[2+adj]), lon);
+			if(nargs>3+adj)
+				display = atoi(argv[3+adj]);
+			printf("Screening started for %s\n",convert_string(prefix+str(square_coordinate)));
+		}catch(exception e){
+			brownfield = true;
+			if(nargs>2+adj)
+				display = atoi(argv[2+adj]);
+			printf("Screening started for %s%s\n",convert_string(prefix),argv[1+adj]);
+		}
 	}
 
 	GDALAllRegister();
@@ -719,7 +728,7 @@ int main(int nargs, char **argv)
 		int count = model_reservoirs(square_coordinate, pour_points, flow_directions, DEM_filled, flow_accumulation, filter);
 		if(display)
 			printf("Found %d reservoirs. Runtime: %.2f sec\n", count, 1.0e-6*(walltime_usec() - t_usec));
-		printf(convert_string("Screening finished for "+ocean_prefix+str(square_coordinate)+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
+		printf(convert_string("Screening finished for "+prefix+str(square_coordinate)+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
 	}else{
 		string filename = format_for_filename(arg1);
 
@@ -746,6 +755,6 @@ int main(int nargs, char **argv)
 
 	    fclose(csv_file);
 		fclose(csv_data_file);
-		printf(convert_string("Screening finished for "+ocean_prefix+arg1+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
+		printf(convert_string("Screening finished for "+prefix+arg1+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
 	}
 }
