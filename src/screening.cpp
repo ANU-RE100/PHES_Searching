@@ -730,7 +730,7 @@ int main(int nargs, char **argv)
 			printf("Found %d reservoirs. Runtime: %.2f sec\n", count, 1.0e-6*(walltime_usec() - t_usec));
 		printf(convert_string("Screening finished for "+prefix+str(square_coordinate)+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
 	}else{
-		string filename = format_for_filename(arg1);
+		string filename = prefix+format_for_filename(arg1);
 
 		mkdir(convert_string(file_storage_location+"output/reservoirs"),0777);
 		FILE *csv_file = fopen(convert_string(file_storage_location+"output/reservoirs/"+filename+"_reservoirs.csv"), "w");
