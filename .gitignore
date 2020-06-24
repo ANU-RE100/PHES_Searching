@@ -6,3 +6,12 @@ debug
 debug1
 documentation
 driver_files
+superpit_shp
+tasks - Collie
+tasks- Kalgoorlie
+Greenacres.zip
+s34_e116_reservoirs with Collie.csv
+processing_files
+*.o
+bin
+!bin/start_drivers.sh
