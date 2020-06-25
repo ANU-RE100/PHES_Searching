@@ -71,26 +71,26 @@ upper_colour = #88F0AA14;
 lower_colour = #88F03C14;
 
 // Reservoir sizings
-test = 1.5, 6;			// Test in format {Volume (GL), Storage time (h)}
-test = 3, 12;
-test = 6, 24;
-test = 12, 48;
-test = 3, 6;
-test = 6, 12;
-test = 12, 24;
-test = 24, 48;
-test = 6, 6;
-test = 12, 12;
-test = 24, 24;
-test = 48, 48;
-// test = 150, 18;
-// test = 50, 18;
-// test = 50, 6;
-// test = 15, 18;
-// test = 15, 6;
-// test = 5, 18;
-// test = 5, 6;
-// test = 2, 6;
+// test = 1.5, 6;			// Test in format {Volume (GL), Storage time (h)}
+// test = 3, 12;
+// test = 6, 24;
+// test = 12, 48;
+// test = 3, 6;
+// test = 6, 12;
+// test = 12, 24;
+// test = 24, 48;
+// test = 6, 6;
+// test = 12, 12;
+// test = 24, 24;
+// test = 48, 48;
+test = 150, 18;
+test = 50, 18;
+test = 50, 6;
+test = 15, 18;
+test = 15, 6;
+test = 5, 18;
+test = 5, 6;
+test = 2, 6;
 
 // Class Cutoffs
 A = 533, 47;					// Class cutoffs in the format {Power Cost, Storage Cost}

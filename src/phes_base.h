@@ -158,7 +158,9 @@ bool file_exists(char* name);
 #include "model2D.h"
 #include "coordinates.h"
 #include "reservoir.h"
+#include "polygons.h"
 #include "csv.h"
+
 
 struct BigModel{
 	GridSquare neighbors[9];

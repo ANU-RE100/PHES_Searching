@@ -94,7 +94,6 @@ bool check_pair(Pair& pair, Model<bool>* seen, BigModel& big_model){
 
 int main(int nargs, char **argv)
 {
-
 	GridSquare square_coordinate;
 	string fname;
 	string arg1(argv[1]);
@@ -152,6 +151,12 @@ int main(int nargs, char **argv)
 		sort(pairs[i].begin(), pairs[i].end());
 		Model<bool>* seen = new Model<bool>(big_model.DEM->nrows(), big_model.DEM->nrows(), MODEL_SET_ZERO);
 		seen->set_geodata(big_model.DEM->get_geodata());
+
+		if(brownfield){
+			ExistingReservoir r = get_existing_reservoir(arg1);
+			polygon_to_raster(r.polygon, seen);
+		}
+
 		int count = 0;
 		for(uint j=0; j<pairs[i].size(); j++){
 			if(check_pair(pairs[i][j], seen, big_model)){
