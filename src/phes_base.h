@@ -59,6 +59,9 @@ extern double min_slope;					// Minimum slope based on interpolated nearest poin
 extern double min_pp_slope;					// Minimum slope based on pourpoint seperation between two reservoirs
 extern int max_lowers_per_upper;			// Maximum number of lower reservoirs to keep per upper reservoir
 extern double tolerance_on_FOM;
+extern double max_head_variability;			// Maximum amount the head can vary during water transfer (Default 0.35)
+extern int num_altitude_volume_pairs;		// Number of altitude-volume pairs provided with an existing pit
+extern int pit_height_resolution;			// Height resolution of top and bottom of pit in metres
 
 // Common
 extern double gravity;						// Acceleration due to gravity (m/s/s)
@@ -161,7 +164,6 @@ bool file_exists(char* name);
 #include "polygons.h"
 #include "csv.h"
 
-
 struct BigModel{
 	GridSquare neighbors[9];
 	Model<short>* DEM;
@@ -189,5 +191,6 @@ string format_for_filename(string s);
 GeographicCoordinate get_origin(double latitude, double longitude, int border);
 RoughReservoir get_existing_rough_reservoir(string name);
 ExistingReservoir get_existing_reservoir(string name);
+ExistingPit get_pit_details(string pitname);
 
 #endif

@@ -30,7 +30,7 @@ double convert_to_dam_volume(double height, double length)
 double linear_interpolate(double value, vector<double> x_values, vector<double> y_values)
 {
 	uint i = 0;
-	while (x_values[i]<value) {
+	while (x_values[i]<value-EPS) {
 		if (i==x_values.size()-1)
 			return INF;
 		else
@@ -283,4 +283,14 @@ RoughReservoir get_existing_rough_reservoir(string name){
 		update_reservoir_boundary(reservoir.shape_bound, p, 0);
 	}
 	return reservoir;
+}
+
+ExistingPit get_pit_details(string pitname){
+	ExistingPit pit;
+	vector<ExistingPit> pits = read_existing_pit_data(convert_string(file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_csv));
+
+	for(ExistingPit p : pits)
+		if(p.reservoir.identifier==pitname)
+			pit = p;
+	return pit;
 }

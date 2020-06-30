@@ -30,15 +30,6 @@ vector<string> read_from_csv_file(string line){
 	return read_from_csv_file(line, ',');
 }
 
-// vector<string> read_from_csv_file(string line, char delimeter){
-// 	vector<string> cols;
-// 	istringstream ss(line);
-// 	string col;
-//     while (getline(ss, col, delimeter)) {
-//         cols.push_back(col);
-//     }
-// 	return cols;
-// }
 vector<string> read_from_csv_file(string line, char delimeter){
 	line.erase(remove(line.begin(), line.end(), '\n'), line.end());
 	line.erase(remove(line.begin(), line.end(), '\r'), line.end());
@@ -72,12 +63,6 @@ vector<ExistingReservoir> read_existing_reservoir_data(char* filename)
     	}
         vector<string> line = read_from_csv_file(s);
         ExistingReservoir reservoir = ExistingReservoir_init(line[0], stod(line[1]), stod(line[2]), stod(line[3]), stod(line[4]));
-		// for(string coordinate : read_from_csv_file(line[5], ' ')){
-		// 	vector<string> pair = read_from_csv_file(coordinate);
-		// 	double lon = stod(pair[0]);
-		// 	double lat = stod(pair[1]);
-		// 	reservoir.polygon.push_back(GeographicCoordinate_init(lat, lon));
-		// }
 		reservoirs.push_back(reservoir);
     }
     if(header){
@@ -85,6 +70,40 @@ vector<ExistingReservoir> read_existing_reservoir_data(char* filename)
     }
 
 	return reservoirs;
+}
+
+vector<ExistingPit> read_existing_pit_data(char* filename)
+{
+	vector<ExistingPit> pits;
+	ifstream inputFile(filename);
+	bool header = true;
+	string s;
+    while (getline(inputFile, s)) {
+    	if(header){
+    		header = false;
+    		continue;
+    	}
+        vector<string> line = read_from_csv_file(s);
+        ExistingReservoir reservoir = ExistingReservoir_init(line[0], stod(line[1]), stod(line[2]), stod(line[3]), stod(line[4]));
+		ExistingPit pit = ExistingPit_init(reservoir);
+		AltitudeVolumePair bottom;
+		bottom.altitude = reservoir.elevation;
+		bottom.volume = 0;
+		pit.volumes.push_back(bottom);
+		for(int i = 0; i<num_altitude_volume_pairs; i++){
+			AltitudeVolumePair pair;
+			pair.altitude = stoi(line[5+2*i]);
+			pair.volume = stod(line[6+2*i]);
+			pit.volumes.push_back(pair);
+		}
+		sort(pit.volumes.begin(),pit.volumes.end());
+		pits.push_back(pit);
+    }
+    if(header){
+    	throw 1;
+    }
+
+	return pits;
 }
 
 vector<string> read_names(char* filename)
@@ -151,7 +170,12 @@ void write_rough_reservoir_data(FILE *csv_file, RoughReservoir reservoir)
 			line.push_back(to_string(reservoir.shape_bound[ih][idir].col));
 		}
 	}
-	line.push_back(to_string(reservoir.brownfield));
+	if(reservoir.pit)
+		line.push_back("2");
+	else if(reservoir.brownfield)
+		line.push_back("1");
+	else
+		line.push_back("0");
 	line.push_back(to_string(reservoir.ocean));
 	write_to_csv_file(csv_file, line);
 }
@@ -186,7 +210,8 @@ vector<RoughReservoir> read_rough_reservoir_data(char* filename)
 			}
 		}
 
-		reservoir.brownfield = stoi(line[6+3*dam_wall_heights.size()+(dam_wall_heights.size()*directions.size())*2]);
+		reservoir.brownfield = stoi(line[6+3*dam_wall_heights.size()+(dam_wall_heights.size()*directions.size())*2])>0;
+		reservoir.pit = stoi(line[6+3*dam_wall_heights.size()+(dam_wall_heights.size()*directions.size())*2])>1;
 		reservoir.ocean = stoi(line[6+3*dam_wall_heights.size()+(dam_wall_heights.size()*directions.size())*2+1])>0;
 
         reservoirs.push_back(reservoir);
@@ -228,8 +253,8 @@ void write_rough_pair_csv(FILE *csv_file, Pair *pair)
 void write_rough_pair_data(FILE *csv_file, Pair *pair)
 {
 	vector<string> line = {pair->identifier, 
-	pair->upper.identifier, dtos(pair->upper.latitude,6), dtos(pair->upper.longitude,6), to_string(pair->upper.elevation), dtos(pair->upper.dam_height,3), dtos(pair->upper.max_dam_height,1), dtos(pair->upper.water_rock,5), dtos(pair->upper.area,1), to_string(pair->upper.brownfield),
-	pair->lower.identifier, dtos(pair->lower.latitude,6), dtos(pair->lower.longitude,6), to_string(pair->lower.elevation), dtos(pair->lower.dam_height,3), dtos(pair->lower.max_dam_height,1), dtos(pair->lower.water_rock,5), dtos(pair->lower.area,1), to_string(pair->lower.brownfield), to_string(pair->lower.ocean),
+	pair->upper.identifier, dtos(pair->upper.latitude,6), dtos(pair->upper.longitude,6), to_string(pair->upper.elevation), dtos(pair->upper.dam_height,3), dtos(pair->upper.max_dam_height,1), dtos(pair->upper.water_rock,5), dtos(pair->upper.area,1), pair->upper.pit ? "2" : to_string(pair->upper.brownfield),
+	pair->lower.identifier, dtos(pair->lower.latitude,6), dtos(pair->lower.longitude,6), to_string(pair->lower.elevation), dtos(pair->lower.dam_height,3), dtos(pair->lower.max_dam_height,1), dtos(pair->lower.water_rock,5), dtos(pair->lower.area,1), pair->lower.pit ? "2" : to_string(pair->upper.brownfield), to_string(pair->lower.ocean),
 	to_string(pair->head), dtos(pair->pp_distance, 5), dtos(pair->distance, 5), dtos(pair->slope, 6), dtos(pair->required_volume, 5), energy_capacity_to_string(pair->energy_capacity), to_string(pair->storage_time), dtos(pair->FOM,3)};
 	write_to_csv_file(csv_file, line);
 }
@@ -268,6 +293,7 @@ vector<vector<Pair> > read_rough_pair_data(char* filename)
 		pair.upper.water_rock = stod(line[7]);
 		pair.upper.area = stod(line[8]);
 		pair.upper.brownfield = stoi(line[9])>0;
+		pair.upper.pit = stoi(line[9])>1;
 
 		pair.lower.identifier = line[10];
 		pair.lower.dam_height = stod(line[14]);
@@ -275,6 +301,7 @@ vector<vector<Pair> > read_rough_pair_data(char* filename)
 		pair.lower.water_rock = stod(line[16]);
 		pair.lower.area = stod(line[17]);
 		pair.lower.brownfield = stoi(line[18])>0;
+		pair.lower.pit = stoi(line[18])>1;
 		pair.lower.ocean = stoi(line[19])>0;
 
 		pair.head = stoi(line[20]);
@@ -313,8 +340,8 @@ void write_pair_csv_header(FILE *csv_file, bool output_FOM)
 void write_pair_csv(FILE *csv_file, Pair *pair, bool output_FOM)
 {
 	vector<string> line = {pair->identifier, string(1,pair->category),to_string(pair->head), dtos(pair->distance, 2), dtos(pair->slope*100, 0),  dtos(pair->volume, 1), energy_capacity_to_string(pair->energy_capacity), to_string(pair->storage_time), dtos(pair->water_rock, 1), pair->country, to_string(pair->non_overlap),
-	pair->upper.identifier, to_string(pair->upper.elevation), dtos(pair->upper.latitude,4), dtos(pair->upper.longitude,4), (pair->upper.brownfield?"NA":dtos(pair->upper.area,0)), dtos(pair->upper.volume,1),(pair->upper.brownfield?"NA":dtos(pair->upper.dam_height,1)),(pair->upper.brownfield?"NA":dtos(pair->upper.dam_length,0)), (pair->upper.brownfield?"NA":dtos(pair->upper.dam_volume,2)), (pair->upper.brownfield?"NA":dtos(pair->upper.water_rock,1)), pair->upper.country,
-	pair->lower.identifier, to_string(pair->lower.elevation), dtos(pair->lower.latitude,4), dtos(pair->lower.longitude,4), ((pair->lower.brownfield||pair->lower.ocean)?"NA":dtos(pair->lower.area,0)), dtos(pair->lower.volume,1),((pair->lower.brownfield||pair->lower.ocean)?"NA":dtos(pair->lower.dam_height,1)),((pair->lower.brownfield||pair->lower.ocean)?"NA":dtos(pair->lower.dam_length,0)), ((pair->lower.brownfield||pair->lower.ocean)?"NA":dtos(pair->lower.dam_volume,2)), ((pair->lower.brownfield||pair->lower.ocean)?"NA":dtos(pair->lower.water_rock,1)), pair->lower.country};
+	pair->upper.identifier, to_string(pair->upper.elevation), dtos(pair->upper.latitude,4), dtos(pair->upper.longitude,4), (pair->upper.brownfield?"NA":dtos(pair->upper.area,0)), dtos(pair->upper.volume,1),(pair->upper.brownfield && !pair->upper.pit ? "NA":dtos(pair->upper.dam_height,1)),(pair->upper.brownfield?"NA":dtos(pair->upper.dam_length,0)), (pair->upper.brownfield?"NA":dtos(pair->upper.dam_volume,2)), (pair->upper.brownfield?"NA":dtos(pair->upper.water_rock,1)), pair->upper.country,
+	pair->lower.identifier, to_string(pair->lower.elevation), dtos(pair->lower.latitude,4), dtos(pair->lower.longitude,4), ((pair->lower.brownfield||pair->lower.ocean)?"NA":dtos(pair->lower.area,0)), dtos(pair->lower.volume,1),(((pair->lower.brownfield && !pair->lower.pit)||pair->lower.ocean)?"NA":dtos(pair->lower.dam_height,1)),((pair->lower.brownfield||pair->lower.ocean)?"NA":dtos(pair->lower.dam_length,0)), ((pair->lower.brownfield||pair->lower.ocean)?"NA":dtos(pair->lower.dam_volume,2)), ((pair->lower.brownfield||pair->lower.ocean)?"NA":dtos(pair->lower.water_rock,1)), pair->lower.country};
 	if(output_FOM)
 		line.push_back(dtos(pair->FOM,0));
 	write_to_csv_file(csv_file, line);

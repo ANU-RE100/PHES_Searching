@@ -6,6 +6,8 @@ int display = false;
 vector<vector<Pair>> pairs;
 bool brownfield = false;
 bool ocean = false;
+bool pit = false;
+ExistingPit pit_details;
 
 // find_polygon_intersections returns an array containing the longitude of all line. Assumes last coordinate is same as first
 vector<double> find_polygon_intersections(double lat, vector<GeographicCoordinate> &polygon){
@@ -423,7 +425,7 @@ bool model_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinate
 bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinates, vector<vector<vector<GeographicCoordinate>>>& countries, vector<string>& country_names){
     ExistingReservoir r = get_existing_reservoir(reservoir->identifier);
     reservoir->volume = r.volume;
-    string polygon_string = str(compress_poly(corner_cut_poly(r.polygon)), r.elevation+2);
+    string polygon_string = str(compress_poly(corner_cut_poly(r.polygon)), reservoir->pit ? r.elevation+reservoir->dam_height : r.elevation+5);
     coordinates->reservoir = polygon_string;
 
     GeographicCoordinate origin = get_origin(r.latitude, r.longitude, border);
@@ -514,6 +516,7 @@ int main(int nargs, char **argv)
     if(arg1.compare("pit")==0){
         brownfield = true;
         prefix = "pit_";
+        pit = true;
         adj = 1;
         arg1 = argv[1+adj];
         fname = prefix+format_for_filename(arg1);
@@ -544,7 +547,10 @@ int main(int nargs, char **argv)
 
     if(brownfield)
         square_coordinate = get_square_coordinate(get_existing_reservoir(arg1));
-    
+
+    if (pit)
+        pit_details = get_pit_details(arg1);
+
     BigModel big_model = BigModel_init(square_coordinate);
     vector<string> country_names;
     vector<vector<vector<GeographicCoordinate>>> countries = read_countries(file_storage_location+"input/countries/countries.txt", country_names);

@@ -492,6 +492,7 @@ int main(int nargs, char **argv)
 {
 	GridSquare square_coordinate;
 	bool brownfield = false;
+	bool pit = false;
 	string prefix = "";
 	string arg1(argv[1]);
 
@@ -504,6 +505,7 @@ int main(int nargs, char **argv)
 	}
 	if(arg1.compare("pit")==0){
 		brownfield = true;
+		pit = true;
 		prefix = "pit_";
 		adj = 1;
 		arg1 = argv[1+adj];
@@ -675,7 +677,8 @@ int main(int nargs, char **argv)
 		write_rough_reservoir_data_header(csv_data_file);
 
 		RoughReservoir reservoir = get_existing_rough_reservoir(arg1);
-		reservoir.ocean = false;
+		reservoir.ocean = ocean;
+		reservoir.pit = pit;
 		write_rough_reservoir_csv(csv_file, reservoir);
 		write_rough_reservoir_data(csv_data_file, reservoir);
 

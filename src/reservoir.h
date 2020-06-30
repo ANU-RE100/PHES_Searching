@@ -7,6 +7,7 @@ struct RoughReservoir{
 	string identifier;
 	bool brownfield;
 	bool ocean;
+	bool pit;
 	double latitude;
 	double longitude;
 	int elevation;
@@ -29,14 +30,28 @@ struct ExistingReservoir{
 	double latitude;
 	double longitude;
 	int elevation;
-	//ArrayCoordinate pour_point;
 	double volume;
 	vector<GeographicCoordinate> polygon;
+};
+
+struct AltitudeVolumePair{
+	int altitude;
+	double volume;
+	bool operator<(const AltitudeVolumePair &o) const
+	    {
+		return altitude < o.altitude;
+	    }
+};
+
+struct ExistingPit{
+	ExistingReservoir reservoir;
+	vector<AltitudeVolumePair> volumes;
 };
 
 struct Reservoir{
 	string identifier;
 	bool brownfield;
+	bool pit;
 	bool ocean;
 	double latitude;
 	double longitude;
@@ -87,6 +102,7 @@ void update_reservoir_boundary(array<ArrayCoordinate, directions.size()> &dam_sh
 RoughReservoir RoughReservoir_init(ArrayCoordinate pour_point, int elevation);
 Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation);
 ExistingReservoir ExistingReservoir_init(string identifier, double latitude, double longitude, int elevation, double volume);
+ExistingPit ExistingPit_init(ExistingReservoir reservoir);
 GridSquare get_square_coordinate(ExistingReservoir reservoir);
 
 #endif

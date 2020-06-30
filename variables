@@ -13,29 +13,32 @@ cwidth = 10.0;					// Width of top of dam
 freeboard = 1.5;				// Freeboard on dam
 
 // Screening
-min_watershed_area = 10;		// Minimum watershed area in hectares to be consisered a stream
+min_watershed_area = 10;		// Minimum watershed area in hectares to be considered a stream
 contour_height = 10;			// Contour interval along streams for finding dam sites to test
 
 min_reservoir_volume = 1.0;		// Minimum reservoir volume (GL) at maximum dam wall height
 min_reservoir_water_rock = 3.0;	// Minimum reservoir water to rock ratio at optimal dam wall height
 min_max_dam_height = 5.0;		// Minimum maximum dam height (m) (Before overlapping filters) to be considered a potential reservoir
 
-// filter = use_world_urban;						// Use world urban data from tifs stored in fileformat input/WORLD_URBAN/55H_hbase_human_built_up_and_settlement_extent_geographic_30m
+// filter = use_world_urban;						// Use world urban data from tiffs stored in fileformat input/WORLD_URBAN/55H_hbase_human_built_up_and_settlement_extent_geographic_30m
 // filter = use_tiled_filter;						// Use shapefile filters output from shapefile_tiling
 filter = input/CLUM/CLUM541550552_WGS84.shp;	
 filter = input/CAPAD/capad.shp;
-filter_to_tile = input/WPAD/WDPA_Nov2018-shapefile-polygons.shp; // Location of shapefile to be tiled
+filter_to_tile = input/WPAD/WDPA_Nov2018-shapefile-polygons.shp; 	// Location of shapefile to be tiled
 
-dam_wall_heights = 10, 20, 30, 40, 50, 60, 70, 80, 90, 100;	//  Wall heights to test and export
+dam_wall_heights = 10, 20, 30, 40, 50, 60, 70, 80, 90, 100;			//  Wall heights to test and export in greenfield search
 
 // Pairing
 min_head = 100;					// Minimum head (m) to be considered a potential pair
-max_head = 800;				// Maximum head (m) to be considered a potential pair
+max_head = 800;					// Maximum head (m) to be considered a potential pair
 min_pair_water_rock = 1.5;		// Minimum pair water to rock ratio based on interpolated values
 min_slope = 0.05;				// Minimum slope based on interpolated nearest point seperation between two reservoirs
 min_pp_slope = 0.03;			// Minimum slope based on pourpoint seperation between two reservoirs
 max_lowers_per_upper = 100;		// Maximum number of lower reservoirs to keep per upper reservoir
 tolerance_on_FOM = 0.1;
+max_head_variability = 0.35		// Maximum amount the head can vary during water transfer (Default 0.35)
+num_altitude_volume_pairs = 10;	// Number of altitude-volume pairs provided with an existing pit
+pit_height_resolution = 1;		// Height resolution of top and bottom of pit in metres
 
 // Common
 gravity = 9.8;					// Acceleration due to gravity (m/s/s)
@@ -71,7 +74,7 @@ upper_colour = #88F0AA14;
 lower_colour = #88F03C14;
 
 // Reservoir sizings
-// test = 1.5, 6;			// Test in format {Volume (GL), Storage time (h)}
+// test = 1.5, 6;					// Test in format {Volume (GL), Storage time (h)}
 // test = 3, 12;
 // test = 6, 24;
 // test = 12, 48;
@@ -93,7 +96,7 @@ test = 5, 6;
 test = 2, 6;
 
 // Class Cutoffs
-A = 533, 47;					// Class cutoffs in the format {Power Cost, Storage Cost}
+A = 533, 47;						// Class cutoffs in the format {Power Cost, Storage Cost}
 B = 666, 59;
 C = 800, 70;
 D = 933, 82;

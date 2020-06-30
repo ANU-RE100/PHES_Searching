@@ -33,6 +33,7 @@ RoughReservoir RoughReservoir_init(ArrayCoordinate pour_point, int elevation)
 	RoughReservoir reservoir;
 	reservoir.elevation = elevation;
 	reservoir.brownfield = false;
+	reservoir.pit = false;
 	GeographicCoordinate geo_coordinate = convert_coordinates(pour_point);
 	reservoir.latitude = geo_coordinate.lat;
 	reservoir.longitude = geo_coordinate.lon;
@@ -63,6 +64,12 @@ ExistingReservoir ExistingReservoir_init(string identifier, double latitude, dou
 	return reservoir;
 }
 
+ExistingPit ExistingPit_init(ExistingReservoir reservoir){
+	ExistingPit pit;
+	pit.reservoir = reservoir;
+	return pit;
+}
+
 GridSquare get_square_coordinate(ExistingReservoir reservoir)
 {
 	return GridSquare_init((int)FLOOR(reservoir.latitude)-EPS,(int)FLOOR(reservoir.longitude)+EPS);
@@ -72,6 +79,7 @@ Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation)
 {
 	Reservoir reservoir;
 	reservoir.brownfield = false;
+	reservoir.pit = false;
 	reservoir.elevation = elevation;
 	GeographicCoordinate geo_coordinate = convert_coordinates(pour_point);
 	reservoir.latitude = geo_coordinate.lat;

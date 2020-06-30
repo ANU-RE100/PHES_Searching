@@ -34,7 +34,24 @@ string kml_end =
 "</kml>\n";
 
 string get_html(Reservoir* reservoir, Pair* pair){
-	if(reservoir->brownfield){
+	if(reservoir->pit){
+		return
+"              <html>\n"
+"              <head><META http-equiv=\"Content-Type\" content=\"text/html\"><meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"></head>\n"
+"              <body style=\"margin:0px 0px 0px 0px;overflow:auto;background:#FFFFFF;\">\n"
+"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-collapse:collapse;padding:3px 3px 3px 3px\">\n"
+"              <tr style=\"text-align:center;font-weight:bold;background:#9CBCE2\"><td>"+reservoir->identifier+"</td></tr>\n"
+"              <tr><td>\n"
+"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">\n"
+"              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>\n"
+"              <tr bgcolor=\"#D4E4F3\"><td>Elevation</td><td>"+to_string(reservoir->elevation)+"</td></tr>\n"
+"              <tr><td>Depth</td><td>"+dtos(reservoir->dam_height,0)+"</td></tr>\n"
+"              <tr bgcolor=\"#D4E4F3\"><td>Latitude</td><td>"+dtos(reservoir->latitude,4)+"</td></tr>\n"
+"              <tr><td>Longitude</td><td>"+dtos(reservoir->longitude,4)+"</td></tr>\n"
+"              <tr bgcolor=\"#D4E4F3\"><td>Volume (GL)</td><td>"+dtos(reservoir->volume,1)+"</td></tr>\n"
+"              <tr><td>Country</td><td>"+reservoir->country+"</td></tr>\n"
+"              </table></td></tr></table></body></html>\n";
+	}else if(reservoir->brownfield){
 		return
 "              <html>\n"
 "              <head><META http-equiv=\"Content-Type\" content=\"text/html\"><meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"></head>\n"

@@ -37,6 +37,9 @@ double min_slope;					// Minimum slope based on interpolated nearest point seper
 double min_pp_slope;				// Minimum slope based on pourpoint seperation between two reservoirs
 int max_lowers_per_upper;			// Maximum number of lower reservoirs to keep per upper reservoir
 double tolerance_on_FOM;
+double max_head_variability;		// Maximum amount the head can vary during water transfer (Default 0.35)
+int num_altitude_volume_pairs;		// Number of altitude-volume pairs provided with an existing pit
+int pit_height_resolution;			// Height resolution of top and bottom of pit in metres
 
 // Common
 double gravity;						// Acceleration due to gravity (m/s/s)
@@ -220,6 +223,13 @@ void parse_variables(char* filename){
 				ref_power = stod(value);
 			if(variable=="ref_head")
 				ref_head = stod(value);
+			if(variable=="max_head_variability")
+				max_head_variability = stod(value);
+			if(variable=="num_altitude_volume_pairs")
+				num_altitude_volume_pairs = stoi(value);
+			if(variable=="pit_height_resolution")
+				pit_height_resolution = stoi(value);
 		}
 	}
 }
+

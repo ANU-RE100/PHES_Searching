@@ -8,6 +8,7 @@ vector<string> read_from_csv_file(string line);
 vector<string> read_from_csv_file(string line, char delimeter);
 
 vector<ExistingReservoir> read_existing_reservoir_data(char* filename);
+vector<ExistingPit> read_existing_pit_data(char* filename);
 vector<string> read_names(char* filename);
 
 void write_rough_reservoir_csv_header(FILE *csv_file);
