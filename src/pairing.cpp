@@ -113,7 +113,7 @@ bool determine_pit_elevation_and_volume(RoughReservoir& upper, RoughReservoir& l
 		
 		pit.elevation += pit_height_resolution;
 	}
-	return true;
+	return false;
 }
 
 Pair *check_good_pair(RoughReservoir upper, RoughReservoir lower, double energy_capacity, int storage_time, Pair *pair, int max_FOM)
