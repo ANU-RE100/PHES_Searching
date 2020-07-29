@@ -254,7 +254,7 @@ void write_rough_pair_data(FILE *csv_file, Pair *pair)
 {
 	vector<string> line = {pair->identifier, 
 	pair->upper.identifier, dtos(pair->upper.latitude,6), dtos(pair->upper.longitude,6), to_string(pair->upper.elevation), dtos(pair->upper.dam_height,3), dtos(pair->upper.max_dam_height,1), dtos(pair->upper.water_rock,5), dtos(pair->upper.area,1), pair->upper.pit ? "2" : to_string(pair->upper.brownfield),
-	pair->lower.identifier, dtos(pair->lower.latitude,6), dtos(pair->lower.longitude,6), to_string(pair->lower.elevation), dtos(pair->lower.dam_height,3), dtos(pair->lower.max_dam_height,1), dtos(pair->lower.water_rock,5), dtos(pair->lower.area,1), pair->lower.pit ? "2" : to_string(pair->upper.brownfield), to_string(pair->lower.ocean),
+	pair->lower.identifier, dtos(pair->lower.latitude,6), dtos(pair->lower.longitude,6), to_string(pair->lower.elevation), dtos(pair->lower.dam_height,3), dtos(pair->lower.max_dam_height,1), dtos(pair->lower.water_rock,5), dtos(pair->lower.area,1), pair->lower.pit ? "2" : to_string(pair->lower.brownfield), to_string(pair->lower.ocean),
 	to_string(pair->head), dtos(pair->pp_distance, 5), dtos(pair->distance, 5), dtos(pair->slope, 6), dtos(pair->required_volume, 5), energy_capacity_to_string(pair->energy_capacity), to_string(pair->storage_time), dtos(pair->FOM,3)};
 	write_to_csv_file(csv_file, line);
 }
