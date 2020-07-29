@@ -5,7 +5,7 @@
 
 struct RoughReservoir{
 	string identifier;
-	bool brownfield;
+	bool brownfield = false;
 	bool ocean;
 	bool pit;
 	double latitude;

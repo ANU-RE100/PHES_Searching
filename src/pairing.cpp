@@ -297,6 +297,14 @@ int main(int nargs, char **argv)
 		if(nargs>2+adj)
 			display = atoi(argv[2+adj]);
 		printf("Pairing started for %s\n",argv[1+adj]);
+	}else if(arg1.compare("reservoir")==0){
+		brownfield = true;
+		adj = 1;
+		arg1 = argv[1+adj];
+		fname = prefix+format_for_filename(arg1);
+		if(nargs>2+adj)
+			display = atoi(argv[2+adj]);
+		printf("Pairing started for %s\n",argv[1+adj]);
 	}else{
 		try{
 			int lon = stoi(arg1);
