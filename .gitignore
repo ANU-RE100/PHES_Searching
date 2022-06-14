@@ -4,7 +4,6 @@ output
 Collie
 debug
 debug1
-documentation
 driver_files
 superpit_shp
 tasks - Collie
@@ -16,3 +15,6 @@ processing_files
 bin
 !bin/start_drivers.sh
 .vscode
+.ccls-cache
+.cache
+compile_commands.json

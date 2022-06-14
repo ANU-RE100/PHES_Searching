@@ -14,22 +14,22 @@ INCDIRS = -Iinclude
 utils: $(shell mkdir -p $(DIRS)) bin/shapefile_tiling bin/screening bin/pairing bin/pretty_set bin/constructor bin/search_driver
 
 bin/shapefile_tiling: $(OBJS0)
-	g++ $(CXXFLAGS) $(LDFLAGS) $(OBJS0) $(LIBS) -o $@
+	g++ $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 bin/screening: $(OBJS1)
-	g++ $(CXXFLAGS) $(LDFLAGS) $(OBJS1) $(LIBS) -o $@
+	g++ $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 bin/pairing: $(OBJS2)
-	g++ $(CXXFLAGS) $(LDFLAGS) $(OBJS2) $(LIBS) -o $@
+	g++ $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 bin/pretty_set: $(OBJS3)
-	g++  $(CXXFLAGS) $(LDFLAGS) $(OBJS3) $(LIBS) -o $@
+	g++  $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 bin/constructor: $(OBJS4)
-	g++  $(CXXFLAGS) $(LDFLAGS) $(OBJS4) $(LIBS) -o $@
+	g++  $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 bin/search_driver: $(OBJS5)
-	g++  $(CXXFLAGS) $(LDFLAGS) $(OBJS5) $(LIBS) -o $@
+	g++  $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 .c.o:
 	g++ $(CXXFLAGS) $(INCDIRS) -c -o $@ $<
@@ -43,5 +43,8 @@ clear:
 run:
 	bin/start_drivers.sh $(n)
 
+compile_commands:
+	compiledb make
+
 install:
-	sudo apt-get install libgdal-dev && sudo apt-get install libshp-dev && sudo apt-get install libboost-all-dev && sudo apt-get install gdal-bin
+	sudo apt-get install libgdal-dev libshp-dev libboost-all-dev gdal-bin -y
