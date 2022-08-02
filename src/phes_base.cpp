@@ -195,9 +195,7 @@ string format_for_filename(string s){
 }
 
 GeographicCoordinate get_origin(double latitude, double longitude, int border){
-	//TODO
-	GridSquare sc = GridSquare_init((int)FLOOR(latitude)-EPS,(int)FLOOR(longitude)+EPS);
-	return GeographicCoordinate_init( sc.lat+1+(border/3600.0),sc.lon-(border/3600.0));
+	return GeographicCoordinate_init(FLOOR(latitude)+1+(border/3600.0),FLOOR(longitude)-(border/3600.0));
 }
 
 ExistingReservoir get_existing_reservoir(string name){
