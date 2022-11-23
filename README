@@ -3,7 +3,7 @@ Building requires shapelib, gdal and boost
 Install using:
 make install
 
-or 
+or
 
 sudo apt-get install libgdal-dev
 sudo apt-get install libshp-dev
