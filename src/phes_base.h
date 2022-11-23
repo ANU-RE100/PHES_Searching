@@ -21,70 +21,68 @@ const double resolution = 30.87;
 const double meters_per_hectare = 10000;
 
 // Search Driver
-extern string tasks_file;     // File with list of cells to do line by line in
-                              // format <lon> <lat>
-extern string processes_file; // File with list of processes to complete
+extern string tasks_file;      // File with list of cells to do line by line in
+                               // format <lon> <lat>
+extern string processes_file;  // File with list of processes to complete
 extern string existing_reservoirs_csv;
 extern string existing_reservoirs_shp;
 extern string existing_reservoirs_shp_names;
 
 // General
-extern string file_storage_location; // Where to look for input files and store
-                                     // output files
-extern int border;       // Number of cells to add as border around DEM square
-extern double dambatter; // Slope on sides of dam
-extern double cwidth;    // Width of top of dam
-extern double freeboard; // Freeboard on dam
-extern int display;      // Whether to display full output (Debug info)
+extern string file_storage_location;  // Where to look for input files and store
+                                      // output files
+extern int border;                    // Number of cells to add as border around DEM square
+extern double dambatter;              // Slope on sides of dam
+extern double cwidth;                 // Width of top of dam
+extern double freeboard;              // Freeboard on dam
+extern int display;                   // Whether to display full output (Debug info)
 extern bool ocean;
 
 // Shapefile tiling
-extern vector<string>
-    filter_filenames_to_tile; // Shapefiles to split into tiles
+extern vector<string> filter_filenames_to_tile;  // Shapefiles to split into tiles
 
 // Screening
-extern double min_watershed_area; // Minimum watershed area in hectares to be
-                                  // consisered a stream
-extern int stream_threshold;      // Number of cells required to reach minimum
-                                  // watershed area
-extern int contour_height; // Contour interval along streams for finding dam
-                           // sites to test
+extern double min_watershed_area;  // Minimum watershed area in hectares to be
+                                   // consisered a stream
+extern int stream_threshold;       // Number of cells required to reach minimum
+                                   // watershed area
+extern int contour_height;         // Contour interval along streams for finding dam
+                                   // sites to test
 
-extern double min_reservoir_volume; // Minimum reservoir volume (GL) at maximum
-                                    // dam wall height
-extern double min_reservoir_water_rock; // Minimum reservoir water to rock ratio
-                                        // at optimal dam wall height
-extern double
-    min_max_dam_height; // Minimum maximum dam height (m) (Before overlapping
-                        // filters) to be considered a potential reservoir
+extern double min_reservoir_volume;      // Minimum reservoir volume (GL) at maximum
+                                         // dam wall height
+extern double min_reservoir_water_rock;  // Minimum reservoir water to rock ratio
+                                         // at optimal dam wall height
+extern double min_max_dam_height;        // Minimum maximum dam height (m) (Before overlapping
+                                         // filters) to be considered a potential reservoir
 
 extern vector<string> filter_filenames;
-extern vector<double> dam_wall_heights; //  Wall heights to test and export
+extern vector<double> dam_wall_heights;  //  Wall heights to test and export
 
 // Pairing
-extern int min_head; // Minimum head (m) to be considered a potential pair
-extern int max_head; // Maximum head (m) to be considered a potential pair
-extern double min_pair_water_rock; // Minimum pair water to rock ratio based on
-                                   // interpolated values
-extern double min_slope;    // Minimum slope based on interpolated nearest point
-                            // seperation between two reservoirs
-extern double min_pp_slope; // Minimum slope based on pourpoint seperation
-                            // between two reservoirs
-extern int max_lowers_per_upper; // Maximum number of lower reservoirs to keep
-                                 // per upper reservoir
+extern int min_head;                // Minimum head (m) to be considered a potential pair
+extern int max_head;                // Maximum head (m) to be considered a potential pair
+extern double min_pair_water_rock;  // Minimum pair water to rock ratio based on
+                                    // interpolated values
+extern double min_slope;            // Minimum slope based on interpolated nearest point
+                                    // seperation between two reservoirs
+extern double min_pp_slope;         // Minimum slope based on pourpoint seperation
+                                    // between two reservoirs
+extern int max_lowers_per_upper;    // Maximum number of lower reservoirs to keep
+                                    // per upper reservoir
 extern double tolerance_on_FOM;
-extern double max_head_variability;   // Maximum amount the head can vary during
-                                      // water transfer (Default 0.35)
-extern int num_altitude_volume_pairs; // Number of altitude-volume pairs
-                                      // provided with an existing pit
-extern int pit_height_resolution; // Height resolution of top and bottom of pit
-                                  // in metres
+extern double max_head_variability;    // Maximum amount the head can vary during
+                                       // water transfer (Default 0.35)
+extern int num_altitude_volume_pairs;  // Number of altitude-volume pairs
+                                       // provided with an existing pit
+extern int pit_height_resolution;      // Height resolution of top and bottom of pit
+                                       // in metres
 
 // Common
-extern double gravity;               // Acceleration due to gravity (m/s/s)
-extern double generation_efficiency; // Efficiency of generation
-extern double usable_volume;         // Usable volume of reservoir
-extern double water_density;         // Density of water (kg/m^3)
+extern double gravity;                // Acceleration due to gravity (m/s/s)
+extern double generation_efficiency;  // Efficiency of generation
+extern double usable_volume;          // Usable volume of reservoir
+extern double water_density;          // Density of water (kg/m^3)
 extern int max_wall_height;
 
 // Output
@@ -92,8 +90,8 @@ extern int good_colour[4];
 extern int bad_colour[4];
 extern string upper_colour;
 extern string lower_colour;
-extern double volume_accuracy;            // Maximum ratio error on final volume
-extern double dam_wall_height_resolution; // Resolution of dam wall height (m)
+extern double volume_accuracy;             // Maximum ratio error on final volume
+extern double dam_wall_height_resolution;  // Resolution of dam wall height (m)
 extern double minimum_dam_height;
 
 // FOM Calculations
@@ -138,9 +136,7 @@ struct CategoryCutoff {
   char category;
   double power_cost;
   double storage_cost;
-  bool operator<(const CategoryCutoff &o) const {
-    return category > o.category;
-  }
+  bool operator<(const CategoryCutoff &o) const { return category > o.category; }
 };
 
 extern vector<CategoryCutoff> category_cutoffs;
@@ -183,8 +179,7 @@ int convert_to_int(double f);
 double max(vector<double> a);
 double convert_to_dam_volume(int height, double length);
 double convert_to_dam_volume(int height, double length);
-double linear_interpolate(double value, vector<double> x_values,
-                          vector<double> y_values);
+double linear_interpolate(double value, vector<double> x_values, vector<double> y_values);
 string str(int i);
 unsigned long walltime_usec();
 double find_required_volume(int energy, int head);

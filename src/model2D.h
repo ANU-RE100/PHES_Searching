@@ -60,36 +60,31 @@ public:
     return (row >= 0 && col >= 0 && row < nrows() && col < ncols());
   }
   bool check_within(GeographicCoordinate &g) {
-    return check_within(
-        floor((g.lat - geodata.geotransform[3]) / geodata.geotransform[5]),
-        floor((g.lon - geodata.geotransform[0]) / geodata.geotransform[1]));
+    return check_within(floor((g.lat - geodata.geotransform[3]) / geodata.geotransform[5]),
+                        floor((g.lon - geodata.geotransform[0]) / geodata.geotransform[1]));
   }
   T get(GeographicCoordinate g) {
-    return get(
-        floor((g.lat - geodata.geotransform[3]) / geodata.geotransform[5]),
-        floor((g.lon - geodata.geotransform[0]) / geodata.geotransform[1]));
+    return get(floor((g.lat - geodata.geotransform[3]) / geodata.geotransform[5]),
+               floor((g.lon - geodata.geotransform[0]) / geodata.geotransform[1]));
   }
   void set(GeographicCoordinate &g, T value) {
     set(floor((g.lat - geodata.geotransform[3]) / geodata.geotransform[5]),
-        floor((g.lon - geodata.geotransform[0]) / geodata.geotransform[1]),
-        value);
+        floor((g.lon - geodata.geotransform[0]) / geodata.geotransform[1]), value);
   }
   GeographicCoordinate get_origin() {
-    GeographicCoordinate to_return = {geodata.geotransform[3],
-                                      geodata.geotransform[0]};
+    GeographicCoordinate to_return = {geodata.geotransform[3], geodata.geotransform[0]};
     return to_return;
   }
   GeographicCoordinate get_coordinate(int row, int col) {
     GeographicCoordinate to_return = {
         geodata.geotransform[3] + ((double)row + 0.5) * geodata.geotransform[5],
-        geodata.geotransform[0] +
-            ((double)col + 0.5) * geodata.geotransform[1]};
+        geodata.geotransform[0] + ((double)col + 0.5) * geodata.geotransform[1]};
     return to_return;
   }
   vector<GeographicCoordinate> get_corners() {
-    vector<GeographicCoordinate> to_return = {
-        get_origin(), get_coordinate(0, ncols()),
-        get_coordinate(nrows(), ncols()), get_coordinate(nrows(), 0)};
+    vector<GeographicCoordinate> to_return = {get_origin(), get_coordinate(0, ncols()),
+                                              get_coordinate(nrows(), ncols()),
+                                              get_coordinate(nrows(), 0)};
     return to_return;
   }
 
@@ -138,8 +133,8 @@ template <typename T> Model<T>::Model(string filename, GDALDataType data_type) {
   T temp_arr[temp_cols];
 
   for (int row = 0; row < rows; row++) {
-    CPLErr err = Band->RasterIO(GF_Read, 0, row, temp_cols, 1, temp_arr,
-                                temp_cols, 1, data_type, 0, 0);
+    CPLErr err =
+        Band->RasterIO(GF_Read, 0, row, temp_cols, 1, temp_arr, temp_cols, 1, data_type, 0, 0);
     if (err != CPLE_None)
       exit(1);
     if (temp_cols == 1801) {
@@ -155,16 +150,14 @@ template <typename T> Model<T>::Model(string filename, GDALDataType data_type) {
   }
 }
 
-template <typename T>
-void Model<T>::write(string filename, GDALDataType data_type) {
+template <typename T> void Model<T>::write(string filename, GDALDataType data_type) {
   char *tif_filename = new char[filename.length() + 1];
   strcpy(tif_filename, filename.c_str());
   const char *pszFormat = "GTiff";
   GDALDriver *Driver = GetGDALDriverManager()->GetDriverByName(pszFormat);
   if (Driver == NULL)
     exit(1);
-  GDALDataset *OutDS =
-      Driver->Create(tif_filename, rows, cols, 1, data_type, NULL);
+  GDALDataset *OutDS = Driver->Create(tif_filename, rows, cols, 1, data_type, NULL);
   OutDS->SetGeoTransform(geodata.geotransform);
   OutDS->SetProjection(geodata.geoprojection);
   GDALRasterBand *Band = OutDS->GetRasterBand(1);
@@ -173,8 +166,7 @@ void Model<T>::write(string filename, GDALDataType data_type) {
     for (int col = 0; col < cols; col++) {
       temp_arr[col] = get(row, col);
     }
-    CPLErr err = Band->RasterIO(GF_Write, 0, row, rows, 1, temp_arr, rows, 1,
-                                data_type, 0, 0);
+    CPLErr err = Band->RasterIO(GF_Write, 0, row, rows, 1, temp_arr, rows, 1, data_type, 0, 0);
     if (err != CPLE_None)
       exit(1);
   }
