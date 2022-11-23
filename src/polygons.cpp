@@ -31,7 +31,7 @@ void read_shp_filter(string filename, Model<bool>* filter){
 	strcpy(shp_filename, filename.c_str());
     if(!file_exists(shp_filename)){
 		if(display)
-			cout << "No file: "+filename;
+			cout << "No file: "+filename << endl;
 		throw(1);
 	}
 	SHPHandle SHP = SHPOpen(convert_string(filename), "rb" );

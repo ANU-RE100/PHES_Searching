@@ -129,7 +129,7 @@ int main(int nargs, char **argv)
 			if(nargs>3+adj)
 				display = atoi(argv[3+adj]);
 			fname=prefix+str(square_coordinate);
-		}catch(exception e){
+		}catch(exception& e){
 			brownfield = true;
 			fname = prefix+format_for_filename(arg1);
 			if(nargs>2+adj)
