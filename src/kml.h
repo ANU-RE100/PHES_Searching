@@ -26,7 +26,7 @@ struct Pair_KML{
 };
 
 string output_kml(KML_Holder* kml_holder, string square, Test test);
-void update_kml_holder(KML_Holder* kml_holder, Pair* pair, Pair_KML* pair_kml);
+void update_kml_holder(KML_Holder* kml_holder, Pair* pair, Pair_KML* pair_kml, bool keep_upper, bool keep_lower);
 // void write_fusion_csv_header(FILE *csv_file);
 // void write_fusion_csv(FILE *csv_file, Pair *pair, Pair_KML* pair_kml);
 

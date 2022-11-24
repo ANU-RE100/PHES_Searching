@@ -287,14 +287,18 @@ string output_kml(KML_Holder* kml_holder, string square, Test test){
 	return to_return;
 }
 
-void update_kml_holder(KML_Holder* kml_holder, Pair* pair, Pair_KML* pair_kml){
+void update_kml_holder(KML_Holder* kml_holder, Pair* pair, Pair_KML* pair_kml, bool keep_upper, bool keep_lower){
 	kml_holder->points.push_back(get_point_kml(pair, pair_kml->point));
 	kml_holder->lines.push_back(get_line_kml(pair, pair_kml->line));
-	kml_holder->uppers.push_back(get_reservoir_kml(&pair->upper, upper_colour, pair_kml->upper, pair));
-	if(!pair->upper.brownfield)
-		kml_holder->upper_dams.push_back(get_dam_kml(&pair->upper, pair_kml->upper));
-	if(!pair->lower.ocean)
-		kml_holder->lowers.push_back(get_reservoir_kml(&pair->lower, lower_colour, pair_kml->lower, pair));
-	if(!pair->lower.brownfield && !pair->lower.ocean)
-		kml_holder->lower_dams.push_back(get_dam_kml(&pair->lower, pair_kml->lower));
+	if (keep_upper) {
+		kml_holder->uppers.push_back(get_reservoir_kml(&pair->upper, upper_colour, pair_kml->upper, pair));
+		if(!pair->upper.brownfield)
+			kml_holder->upper_dams.push_back(get_dam_kml(&pair->upper, pair_kml->upper));
+	}
+	if (keep_lower) {
+		if(!pair->lower.ocean)
+			kml_holder->lowers.push_back(get_reservoir_kml(&pair->lower, lower_colour, pair_kml->lower, pair));
+		if(!pair->lower.brownfield && !pair->lower.ocean)
+			kml_holder->lower_dams.push_back(get_dam_kml(&pair->lower, pair_kml->lower));
+	}
 }

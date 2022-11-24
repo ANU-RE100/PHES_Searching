@@ -594,6 +594,10 @@ int main(int nargs, char **argv)
 
         sort(pairs[i].begin(), pairs[i].end());
         int count = 0;
+	    set<string> lowers;
+        set<string> uppers;
+        bool keep_lower;
+        bool keep_upper;
         for(uint j=0; j<pairs[i].size(); j++){
             Pair_KML pair_kml;
             bool non_overlap;
@@ -601,7 +605,11 @@ int main(int nargs, char **argv)
             if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, max_FOM, big_model, full_cur_model, countries, country_names)){
                 write_pair_csv(csv_file_classes, &pairs[i][j], false);
                 write_pair_csv(csv_file_FOM, &pairs[i][j], true);
-                update_kml_holder(&kml_holder, &pairs[i][j], &pair_kml);
+                keep_lower = !lowers.contains(pairs[i][j].lower.identifier);
+                keep_upper = !uppers.contains(pairs[i][j].upper.identifier);
+                lowers.insert(pairs[i][j].lower.identifier);
+                uppers.insert(pairs[i][j].upper.identifier);
+                update_kml_holder(&kml_holder, &pairs[i][j], &pair_kml, keep_upper, keep_lower);
                 count++;
                 if(non_overlap){
                     total_count++;
