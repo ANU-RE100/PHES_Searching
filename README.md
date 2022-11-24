@@ -18,6 +18,7 @@ cd build
 cmake ..
 make -j $nproc
 make install -j $nproc
+cd ..
 ```
 
 ## Usage
