@@ -1,8 +1,11 @@
+"""
+To run:
+
+python3 split_kml.py --path <path to kml file>
+"""
+
 import xml.etree.ElementTree as ET
 ET.register_namespace("", "http://www.opengis.net/kml/2.2")
-
-# Enter the file path to split
-filename = "splitting_example/5GWh 18h.kml"
 
 def byte_len(string):
     """
@@ -34,40 +37,53 @@ def size_of_document(document, num_tabs=1):
         size += size_of_document(child, num_tabs=num_tabs+1)
     return size
 
-# Read in kml
-tree = ET.parse(filename)
+def main(path_to_kml_file):
+    """
+    Split KML file at path_to_kml_file into <10MB chunks.
+    """
+    # Read in kml
+    tree = ET.parse(path_to_kml_file)
 
-# Determine splitting
-total_file_size = 0
-file_no = 0
-folder = tree.getroot()[0]
-file_numbers = []
-for document_no in range(len(folder)):
-    total_file_size += size_of_document(folder[document_no])
-    if total_file_size >= 10000000 * 0.9:
-        file_no += 1
-        total_file_size = 0
-    file_numbers.append(file_no)
+    # Determine splitting
+    total_file_size = 0
+    file_no = 0
+    folder = tree.getroot()[0]
+    file_numbers = []
+    for document_no in range(len(folder)):
+        total_file_size += size_of_document(folder[document_no])
+        if total_file_size >= 10000000 * 0.9:
+            file_no += 1
+            total_file_size = 0
+        file_numbers.append(file_no)
 
-# to keep
-file_numbers[0] = -1
-file_numbers[1] = -1
+    # to keep
+    file_numbers[0] = -1
+    file_numbers[1] = -1
 
-# write to files
-for i in range(file_no+1):
-    tree = ET.parse(filename)
-    root = tree.getroot()
-    folder = root[0]
-    for j in range(len(file_numbers)-1, -1, -1):
-        if file_numbers[j] != i and file_numbers[j] != -1:
-            folder.remove(folder[j])
-    tree = ET.ElementTree(root)
-    split_filename = filename[:-4]+str(i)+".kml"
-    tree.write(split_filename, encoding='utf8', method='xml')
+    # write to files
+    for i in range(file_no+1):
+        tree = ET.parse(path_to_kml_file)
+        root = tree.getroot()
+        folder = root[0]
+        for j in range(len(file_numbers)-1, -1, -1):
+            if file_numbers[j] != i and file_numbers[j] != -1:
+                folder.remove(folder[j])
+        tree = ET.ElementTree(root)
+        split_filename = path_to_kml_file[:-4]+str(i)+".kml"
+        tree.write(split_filename, encoding='utf8', method='xml')
 
-    # Ensure correct namespace
-    with open(split_filename,'r',encoding='utf-8') as file:
-        data = file.readlines()
-    data[1] = "<kml xmlns=\"http://www.opengis.net/kml/2.2\" xmlns:gx=\"http://www.google.com/kml/ext/2.2\" xmlns:kml=\"http://www.opengis.net/kml/2.2\" xmlns:atom=\"http://www.w3.org/2005/Atom\">\n"
-    with open(split_filename, 'w', encoding='utf-8') as file:
-        file.writelines(data)
+        # Ensure correct namespace
+        with open(split_filename,'r',encoding='utf-8') as file:
+            data = file.readlines()
+        data[1] = "<kml xmlns=\"http://www.opengis.net/kml/2.2\" xmlns:gx=\"http://www.google.com/kml/ext/2.2\" xmlns:kml=\"http://www.opengis.net/kml/2.2\" xmlns:atom=\"http://www.w3.org/2005/Atom\">\n"
+        with open(split_filename, 'w', encoding='utf-8') as file:
+            file.writelines(data)
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Split a KML file into <10MB files')
+    parser.add_argument('--path', metavar='kmlfilepath', required=True,
+                        help='the path to kml file')
+    args = parser.parse_args()
+    main(path_to_kml_file=args.path)
