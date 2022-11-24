@@ -22,7 +22,7 @@ min_max_dam_height = 5.0;		// Minimum maximum dam height (m) (Before overlapping
 
 // filter = use_world_urban;						// Use world urban data from tiffs stored in fileformat input/WORLD_URBAN/55H_hbase_human_built_up_and_settlement_extent_geographic_30m
 // filter = use_tiled_filter;						// Use shapefile filters output from shapefile_tiling
-// filter = input/CLUM/CLUM541550552_WGS84.shp;	
+// filter = input/CLUM/CLUM541550552_WGS84.shp;
 filter = input/CAPAD/capad.shp;
 filter = input/WPAD/WDPA_Nov2018-shapefile-polygons.shp; 	// Location of shapefile to be tiled
 
@@ -109,5 +109,3 @@ B = 666, 59;
 C = 800, 70;
 D = 933, 82;
 E = 1066, 94;
-
-

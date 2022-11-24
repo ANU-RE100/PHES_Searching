@@ -3,9 +3,8 @@ using namespace std;
 
 #include "phes_base.h"
 
-void update_reservoir_boundary(
-    vector<array<ArrayCoordinate, directions.size()>> &dam_shape_bounds,
-    ArrayCoordinate point, int elevation_above_pp) {
+void update_reservoir_boundary(vector<array<ArrayCoordinate, directions.size()>> &dam_shape_bounds,
+                               ArrayCoordinate point, int elevation_above_pp) {
   for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
     int dam_height = dam_wall_heights[ih];
     if (dam_height >= elevation_above_pp)
@@ -19,9 +18,8 @@ void update_reservoir_boundary(
   }
 }
 
-void update_reservoir_boundary(
-    array<ArrayCoordinate, directions.size()> &dam_shape_bounds,
-    ArrayCoordinate point) {
+void update_reservoir_boundary(array<ArrayCoordinate, directions.size()> &dam_shape_bounds,
+                               ArrayCoordinate point) {
   for (uint i = 0; i < directions.size(); i++) {
     if ((directions[i].row * point.row + directions[i].col * point.col) >
         (directions[i].row * dam_shape_bounds[i].row +
@@ -56,9 +54,8 @@ RoughReservoir RoughReservoir_init(ArrayCoordinate pour_point, int elevation) {
   return reservoir;
 }
 
-ExistingReservoir ExistingReservoir_init(string identifier, double latitude,
-                                         double longitude, int elevation,
-                                         double volume) {
+ExistingReservoir ExistingReservoir_init(string identifier, double latitude, double longitude,
+                                         int elevation, double volume) {
   ExistingReservoir reservoir;
   reservoir.identifier = identifier;
   reservoir.elevation = elevation;
@@ -77,8 +74,8 @@ ExistingPit ExistingPit_init(ExistingReservoir reservoir) {
 GridSquare get_square_coordinate(ExistingReservoir reservoir) {
   bool northern_hem = reservoir.latitude > 0;
   bool western_hem = reservoir.longitude > 0;
-  return GridSquare_init((int)FLOOR(reservoir.latitude) + (northern_hem ? EPS : - EPS),
-                         (int)FLOOR(reservoir.longitude) + (western_hem ? EPS : - EPS));
+  return GridSquare_init((int)FLOOR(reservoir.latitude) + (northern_hem ? EPS : -EPS),
+                         (int)FLOOR(reservoir.longitude) + (western_hem ? EPS : -EPS));
 }
 
 Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation) {
