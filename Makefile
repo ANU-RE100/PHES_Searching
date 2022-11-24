@@ -1,5 +1,4 @@
-
-CXXFLAGS = -std=c++11 -O3 -Wall -Wextra -g
+CXXFLAGS = -std=c++2a -O3 -Wall -Wextra -g
 LIBS = -lgdal -lshp -lboost_system -lboost_filesystem
 GEN_OBJS = src/reservoir.o src/coordinates.o src/phes_base.o  src/variable_parser.o src/kml.o src/csv.o src/polygons.o
 OBJS0 = src/shapefile_tiling.o $(GEN_OBJS)
