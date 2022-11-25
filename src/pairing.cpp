@@ -381,7 +381,7 @@ int main(int nargs, char **argv) {
         display = atoi(argv[3 + adj]);
       fname = prefix + str(square_coordinate);
       printf("Pairing started for %s\n", convert_string(fname));
-    } catch (exception e) {
+    } catch (exception& e) {
       brownfield = true;
       fname = prefix + format_for_filename(arg1);
       if (nargs > 2 + adj)

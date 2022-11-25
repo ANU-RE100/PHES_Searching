@@ -38,7 +38,7 @@ vector<vector<vector<GeographicCoordinate>>> read_countries(string filename, vec
     strcpy(shp_filename, filename.c_str());
     if(!file_exists(shp_filename)){
         if(display)
-            cout << "No file: "+filename;
+            cout << "No file: "+filename << endl;
         throw(1);
     }
     vector<vector<vector<GeographicCoordinate>>> relevant_polygons;
@@ -539,7 +539,7 @@ int main(int nargs, char **argv)
                 display = atoi(argv[3+adj]);
             fname=prefix+str(square_coordinate);
             printf("Constructor started for %s\n",convert_string(prefix+str(square_coordinate)));
-        }catch(exception e){
+        }catch(exception& e){
             brownfield = true;
             fname = prefix+format_for_filename(arg1);
             if(nargs>2+adj)

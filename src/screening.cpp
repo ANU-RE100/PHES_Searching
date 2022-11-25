@@ -368,7 +368,6 @@ static RoughReservoir model_reservoir(ArrayCoordinate pour_point, Model<char>* f
 				q.push(neighbor);
 			}
 		}
-
 	}
 
 	for (int ih=1; ih<max_wall_height+1;ih++) {
@@ -526,7 +525,7 @@ int main(int nargs, char **argv)
 			if(nargs>3+adj)
 				display = atoi(argv[3+adj]);
 			printf("Screening started for %s\n",convert_string(prefix+str(square_coordinate)));
-		}catch(exception e){
+		}catch(exception& e){
 			brownfield = true;
 			if(nargs>2+adj)
 				display = atoi(argv[2+adj]);
