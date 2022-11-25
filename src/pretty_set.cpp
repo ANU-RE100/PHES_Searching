@@ -143,37 +143,46 @@ int main(int nargs, char **argv)
 	parse_variables(convert_string(file_storage_location+"variables"));
 	unsigned long t_usec = walltime_usec();
 	
-	if(brownfield)
-		square_coordinate = get_square_coordinate(get_existing_reservoir(arg1));
-	
-	BigModel big_model = BigModel_init(square_coordinate);
-
 	pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pairs/"+fname+"_rough_pairs_data.csv"));
 
-	mkdir(convert_string(file_storage_location+"processing_files/pretty_set_pairs"),0777);
-	FILE *csv_data_file = fopen(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+fname+"_rough_pretty_set_pairs_data.csv"), "w");
-	write_rough_pair_data_header(csv_data_file);
+	uint total_pairs = 0;
+	for(uint i = 0; i<pairs.size(); i++)
+		total_pairs += pairs[i].size();
 
-	for(uint i = 0; i<tests.size(); i++){
-		sort(pairs[i].begin(), pairs[i].end());
-		Model<bool>* seen = new Model<bool>(big_model.DEM->nrows(), big_model.DEM->nrows(), MODEL_SET_ZERO);
-		seen->set_geodata(big_model.DEM->get_geodata());
+	if (total_pairs > 0) {
+		if(brownfield)
+			square_coordinate = get_square_coordinate(get_existing_reservoir(arg1));
+		
+		BigModel big_model = BigModel_init(square_coordinate);
 
-		if(brownfield){
-			ExistingReservoir r = get_existing_reservoir(arg1);
-			polygon_to_raster(r.polygon, seen);
-		}
+		mkdir(convert_string(file_storage_location+"processing_files/pretty_set_pairs"),0777);
+		FILE *csv_data_file = fopen(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+fname+"_rough_pretty_set_pairs_data.csv"), "w");
+		write_rough_pair_data_header(csv_data_file);
 
-		int count = 0;
-		for(uint j=0; j<pairs[i].size(); j++){
-			if(check_pair(pairs[i][j], seen, big_model)){
-				write_rough_pair_data(csv_data_file, &pairs[i][j]);
-				count++;
+		for(uint i = 0; i<tests.size(); i++){
+			sort(pairs[i].begin(), pairs[i].end());
+			Model<bool>* seen = new Model<bool>(big_model.DEM->nrows(), big_model.DEM->nrows(), MODEL_SET_ZERO);
+			seen->set_geodata(big_model.DEM->get_geodata());
+
+			if(brownfield){
+				ExistingReservoir r = get_existing_reservoir(arg1);
+				polygon_to_raster(r.polygon, seen);
 			}
+
+			int count = 0;
+			for(uint j=0; j<pairs[i].size(); j++){
+				if(check_pair(pairs[i][j], seen, big_model)){
+					write_rough_pair_data(csv_data_file, &pairs[i][j]);
+					count++;
+				}
+			}
+			delete seen;
+			if(display)
+				printf("%d %.1fGWh %dh Pairs\n", count, tests[i].energy_capacity, tests[i].storage_time);
 		}
-		delete seen;
-		if(display)
-			printf("%d %.1fGWh %dh Pairs\n", count, tests[i].energy_capacity, tests[i].storage_time);
 	}
+	else
+		printf("No pairs found\n");
+
 	printf("Pretty set finished for %s. Runtime: %.2f sec\n", convert_string(fname), 1.0e-6*(walltime_usec() - t_usec) );
 }
