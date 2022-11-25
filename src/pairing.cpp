@@ -1,9 +1,10 @@
 #include "phes_base.h"
+#include "search_config.hpp"
 
 int display = false;
-bool ocean = false;
-bool pit = false;
 ExistingPit pit_details;
+SearchType search_type = SearchType::GREENFIELD;
+SearchConfig search_config;
 
 vector<int> pairs;
 
@@ -152,7 +153,7 @@ Pair *check_good_pair(RoughReservoir upper, RoughReservoir lower,
       (max(lower.volumes) < required_volume))
     return NULL;
 
-  if (pit &&
+  if (search_type == SearchType::PIT &&
       !determine_pit_elevation_and_volume(upper, lower, energy_capacity,
                                           pit_details, required_volume, head))
     return NULL;
@@ -170,7 +171,7 @@ Pair *check_good_pair(RoughReservoir upper, RoughReservoir lower,
                                              dam_wall_heights,
                                              upper.dam_volumes);
   } else {
-    if (pit)
+    if (search_type == SearchType::PIT)
       upper_dam_wall_height =
           linear_interpolate(required_volume +
                                  pit_volume(pit_details,
@@ -191,7 +192,7 @@ Pair *check_good_pair(RoughReservoir upper, RoughReservoir lower,
                                              dam_wall_heights,
                                              lower.dam_volumes);
   } else {
-    if (pit)
+    if (search_type==SearchType::PIT)
       lower_dam_wall_height =
           linear_interpolate(required_volume +
                                  pit_volume(pit_details,
@@ -322,7 +323,7 @@ void pairing(vector<RoughReservoir> &upper_reservoirs,
                             tests[itest].storage_time, &temp_pair, max_FOM)) {
           temp_pairs[itest].insert(temp_pair);
           if ((int)temp_pairs[itest].size() > max_lowers_per_upper ||
-              (ocean && temp_pairs[itest].size() > 1))
+              (search_type == SearchType::PIT && temp_pairs[itest].size() > 1))
             temp_pairs[itest].erase(prev(temp_pairs[itest].end()));
         }
       }
@@ -341,35 +342,29 @@ void pairing(vector<RoughReservoir> &upper_reservoirs,
 int main(int nargs, char **argv) {
 
   GridSquare square_coordinate;
-  bool brownfield = false;
   string fname;
-  string prefix = "";
-  string ocean_prefix = "";
   string arg1(argv[1]);
+  search_config = SearchConfig(nargs, argv);
 
   int adj = 0;
   if (arg1.compare("ocean") == 0) {
-    ocean = true;
-    prefix = "ocean_";
-    ocean_prefix = "ocean_";
+    search_type = SearchType::OCEAN;
     adj = 1;
     arg1 = argv[1 + adj];
   }
   if (arg1.compare("pit") == 0) {
-    brownfield = true;
-    pit = true;
-    prefix = "pit_";
+    search_type = SearchType::PIT;
     adj = 1;
     arg1 = argv[1 + adj];
-    fname = prefix + format_for_filename(arg1);
+    fname = search_type.prefix() + format_for_filename(arg1);
     if (nargs > 2 + adj)
       display = atoi(argv[2 + adj]);
     printf("Pairing started for %s\n", argv[1 + adj]);
   } else if (arg1.compare("reservoir") == 0) {
-    brownfield = true;
+    search_type = SearchType::SINGLE_EXISTING;
     adj = 1;
     arg1 = argv[1 + adj];
-    fname = prefix + format_for_filename(arg1);
+    fname = search_type.prefix() + format_for_filename(arg1);
     if (nargs > 2 + adj)
       display = atoi(argv[2 + adj]);
     printf("Pairing started for %s\n", argv[1 + adj]);
@@ -379,11 +374,11 @@ int main(int nargs, char **argv) {
       square_coordinate = GridSquare_init(atoi(argv[2 + adj]), lon);
       if (nargs > 3 + adj)
         display = atoi(argv[3 + adj]);
-      fname = prefix + str(square_coordinate);
+      fname = search_type.prefix() + str(square_coordinate);
       printf("Pairing started for %s\n", convert_string(fname));
     } catch (exception& e) {
-      brownfield = true;
-      fname = prefix + format_for_filename(arg1);
+      search_type = SearchType::SINGLE_EXISTING;
+      fname = search_type.prefix() + format_for_filename(arg1);
       if (nargs > 2 + adj)
         display = atoi(argv[2 + adj]);
       printf("Pairing started for %s\n", argv[1 + adj]);
@@ -395,12 +390,12 @@ int main(int nargs, char **argv) {
   parse_variables(convert_string(file_storage_location + "variables"));
 
   vector<RoughReservoir> upper_reservoirs;
-  if (brownfield) {
+  if (search_type.existing()) {
     square_coordinate = get_square_coordinate(get_existing_reservoir(arg1));
     upper_reservoirs = read_rough_reservoir_data(
         convert_string(file_storage_location + "processing_files/reservoirs/" +
                        fname + "_reservoirs_data.csv"));
-    if (pit)
+    if (search_type == SearchType::PIT)
       pit_details = get_pit_details(arg1);
   } else
     upper_reservoirs = read_rough_reservoir_data(
@@ -426,14 +421,14 @@ int main(int nargs, char **argv) {
     try {
       vector<RoughReservoir> temp = read_rough_reservoir_data(convert_string(
           file_storage_location + "processing_files/reservoirs/" +
-          ocean_prefix + str(neighbors[i]) + "_reservoirs_data.csv"));
+          search_type.lowers_prefix() + str(neighbors[i]) + "_reservoirs_data.csv"));
       for (uint j = 0; j < temp.size(); j++)
         lower_reservoirs.push_back(temp[j]);
     } catch (int e) {
       if (display)
         printf("Could not import reservoirs from %s\n",
                convert_string(file_storage_location +
-                              "processing_files/reservoirs/" + ocean_prefix +
+                              "processing_files/reservoirs/" + search_type.lowers_prefix() +
                               str(neighbors[i]) + "_reservoirs_data.csv"));
     }
   }
@@ -463,7 +458,7 @@ int main(int nargs, char **argv) {
   write_rough_pair_data_header(csv_data_file);
 
   pairing(upper_reservoirs, lower_reservoirs, csv_file, csv_data_file);
-  if (brownfield)
+  if (search_type.existing())
     pairing(lower_reservoirs, upper_reservoirs, csv_file, csv_data_file);
 
   int total = 0;

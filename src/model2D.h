@@ -104,28 +104,25 @@ template <typename T> Model<T>::Model(string filename, GDALDataType data_type) {
   char *tif_filename = new char[filename.length() + 1];
   strcpy(tif_filename, filename.c_str());
   if (!file_exists(tif_filename)) {
-    if (display)
-      cout << "No file: " + filename + "\n";
+    search_config.logger.error("No file: " + filename);
     throw(1);
   }
   GDALDataset *Dataset = (GDALDataset *)GDALOpen(tif_filename, GA_ReadOnly);
   if (Dataset == NULL) {
-    if (display)
-      cout << "Cannot Open: " + filename + "\n";
+    search_config.logger.error("Cannot open: " + filename);
     throw(1);
   }
   if (Dataset->GetProjectionRef() != NULL) {
     geodata.geoprojection = const_cast<char *>(Dataset->GetProjectionRef());
   } else {
-    if (display)
-      cout << "Cannot get projection from: " + filename + "\n";
+    search_config.logger.error("Cannot get projection from: " + filename);
     throw(1);
   }
   if (Dataset->GetGeoTransform(geodata.geotransform) != CE_None) {
-    if (display)
-      cout << "Cannot get transform from: " + filename + "\n";
+    search_config.logger.error("Cannot get transform from: " + filename);
     throw(1);
   }
+
   GDALRasterBand *Band = Dataset->GetRasterBand(1);
   rows = Band->GetYSize();
   cols = Band->GetXSize();

@@ -1,6 +1,7 @@
 #include "phes_base.h"
 #include "kml.h"
 
+SearchConfig search_config;
 int display = false;
 
 vector<vector<Pair>> pairs;

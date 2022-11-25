@@ -2,8 +2,8 @@
 
 bool debug_output = false;
 bool debug = false;
-int display = false;
-bool ocean = false;
+
+SearchConfig search_config;
 
 void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_to_filter){
 	try{
@@ -18,11 +18,9 @@ void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_t
 		}
 		delete tif_filter;
 	}catch(exception& e){
-		if(display)
-			printf("Problem with %s\n", convert_string(filename));
+    search_config.logger.debug("Problem with " + filename);
 	}catch(int e){
-		if(display)
-			printf("Problem with %s\n", convert_string(filename));
+    search_config.logger.debug("Problem with " + filename);
 	}
 }
 
@@ -42,8 +40,7 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 	filter->set_geodata(DEM->get_geodata());
 	for(string filename:filenames){
 		if(filename=="use_world_urban"){
-			if(display)
-				printf("Using world urban data as filter\n");
+			search_config.logger.debug("Using world urban data as filter");
 			vector<string> done;
 			for(GeographicCoordinate corner: DEM->get_corners()){
 				string urban_filename = find_world_urban_filename(corner);
@@ -53,8 +50,7 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 				}
 			}
 		}else if(filename=="use_tiled_filter"){
-			if(display)
-				printf("Using tiled filter\n");
+			search_config.logger.debug("Using tiled filter");
 			GridSquare sc = {(int)((filter->get_coordinate(filter->nrows(), filter->ncols()).lat+filter->get_origin().lat)/2.0)-1,(int)((filter->get_coordinate(filter->nrows(), filter->ncols()).lon+filter->get_origin().lon)/2.0)};
 			GridSquare neighbors[9] = {
 				(GridSquare){sc.lat  ,sc.lon  },
@@ -232,8 +228,7 @@ int find_lowest_neighbor(int row, int col, Model<double>* DEM_filled_no_flat, do
 		}
 	}
 	if(min_drop==0)
-		if(display)
-			printf("Alert: Minimum drop of 0 at %d %d\n", row, col);
+		search_config.logger.debug("Alert: Minimum drop of 0 at " + to_string(row) + " " + to_string(col));
 	return result;
 }
 
@@ -304,8 +299,7 @@ static Model<bool>* find_streams(Model<int>* flow_accumulation)
 				streams->set(row,col,true);
 				stream_site_count++;
 			}
-	if(display)
-		printf("Number of stream sites = %d\n",  stream_site_count);
+	search_config.logger.debug("Number of stream sites = "+  to_string(stream_site_count));
 	return streams;
 }
 
@@ -326,8 +320,7 @@ static Model<bool>* find_pour_points(Model<bool>* streams, Model<char>* flow_dir
 						pour_point_count++;
 					}
 			}
-	if(display)
-		printf("Number of dam sites = %d\n",  pour_point_count);
+	search_config.logger.debug("Number of dam sites = "+  to_string(pour_point_count));
 	return pour_points;
 }
 
@@ -409,129 +402,119 @@ static RoughReservoir model_reservoir(ArrayCoordinate pour_point, Model<char>* f
 	return reservoir;
 }
 
+static int
+model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_points,
+                 Model<char> *flow_directions, Model<short> *DEM_filled,
+                 Model<int> *flow_accumulation, Model<bool> *filter) {
+  mkdir(convert_string(file_storage_location + "output/reservoirs"), 0777);
+  FILE *csv_file;
+  if (search_config.search_type == SearchType::OCEAN)
+    csv_file = fopen(convert_string(file_storage_location +
+                                    "output/reservoirs/ocean_" +
+                                    str(square_coordinate) + "_reservoirs.csv"),
+                     "w");
+  else
+    csv_file =
+        fopen(convert_string(file_storage_location + "output/reservoirs/" +
+                             str(square_coordinate) + "_reservoirs.csv"),
+              "w");
+  if (!csv_file) {
+    cout << "Failed to open reservoir CSV file" << endl;
+    exit(1);
+  }
+  write_rough_reservoir_csv_header(csv_file);
 
-static int model_reservoirs(GridSquare square_coordinate, Model<bool>* pour_points, Model<char>* flow_directions, Model<short>* DEM_filled, Model<int>* flow_accumulation, Model<bool>* filter)
-{
-	mkdir(convert_string(file_storage_location+"output/reservoirs"),0777);
-	FILE *csv_file;
-	if(ocean)
-		csv_file = fopen(convert_string(file_storage_location+"output/reservoirs/ocean_"+str(square_coordinate)+"_reservoirs.csv"), "w");
-	else
-		csv_file = fopen(convert_string(file_storage_location+"output/reservoirs/"+str(square_coordinate)+"_reservoirs.csv"), "w");
-	if (!csv_file) {
-	 	fprintf(stderr, "failed to open reservoir CSV file\n");
-		exit(1);
+  mkdir(convert_string(file_storage_location + "processing_files/reservoirs"),
+        0777);
+  FILE *csv_data_file;
+  if (search_config.search_type == SearchType::OCEAN)
+    csv_data_file =
+        fopen(convert_string(file_storage_location +
+                             "processing_files/reservoirs/ocean_" +
+                             str(square_coordinate) + "_reservoirs_data.csv"),
+              "w");
+  else
+    csv_data_file = fopen(
+        convert_string(file_storage_location + "processing_files/reservoirs/" +
+                       str(square_coordinate) + "_reservoirs_data.csv"),
+        "w");
+  if (!csv_file) {
+    fprintf(stderr, "failed to open reservoir CSV data file\n");
+    exit(1);
+  }
+  write_rough_reservoir_data_header(csv_data_file);
+
+  int i = 0;
+  int count = 0;
+  Model<int> *model = new Model<int>(pour_points->nrows(), pour_points->ncols(),
+                                     MODEL_SET_ZERO);
+
+  for (int row = border; row < border + DEM_filled->nrows() - 2 * border; row++)
+    for (int col = border; col < border + DEM_filled->ncols() - 2 * border;
+         col++) {
+      if (search_config.search_type == SearchType::OCEAN) {
+        if (filter->get(row, col))
+          continue;
+        if (row == border || col == border ||
+            row == border + DEM_filled->nrows() - 2 * border - 1 ||
+            col == border + DEM_filled->ncols() - 2 * border - 1)
+          continue;
+        if (DEM_filled->get(row, col) >= 1 - EPS &&
+            pour_points->get(
+                row + directions.at(flow_directions->get(row, col)).row,
+                col + directions.at(flow_directions->get(row, col)).col) ==
+                true) {
+          ArrayCoordinate pour_point = {row, col,
+                                        get_origin(square_coordinate, border)};
+          RoughReservoir reservoir = RoughReservoir_init(pour_point, 0);
+          reservoir.identifier =
+              str(square_coordinate) + "_OCEAN_RES" + str(count);
+          reservoir.ocean = true;
+          reservoir.watershed_area = 0;
+          reservoir.max_dam_height = 0;
+          for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
+            reservoir.areas.push_back(0);
+            reservoir.dam_volumes.push_back(0);
+            reservoir.volumes.push_back(INF);
+            reservoir.water_rocks.push_back(INF);
+          }
+          update_reservoir_boundary(reservoir.shape_bound, pour_point, 1);
+          write_rough_reservoir_csv(csv_file, reservoir);
+          write_rough_reservoir_data(csv_data_file, reservoir);
+          count++;
+        }
+      } else {
+        if (!pour_points->get(row, col) || filter->get(row, col))
+          continue;
+        ArrayCoordinate pour_point = {row, col,
+                                      get_origin(square_coordinate, border)};
+        i++;
+        RoughReservoir reservoir = model_reservoir(
+            pour_point, flow_directions, DEM_filled, filter, model, i);
+        reservoir.ocean = false;
+        if (max(reservoir.volumes) >= min_reservoir_volume &&
+            max(reservoir.water_rocks) > min_reservoir_water_rock &&
+            reservoir.max_dam_height >= min_max_dam_height) {
+          reservoir.watershed_area =
+              find_area(pour_point) * flow_accumulation->get(row, col);
+
+          reservoir.identifier = str(square_coordinate) + "_RES" + str(i);
+
+          write_rough_reservoir_csv(csv_file, reservoir);
+          write_rough_reservoir_data(csv_data_file, reservoir);
+          count++;
+        }
+      }
     }
-	write_rough_reservoir_csv_header(csv_file);
-
-	mkdir(convert_string(file_storage_location+"processing_files/reservoirs"),0777);
-	FILE *csv_data_file;
-	if(ocean)
-		csv_data_file = fopen(convert_string(file_storage_location+"processing_files/reservoirs/ocean_"+str(square_coordinate)+"_reservoirs_data.csv"), "w");
-	else
-		csv_data_file = fopen(convert_string(file_storage_location+"processing_files/reservoirs/"+str(square_coordinate)+"_reservoirs_data.csv"), "w");
-	if (!csv_file) {
-	 	fprintf(stderr, "failed to open reservoir CSV data file\n");
-		exit(1);
-    }
-	write_rough_reservoir_data_header(csv_data_file);
-
-	int i = 0;
-	int count = 0;
-	Model<int>* model = new Model<int>(pour_points->nrows(), pour_points->ncols(), MODEL_SET_ZERO);
-
-	for (int row=border;row <border+DEM_filled->nrows()-2*border; row++)
-		for (int col=border;col <border+DEM_filled->ncols()-2*border; col++) {
-			if(ocean){
-				if(filter->get(row,col)) continue;
-				if(row==border || col==border || row==border+DEM_filled->nrows()-2*border-1 || col==border+DEM_filled->ncols()-2*border-1) continue;
-				if(DEM_filled->get(row,col)>=1-EPS && pour_points->get(row+directions.at(flow_directions->get(row,col)).row,col+directions.at(flow_directions->get(row,col)).col)==true){
-					ArrayCoordinate pour_point = {row, col , get_origin(square_coordinate, border)};
-					RoughReservoir reservoir = RoughReservoir_init(pour_point, 0);
-					reservoir.identifier = str(square_coordinate)+"_OCEAN_RES"+str(count);
-					reservoir.ocean = true;
-					reservoir.watershed_area = 0;
-					reservoir.max_dam_height = 0;
-					for (uint ih =0 ; ih< dam_wall_heights.size(); ih++) {
-						reservoir.areas.push_back(0);
-						reservoir.dam_volumes.push_back(0);
-						reservoir.volumes.push_back(INF);
-						reservoir.water_rocks.push_back(INF);
-					}
-					update_reservoir_boundary(reservoir.shape_bound, pour_point, 1);
-					write_rough_reservoir_csv(csv_file, reservoir);
-					write_rough_reservoir_data(csv_data_file, reservoir);
-					count++;
-				}
-			}else{
-				if (!pour_points->get(row,col) || filter->get(row,col)) continue;
-				ArrayCoordinate pour_point = {row, col , get_origin(square_coordinate, border)};
-				i++;
-				RoughReservoir reservoir = model_reservoir(pour_point, flow_directions, DEM_filled, filter, model, i);
-				reservoir.ocean = false;
-				if ( max(reservoir.volumes)>=min_reservoir_volume &&
-				     max(reservoir.water_rocks)>min_reservoir_water_rock &&
-				     reservoir.max_dam_height>=min_max_dam_height) {
-					reservoir.watershed_area = find_area(pour_point)*flow_accumulation->get(row,col);
-
-					reservoir.identifier = str(square_coordinate)+"_RES"+str(i);
-
-					write_rough_reservoir_csv(csv_file, reservoir);
-					write_rough_reservoir_data(csv_data_file, reservoir);
-					count++;
-				}
-			}
-		}
-	fclose(csv_file);
-	fclose(csv_data_file);
-	return count;
+  fclose(csv_file);
+  fclose(csv_data_file);
+  return count;
 }
 
 int main(int nargs, char **argv)
 {
-	GridSquare square_coordinate;
-	bool brownfield = false;
-	bool pit = false;
-	string prefix = "";
-	string arg1(argv[1]);
-
-	int adj = 0;
-	if(arg1.compare("ocean")==0){
-		ocean = true;
-		prefix = "ocean_";
-		adj = 1;
-		arg1 = argv[1+adj];
-	}
-	if(arg1.compare("pit")==0){
-		brownfield = true;
-		pit = true;
-		prefix = "pit_";
-		adj = 1;
-		arg1 = argv[1+adj];
-		if(nargs>2+adj)
-			display = atoi(argv[2+adj]);
-		printf("Screening started for %s%s\n",convert_string(prefix),argv[1+adj]);
-	}else if(arg1.compare("reservoir")==0){
-		brownfield = true;
-		adj = 1;
-		arg1 = argv[1+adj];
-		if(nargs>2+adj)
-			display = atoi(argv[2+adj]);
-		printf("Screening started for %s%s\n",convert_string(prefix),argv[1+adj]);
-	}else{
-		try{
-			int lon = stoi(arg1);
-			square_coordinate = GridSquare_init(atoi(argv[2+adj]), lon);
-			if(nargs>3+adj)
-				display = atoi(argv[3+adj]);
-			printf("Screening started for %s\n",convert_string(prefix+str(square_coordinate)));
-		}catch(exception& e){
-			brownfield = true;
-			if(nargs>2+adj)
-				display = atoi(argv[2+adj]);
-			printf("Screening started for %s%s\n",convert_string(prefix),argv[1+adj]);
-		}
-	}
+  search_config = SearchConfig(nargs, argv);
+  cout << "Screening started for " << search_config.filename() << endl;
 
 	GDALAllRegister();
 	parse_variables(convert_string("storage_location"));
@@ -539,17 +522,17 @@ int main(int nargs, char **argv)
 	unsigned long start_usec = walltime_usec();
 	unsigned long t_usec = start_usec;
 
-	if(!brownfield){
-		Model<short>* DEM = read_DEM_with_borders(square_coordinate, border);
+	if(search_config.search_type.not_existing()){
+		Model<short>* DEM = read_DEM_with_borders(search_config.grid_square, border);
 
-		if (display) {
+		if (search_config.logger.output_debug()) {
 			printf("\nAfter border added:\n");
 			DEM->print();
 		}
 		if(debug_output){
 			mkdir(convert_string("debug"),0777);
 			mkdir(convert_string("debug/input"),0777);
-			DEM->write("debug/input/"+str(square_coordinate)+"_input.tif", GDT_Int16);
+			DEM->write("debug/input/"+str(search_config.grid_square)+"_input.tif", GDT_Int16);
 		}
 
 		Model<char>* flow_directions;
@@ -559,22 +542,22 @@ int main(int nargs, char **argv)
 		Model<bool>* filter;
 
 		if (debug) {
-			filter = new Model<bool>(file_storage_location+"debug/filter/"+str(square_coordinate)+"_filter.tif", GDT_Byte);
-			DEM_filled = new Model<short>(file_storage_location+"debug/DEM_filled/"+str(square_coordinate)+"_DEM_filled.tif", GDT_Int16);
-			flow_directions = new Model<char>(file_storage_location+"debug/flow_directions/"+str(square_coordinate)+"_flow_directions.tif", GDT_Byte);
-			flow_accumulation =  new Model<int>(file_storage_location+"debug/flow_accumulation/"+str(square_coordinate)+"_flow_accumulation.tif", GDT_Int32);
-			pour_points = new Model<bool>(file_storage_location+"debug/pour_points/"+str(square_coordinate)+"_pour_points.tif", GDT_Byte);
+			filter = new Model<bool>(file_storage_location+"debug/filter/"+str(search_config.grid_square)+"_filter.tif", GDT_Byte);
+			DEM_filled = new Model<short>(file_storage_location+"debug/DEM_filled/"+str(search_config.grid_square)+"_DEM_filled.tif", GDT_Int16);
+			flow_directions = new Model<char>(file_storage_location+"debug/flow_directions/"+str(search_config.grid_square)+"_flow_directions.tif", GDT_Byte);
+			flow_accumulation =  new Model<int>(file_storage_location+"debug/flow_accumulation/"+str(search_config.grid_square)+"_flow_accumulation.tif", GDT_Int32);
+			pour_points = new Model<bool>(file_storage_location+"debug/pour_points/"+str(search_config.grid_square)+"_pour_points.tif", GDT_Byte);
 		}else {
 			t_usec = walltime_usec();
 			filter = read_filter(DEM, filter_filenames);
-			if (display) {
+			if (search_config.logger.output_debug()) {
 				printf("\nFilter:\n");
 				filter->print();
 				printf("Filter Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - t_usec) );
 			}
 			if(debug_output){
 				mkdir(convert_string(file_storage_location+"debug/filter"),0777);
-				filter->write(file_storage_location+"debug/filter/"+str(square_coordinate)+"_filter.tif", GDT_Byte);
+				filter->write(file_storage_location+"debug/filter/"+str(search_config.grid_square)+"_filter.tif", GDT_Byte);
 			}
 
 			t_usec = walltime_usec();
@@ -584,87 +567,86 @@ int main(int nargs, char **argv)
 			for(int row = 0; row<DEM->nrows();row++)
 				for(int col = 0; col<DEM->ncols();col++)
 					DEM_filled->set(row, col, convert_to_int(DEM_filled_no_flat->get(row, col)));
-			if (display) {
+			if (search_config.logger.output_debug()) {
 				printf("\nFilled No Flats:\n");
 				DEM_filled_no_flat->print();
 				printf("Fill Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - t_usec) );
 			}
 			if(debug_output){
 				mkdir(convert_string(file_storage_location+"debug/DEM_filled"),0777);
-				DEM_filled->write(file_storage_location+"debug/DEM_filled/"+str(square_coordinate)+"_DEM_filled.tif", GDT_Int16);
-				DEM_filled_no_flat->write(file_storage_location+"debug/DEM_filled/"+str(square_coordinate)+"_DEM_filled_no_flat.tif",GDT_Float64);
+				DEM_filled->write(file_storage_location+"debug/DEM_filled/"+str(search_config.grid_square)+"_DEM_filled.tif", GDT_Int16);
+				DEM_filled_no_flat->write(file_storage_location+"debug/DEM_filled/"+str(search_config.grid_square)+"_DEM_filled_no_flat.tif",GDT_Float64);
 			}
 
 			t_usec = walltime_usec();
 			flow_directions = flow_direction(DEM_filled_no_flat);
-			if (display) {
+			if (search_config.logger.output_debug()) {
 				printf("\nFlow Directions:\n");
 				flow_directions->print();
 				printf("Flow directions Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - t_usec) );
 			}
 			if(debug_output){
 				mkdir(convert_string(file_storage_location+"debug/flow_directions"),0777);
-				flow_directions->write(file_storage_location+"debug/flow_directions/"+str(square_coordinate)+"_flow_directions.tif",GDT_Byte);
+				flow_directions->write(file_storage_location+"debug/flow_directions/"+str(search_config.grid_square)+"_flow_directions.tif",GDT_Byte);
 			}
 			mkdir(convert_string(file_storage_location+"processing_files/flow_directions"),0777);
-			flow_directions->write(file_storage_location+"processing_files/flow_directions/"+str(square_coordinate)+"_flow_directions.tif",GDT_Byte);
+			flow_directions->write(file_storage_location+"processing_files/flow_directions/"+str(search_config.grid_square)+"_flow_directions.tif",GDT_Byte);
 
 			t_usec = walltime_usec();
 			flow_accumulation = find_flow_accumulation(flow_directions, DEM_filled_no_flat);
-			if (display) {
+			if (search_config.logger.output_debug()) {
 				printf("\nFlow Accumulation:\n");
 				flow_accumulation->print();
 				printf("Flow accumulation Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - t_usec) );
 			}
 			if(debug_output){
 				mkdir(convert_string(file_storage_location+"debug/flow_accumulation"),0777);
-				flow_accumulation->write(file_storage_location+"debug/flow_accumulation/"+str(square_coordinate)+"_flow_accumulation.tif", GDT_Int32);
+				flow_accumulation->write(file_storage_location+"debug/flow_accumulation/"+str(search_config.grid_square)+"_flow_accumulation.tif", GDT_Int32);
 			}
 			delete DEM_filled_no_flat;
 
-			if(ocean){
+			if(search_config.search_type == SearchType::OCEAN){
 				pour_points = find_ocean(DEM);
-				if (display) {
+				if (search_config.logger.output_debug()) {
 					printf("\nOcean\n");
 					pour_points->print();
 				}
 				if(debug_output){
 					mkdir(convert_string(file_storage_location+"debug/ocean"),0777);
-					pour_points->write(file_storage_location+"debug/ocean/"+str(square_coordinate)+"_ocean.tif",GDT_Byte);
+					pour_points->write(file_storage_location+"debug/ocean/"+str(search_config.grid_square)+"_ocean.tif",GDT_Byte);
 				}
 			}else{
 				
 				
 				Model<bool>* streams = find_streams(flow_accumulation);
-				if (display) {
+				if (search_config.logger.output_debug()) {
 					printf("\nStreams (Greater than %d accumulation):\n", stream_threshold);
 					streams->print();
 				}
 				if(debug_output){
 					mkdir(convert_string(file_storage_location+"debug/streams"),0777);
-					streams->write(file_storage_location+"debug/streams/"+str(square_coordinate)+"_streams.tif",GDT_Byte);
+					streams->write(file_storage_location+"debug/streams/"+str(search_config.grid_square)+"_streams.tif",GDT_Byte);
 				}
 
 				pour_points = find_pour_points(streams, flow_directions, DEM_filled);
-				if (display) {
+				if (search_config.logger.output_debug()) {
 					printf("\nPour points (Streams every %dm):\n", contour_height);
 					pour_points->print();
 				}
 				if(debug_output){
 					mkdir(convert_string(file_storage_location+"debug/pour_points"),0777);
-					pour_points->write(file_storage_location+"debug/pour_points/"+str(square_coordinate)+"_pour_points.tif",GDT_Byte);
+					pour_points->write(file_storage_location+"debug/pour_points/"+str(search_config.grid_square)+"_pour_points.tif",GDT_Byte);
 				}
 				delete streams;
 			}
 		}
 
 		t_usec = walltime_usec();
-		int count = model_reservoirs(square_coordinate, pour_points, flow_directions, DEM_filled, flow_accumulation, filter);
-		if(display)
-			printf("Found %d reservoirs. Runtime: %.2f sec\n", count, 1.0e-6*(walltime_usec() - t_usec));
-		printf(convert_string("Screening finished for "+prefix+str(square_coordinate)+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
-	}else{
-		string filename = prefix+format_for_filename(arg1);
+		int count = model_reservoirs(search_config.grid_square, pour_points, flow_directions, DEM_filled, flow_accumulation, filter);
+		search_config.logger.debug("Found " + to_string(count) + " reservoirs. Runtime: " + to_string(1.0e-6*walltime_usec() - t_usec) + " sec");
+		printf(convert_string("Screening finished for "+search_config.search_type.prefix()+str(search_config.grid_square)+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
+	} else {
+		string filename = search_config.filename();
 
 		mkdir(convert_string(file_storage_location+"output/reservoirs"),0777);
 		FILE *csv_file = fopen(convert_string(file_storage_location+"output/reservoirs/"+filename+"_reservoirs.csv"), "w");
@@ -682,14 +664,14 @@ int main(int nargs, char **argv)
 	    }
 		write_rough_reservoir_data_header(csv_data_file);
 
-		RoughReservoir reservoir = get_existing_rough_reservoir(arg1);
-		reservoir.ocean = ocean;
-		reservoir.pit = pit;
+		RoughReservoir reservoir = get_existing_rough_reservoir(search_config.name);
+		reservoir.ocean = search_config.search_type==SearchType::OCEAN;
+		reservoir.pit = search_config.search_type==SearchType::PIT;
 		write_rough_reservoir_csv(csv_file, reservoir);
 		write_rough_reservoir_data(csv_data_file, reservoir);
 
 	    fclose(csv_file);
 		fclose(csv_data_file);
-		printf(convert_string("Screening finished for "+prefix+arg1+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
+		printf(convert_string("Screening finished for "+search_config.filename()+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
 	}
 }

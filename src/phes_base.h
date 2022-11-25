@@ -9,9 +9,14 @@
 #include <sys/time.h>
 
 #include <bits/stdc++.h>
+
+#include "search_config.hpp"
+
 using namespace std;
 
 void parse_variables(char *filename);
+
+extern SearchConfig search_config;
 
 const double EPS = 1.0e-6;
 const double INF = 1.0e18;
@@ -35,8 +40,6 @@ extern int border;       // Number of cells to add as border around DEM square
 extern double dambatter; // Slope on sides of dam
 extern double cwidth;    // Width of top of dam
 extern double freeboard; // Freeboard on dam
-extern int display;      // Whether to display full output (Debug info)
-extern bool ocean;
 
 // Shapefile tiling
 extern vector<string>
@@ -165,19 +168,22 @@ extern vector<CategoryCutoff> category_cutoffs;
 
 bool file_exists(char *name);
 
-#include "model2D.h"
 
 #include "coordinates.h"
-#include "polygons.h"
-#include "reservoir.h"
-
-#include "csv.h"
 
 struct BigModel {
   GridSquare neighbors[9];
   Model<short> *DEM;
   Model<char> *flow_directions[9];
 };
+
+
+
+#include "model2D.h"
+#include "polygons.h"
+#include "reservoir.h"
+
+#include "csv.h"
 
 int convert_to_int(double f);
 double max(vector<double> a);

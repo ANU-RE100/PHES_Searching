@@ -1,5 +1,6 @@
 #include "phes_base.h"
 
+SearchConfig search_config;
 int display = false;
 bool ocean = false;
 

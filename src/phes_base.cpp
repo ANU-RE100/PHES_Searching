@@ -108,8 +108,7 @@ Model<short>* read_DEM_with_borders(GridSquare sc, int border){
 					DEM->set(row, col, DEM_temp->get(row-tile_offset.row,col-tile_offset.col));
 			delete DEM_temp;
 		}catch (int e){
-			if(display)
-				fprintf(stderr, "Could not find file %s: %s\n", convert_string(file_storage_location+"input/DEMs/"+str(gs)+"_1arc_v3.tif"), strerror(errno));
+			search_config.logger.debug("Could not find file "+file_storage_location+"input/DEMs/"+str(gs)+"_1arc_v3.tif " + strerror(errno));
 			if (i==0)
 				throw(1);
 		}
@@ -139,8 +138,7 @@ BigModel BigModel_init(GridSquare sc){
 		try{
 			big_model.flow_directions[i] = new Model<char>(file_storage_location+"processing_files/flow_directions/"+str(gs)+"_flow_directions.tif",GDT_Byte);
 		}catch(int e){
-			if(display)
-				printf("Could not find %s\n", convert_string(str(gs)));
+			search_config.logger.debug("Could not find " + str(gs));
 		}
 	}
 	return big_model;
@@ -198,56 +196,61 @@ GeographicCoordinate get_origin(double latitude, double longitude, int border){
 	return GeographicCoordinate_init(FLOOR(latitude)+1+(border/3600.0),FLOOR(longitude)-(border/3600.0));
 }
 
-ExistingReservoir get_existing_reservoir(string name){
-	ExistingReservoir to_return;
-	vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_csv));
+ExistingReservoir get_existing_reservoir(string name) {
+  ExistingReservoir to_return;
+  vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(
+      convert_string(file_storage_location + "input/existing_reservoirs/" +
+                     existing_reservoirs_csv));
 
-	for(ExistingReservoir r : reservoirs)
-		if(r.identifier==name)
-			to_return = r;
+  for (ExistingReservoir r : reservoirs)
+    if (r.identifier == name)
+      to_return = r;
 
-	int i = 0;
-	for(string s : read_names(convert_string(file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_shp_names))){
-		if(s==name)
-			break;
-		else
-			i++;
-	}
-	
-	string filename = file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_shp;
-	char *shp_filename = new char[filename.length() + 1];
-	strcpy(shp_filename, filename.c_str());
-    if(!file_exists(shp_filename)){
-		if(display)
-			cout << "No file: "+filename;
-		throw(1);
-	}
-	SHPHandle SHP = SHPOpen(convert_string(filename), "rb" );
-	if(SHP != NULL ){
-    	int	nEntities;
-    	vector<vector<GeographicCoordinate>> relevant_polygons;
-    	SHPGetInfo(SHP, &nEntities, NULL, NULL, NULL );
+  int i = 0;
+  for (string s : read_names(convert_string(file_storage_location +
+                                            "input/existing_reservoirs/" +
+                                            existing_reservoirs_shp_names))) {
+    if (s == name)
+      break;
+    else
+      i++;
+  }
 
-        SHPObject *shape;
-        shape = SHPReadObject( SHP, i);
-        if( shape == NULL ){
-            fprintf( stderr,"Unable to read shape %d, terminating object reading.\n",i);
-        }
-        vector<GeographicCoordinate> temp_poly;
-        for(int j = 0; j < shape->nVertices; j++ )
-        {
-            // if(shape->panPartStart[iPart] == j )
-	           //  break;
-            GeographicCoordinate temp_point = GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
-            to_return.polygon.push_back(temp_point);
-        }
-        SHPDestroyObject( shape );
-    }else{
-    	throw(1);
+  string filename = file_storage_location + "input/existing_reservoirs/" +
+                    existing_reservoirs_shp;
+  char *shp_filename = new char[filename.length() + 1];
+  strcpy(shp_filename, filename.c_str());
+  if (!file_exists(shp_filename)) {
+    search_config.logger.debug("No file: " + filename);
+    throw(1);
+  }
+  SHPHandle SHP = SHPOpen(convert_string(filename), "rb");
+  if (SHP != NULL) {
+    int nEntities;
+    vector<vector<GeographicCoordinate>> relevant_polygons;
+    SHPGetInfo(SHP, &nEntities, NULL, NULL, NULL);
+
+    SHPObject *shape;
+    shape = SHPReadObject(SHP, i);
+    if (shape == NULL) {
+      fprintf(stderr, "Unable to read shape %d, terminating object reading.\n",
+              i);
     }
-    SHPClose(SHP);
-	
-	return to_return;
+    vector<GeographicCoordinate> temp_poly;
+    for (int j = 0; j < shape->nVertices; j++) {
+      // if(shape->panPartStart[iPart] == j )
+      //  break;
+      GeographicCoordinate temp_point =
+          GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
+      to_return.polygon.push_back(temp_point);
+    }
+    SHPDestroyObject(shape);
+  } else {
+    throw(1);
+  }
+  SHPClose(SHP);
+
+  return to_return;
 }
 
 RoughReservoir get_existing_rough_reservoir(string name){
