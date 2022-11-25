@@ -553,83 +553,93 @@ int main(int nargs, char **argv)
     parse_variables(convert_string(file_storage_location+"variables"));
     unsigned long t_usec = walltime_usec();
 
-    if(brownfield)
-        square_coordinate = get_square_coordinate(get_existing_reservoir(arg1));
-
-    if (pit)
-        pit_details = get_pit_details(arg1);
-
-    BigModel big_model = BigModel_init(square_coordinate);
-    vector<string> country_names;
-    vector<vector<vector<GeographicCoordinate>>> countries = read_countries(file_storage_location+"input/countries/countries.txt", country_names);
-
-    Model<bool>* seen = new Model<bool>(big_model.DEM->nrows(), big_model.DEM->nrows(), MODEL_SET_ZERO);
-    seen->set_geodata(big_model.DEM->get_geodata());
-    Model<char>* full_cur_model = new Model<char>(big_model.DEM->nrows(), big_model.DEM->ncols(), MODEL_SET_ZERO);
-
     pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+fname+"_rough_pretty_set_pairs_data.csv"));
-    mkdir(convert_string(file_storage_location+"output/final_output_classes"), 0777);
-    mkdir(convert_string(file_storage_location+"output/final_output_classes/"+fname),0777);
-    mkdir(convert_string(file_storage_location+"output/final_output_FOM"), 0777);
-    mkdir(convert_string(file_storage_location+"output/final_output_FOM/"+fname),0777);
 
-    FILE *total_csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+fname+"/"+fname+"_total.csv"), "w");
-    write_total_csv_header(total_csv_file_classes);
-    FILE *total_csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+fname+"/"+fname+"_total.csv"), "w");
-    write_total_csv_header(total_csv_file_FOM);
+    uint total_pairs = 0;
+	for(uint i = 0; i<pairs.size(); i++)
+		total_pairs += pairs[i].size();
 
-    int total_count = 0;
-    int total_capacity = 0;
-    for(uint i = 0; i<tests.size(); i++){
-        sort(pairs[i].begin(), pairs[i].end());
-        
-        FILE *csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+fname+"/"+fname+"_"+str(tests[i])+".csv"), "w");
-        write_pair_csv_header(csv_file_classes, false);
-        FILE *csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+fname+"/"+fname+"_"+str(tests[i])+".csv"), "w");
-        write_pair_csv_header(csv_file_FOM, true);
+	if (total_pairs > 0) {
 
-        ofstream kml_file_classes(convert_string(file_storage_location+"output/final_output_classes/"+fname+"/"+fname+"_"+str(tests[i])+".kml"), ios::out);
-        ofstream kml_file_FOM(convert_string(file_storage_location+"output/final_output_FOM/"+fname+"/"+fname+"_"+str(tests[i])+".kml"), ios::out);
-        KML_Holder kml_holder;
+        mkdir(convert_string(file_storage_location+"output/final_output_classes"), 0777);
+        mkdir(convert_string(file_storage_location+"output/final_output_classes/"+fname),0777);
+        mkdir(convert_string(file_storage_location+"output/final_output_FOM"), 0777);
+        mkdir(convert_string(file_storage_location+"output/final_output_FOM/"+fname),0777);
 
-        sort(pairs[i].begin(), pairs[i].end());
-        int count = 0;
-	    set<string> lowers;
-        set<string> uppers;
-        bool keep_lower;
-        bool keep_upper;
-        for(uint j=0; j<pairs[i].size(); j++){
-            Pair_KML pair_kml;
-            bool non_overlap;
-            int max_FOM = category_cutoffs[0].storage_cost*tests[i].storage_time+category_cutoffs[0].power_cost;
-            if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, max_FOM, big_model, full_cur_model, countries, country_names)){
-                write_pair_csv(csv_file_classes, &pairs[i][j], false);
-                write_pair_csv(csv_file_FOM, &pairs[i][j], true);
-                keep_lower = !lowers.contains(pairs[i][j].lower.identifier);
-                keep_upper = !uppers.contains(pairs[i][j].upper.identifier);
-                lowers.insert(pairs[i][j].lower.identifier);
-                uppers.insert(pairs[i][j].upper.identifier);
-                update_kml_holder(&kml_holder, &pairs[i][j], &pair_kml, keep_upper, keep_lower);
-                count++;
-                if(non_overlap){
-                    total_count++;
-                    total_capacity+=tests[i].energy_capacity;
+        if(brownfield)
+            square_coordinate = get_square_coordinate(get_existing_reservoir(arg1));
+
+        if (pit)
+            pit_details = get_pit_details(arg1);
+
+        BigModel big_model = BigModel_init(square_coordinate);
+        vector<string> country_names;
+        vector<vector<vector<GeographicCoordinate>>> countries = read_countries(file_storage_location+"input/countries/countries.txt", country_names);
+
+        Model<bool>* seen = new Model<bool>(big_model.DEM->nrows(), big_model.DEM->nrows(), MODEL_SET_ZERO);
+        seen->set_geodata(big_model.DEM->get_geodata());
+        Model<char>* full_cur_model = new Model<char>(big_model.DEM->nrows(), big_model.DEM->ncols(), MODEL_SET_ZERO);
+
+        FILE *total_csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+fname+"/"+fname+"_total.csv"), "w");
+        write_total_csv_header(total_csv_file_classes);
+        FILE *total_csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+fname+"/"+fname+"_total.csv"), "w");
+        write_total_csv_header(total_csv_file_FOM);
+
+        int total_count = 0;
+        int total_capacity = 0;
+        for(uint i = 0; i<tests.size(); i++){
+            sort(pairs[i].begin(), pairs[i].end());
+            
+            FILE *csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+fname+"/"+fname+"_"+str(tests[i])+".csv"), "w");
+            write_pair_csv_header(csv_file_classes, false);
+            FILE *csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+fname+"/"+fname+"_"+str(tests[i])+".csv"), "w");
+            write_pair_csv_header(csv_file_FOM, true);
+
+            ofstream kml_file_classes(convert_string(file_storage_location+"output/final_output_classes/"+fname+"/"+fname+"_"+str(tests[i])+".kml"), ios::out);
+            ofstream kml_file_FOM(convert_string(file_storage_location+"output/final_output_FOM/"+fname+"/"+fname+"_"+str(tests[i])+".kml"), ios::out);
+            KML_Holder kml_holder;
+
+            sort(pairs[i].begin(), pairs[i].end());
+            int count = 0;
+            set<string> lowers;
+            set<string> uppers;
+            bool keep_lower;
+            bool keep_upper;
+            for(uint j=0; j<pairs[i].size(); j++){
+                Pair_KML pair_kml;
+                bool non_overlap;
+                int max_FOM = category_cutoffs[0].storage_cost*tests[i].storage_time+category_cutoffs[0].power_cost;
+                if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, max_FOM, big_model, full_cur_model, countries, country_names)){
+                    write_pair_csv(csv_file_classes, &pairs[i][j], false);
+                    write_pair_csv(csv_file_FOM, &pairs[i][j], true);
+                    keep_lower = !lowers.contains(pairs[i][j].lower.identifier);
+                    keep_upper = !uppers.contains(pairs[i][j].upper.identifier);
+                    lowers.insert(pairs[i][j].lower.identifier);
+                    uppers.insert(pairs[i][j].upper.identifier);
+                    update_kml_holder(&kml_holder, &pairs[i][j], &pair_kml, keep_upper, keep_lower);
+                    count++;
+                    if(non_overlap){
+                        total_count++;
+                        total_capacity+=tests[i].energy_capacity;
+                    }
                 }
             }
-        }
 
-        kml_file_classes << output_kml(&kml_holder, fname, tests[i]);
-        kml_file_FOM << output_kml(&kml_holder, fname, tests[i]);
-        if(display)
-            printf("%d %.1fGWh %dh Pairs\n", count, tests[i].energy_capacity, tests[i].storage_time);
-        kml_file_classes.close();
-        kml_file_FOM.close();
-        fclose(csv_file_classes);
-        fclose(csv_file_FOM);
+            kml_file_classes << output_kml(&kml_holder, fname, tests[i]);
+            kml_file_FOM << output_kml(&kml_holder, fname, tests[i]);
+            if(display)
+                printf("%d %.1fGWh %dh Pairs\n", count, tests[i].energy_capacity, tests[i].storage_time);
+            kml_file_classes.close();
+            kml_file_FOM.close();
+            fclose(csv_file_classes);
+            fclose(csv_file_FOM);
+        }
+        write_total_csv(total_csv_file_classes, str(square_coordinate), total_count, total_capacity);
+        write_total_csv(total_csv_file_FOM, str(square_coordinate), total_count, total_capacity);
+        fclose(total_csv_file_classes);
+        fclose(total_csv_file_FOM);
+        printf("Constructor finished for %s. Found %d non-overlapping pairs with a total of %dGWh. Runtime: %.2f sec\n", convert_string(fname), total_count, total_capacity, 1.0e-6*(walltime_usec() - t_usec) );
     }
-    write_total_csv(total_csv_file_classes, str(square_coordinate), total_count, total_capacity);
-    write_total_csv(total_csv_file_FOM, str(square_coordinate), total_count, total_capacity);
-    fclose(total_csv_file_classes);
-    fclose(total_csv_file_FOM);
-    printf("Constructor finished for %s. Found %d non-overlapping pairs with a total of %dGWh. Runtime: %.2f sec\n", convert_string(fname), total_count, total_capacity, 1.0e-6*(walltime_usec() - t_usec) );
+    else
+        printf("Constructor finished for %s. Found no pairs. Runtime: %.2f sec\n", convert_string(fname), 1.0e-6*(walltime_usec() - t_usec) );
 }
