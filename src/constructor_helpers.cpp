@@ -270,14 +270,20 @@ bool model_reservoir(Reservoir *reservoir,
       ArrayCoordinate p = q.front();
       q.pop();
 
-      full_cur_model->set(p.row + offset.row, p.col + offset.col, 1);
+			if (full_cur_model != NULL)
+				full_cur_model->set(p.row + offset.row, p.col + offset.col, 1);
 
       ArrayCoordinate full_big_ac = {p.row + offset.row, p.col + offset.col,
                                      DEM->get_origin()};
 
       temp_used_points.push_back(full_big_ac);
-      if (seen !=NULL && seen->get(full_big_ac.row, full_big_ac.col))
-        *non_overlap = false;
+			if (seen != NULL && seen->get(full_big_ac.row, full_big_ac.col)){
+				if (non_overlap != NULL){
+					*non_overlap = false;
+				} else {
+					return false;
+				}
+			}
       if (DEM->get(full_big_ac.row, full_big_ac.col) < -2000)
         return false;
 
@@ -323,6 +329,14 @@ bool model_reservoir(Reservoir *reservoir,
     return false;
   }
 
+  if (used_points != NULL)
+    for (uint i = 0; i < temp_used_points.size(); i++) {
+      used_points->push_back(temp_used_points[i]);
+    }
+
+  if (coordinates == NULL)
+    return true;
+
   vector<ArrayCoordinate> reservoir_polygon;
   try {
     reservoir_polygon =
@@ -331,13 +345,8 @@ bool model_reservoir(Reservoir *reservoir,
     return false;
   }
 
-	if(used_points !=NULL)
-		for (uint i = 0; i < temp_used_points.size(); i++) {
-			used_points->push_back(temp_used_points[i]);
-		}
-
-	//full_cur_model->write("out1.tif", GDT_Byte);
-  // DAM
+        //full_cur_model->write("out1.tif", GDT_Byte);
+  // DAM WALL
   reservoir->dam_volume = 0;
   reservoir->dam_length = 0;
   bool is_turkeys_nest = true;
