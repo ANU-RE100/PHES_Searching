@@ -52,7 +52,8 @@ find_package(
 
 add_subdirectory(src)
 
-foreach(target screening pairing pretty_set constructor search_driver shapefile_tiling)
+foreach(target screening pairing pretty_set constructor search_driver shapefile_tiling
+    reservoir_constructor depression_volume_finding)
   set(TARGETS $<TARGET_OBJECTS:util_objects> $<TARGET_OBJECTS:${target}_objects>)
   add_executable(${target} ${TARGETS})
 

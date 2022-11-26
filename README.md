@@ -12,13 +12,19 @@ sudo apt-get install -y libgdal-dev libshp-dev libboost-all-dev gdal-bin cmake
 
 Then, compile using CMake. For example
 
-```
+```bash
 mkdir build
 cd build
 cmake ..
-make -j $nproc
-make install -j $nproc
+make -j
+make install -j
 cd ..
+```
+
+or a convenient script has been set up to perform this with the command
+
+```bash
+./build.sh
 ```
 
 ## Usage
