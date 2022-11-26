@@ -1,6 +1,6 @@
 # How to use PHES searching software
 
-## [Input] (/input.md)
+[Input](./input.md)
 
 ## Variables 
 

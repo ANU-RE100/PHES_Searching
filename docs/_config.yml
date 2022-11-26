@@ -1,3 +1,8 @@
 theme: jekyll-theme-minimal
 title: PHES Searching
 description: Documentation for the PHES Searching software
+relative_links:
+  enabled: true
+  collections: true
+include:
+  - input.md
