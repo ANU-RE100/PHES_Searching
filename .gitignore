@@ -12,3 +12,4 @@ build
 .ccls-cache
 .cache
 compile_commands.json
+variables

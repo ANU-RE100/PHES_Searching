@@ -34,86 +34,88 @@ string kml_end =
 "</kml>\n";
 
 string get_html(Reservoir* reservoir, Pair* pair){
+	string newline = "";
 	if(reservoir->pit){
 		return
-"              <html>\n"
-"              <head><META http-equiv=\"Content-Type\" content=\"text/html\"><meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"></head>\n"
-"              <body style=\"margin:0px 0px 0px 0px;overflow:auto;background:#FFFFFF;\">\n"
-"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-collapse:collapse;padding:3px 3px 3px 3px\">\n"
-"              <tr style=\"text-align:center;font-weight:bold;background:#9CBCE2\"><td>"+reservoir->identifier+"</td></tr>\n"
-"              <tr><td>\n"
-"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">\n"
-"              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>\n"
-"              <tr bgcolor=\"#D4E4F3\"><td>Elevation</td><td>"+to_string(reservoir->elevation)+"</td></tr>\n"
-"              <tr><td>Depth</td><td>"+dtos(reservoir->dam_height,0)+"</td></tr>\n"
-"              <tr bgcolor=\"#D4E4F3\"><td>Latitude</td><td>"+dtos(reservoir->latitude,4)+"</td></tr>\n"
-"              <tr><td>Longitude</td><td>"+dtos(reservoir->longitude,4)+"</td></tr>\n"
-"              <tr bgcolor=\"#D4E4F3\"><td>Volume (GL)</td><td>"+dtos(reservoir->volume,1)+"</td></tr>\n"
-"              <tr><td>Country</td><td>"+reservoir->country+"</td></tr>\n"
+"              <html>"+newline+
+"              <head><META http-equiv=\"Content-Type\" content=\"text/html\"><meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"></head>"+newline+
+"              <body style=\"margin:0px 0px 0px 0px;overflow:auto;background:#FFFFFF;\">"+newline+
+"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-collapse:collapse;padding:3px 3px 3px 3px\">"+newline+
+"              <tr style=\"text-align:center;font-weight:bold;background:#9CBCE2\"><td>"+reservoir->identifier+"</td></tr>"+newline+
+"              <tr><td>"+newline+
+"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">"+newline+
+(pair != NULL ? "              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>"+newline : "") +
+"              <tr bgcolor=\"#D4E4F3\"><td>Elevation</td><td>"+to_string(reservoir->elevation)+"</td></tr>"+newline+
+"              <tr><td>Depth</td><td>"+dtos(reservoir->dam_height,0)+"</td></tr>"+newline+
+"              <tr bgcolor=\"#D4E4F3\"><td>Latitude</td><td>"+dtos(reservoir->latitude,4)+"</td></tr>"+newline+
+"              <tr><td>Longitude</td><td>"+dtos(reservoir->longitude,4)+"</td></tr>"+newline+
+"              <tr bgcolor=\"#D4E4F3\"><td>Volume (GL)</td><td>"+dtos(reservoir->volume,1)+"</td></tr>"+newline+
+"              <tr><td>Country</td><td>"+reservoir->country+"</td></tr>"+newline+
 "              </table></td></tr></table></body></html>\n";
 	}else if(reservoir->brownfield){
 		return
-"              <html>\n"
-"              <head><META http-equiv=\"Content-Type\" content=\"text/html\"><meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"></head>\n"
-"              <body style=\"margin:0px 0px 0px 0px;overflow:auto;background:#FFFFFF;\">\n"
-"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-collapse:collapse;padding:3px 3px 3px 3px\">\n"
-"              <tr style=\"text-align:center;font-weight:bold;background:#9CBCE2\"><td>"+reservoir->identifier+"</td></tr>\n"
-"              <tr><td>\n"
-"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">\n"
-//"              <tr><td>Reservoir Ref.</td><td>"+reservoir->identifier+"</td></tr>\n"
-"              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>\n"
-"              <tr bgcolor=\"#D4E4F3\"><td>Elevation</td><td>"+to_string(reservoir->elevation)+"</td></tr>\n"
-"              <tr><td>Latitude</td><td>"+dtos(reservoir->latitude,4)+"</td></tr>\n"
-"              <tr bgcolor=\"#D4E4F3\"><td>Longitude</td><td>"+dtos(reservoir->longitude,4)+"</td></tr>\n"
-"              <tr><td>Volume (GL)</td><td>"+dtos(reservoir->volume,1)+"</td></tr>\n"
-"              <tr bgcolor=\"#D4E4F3\"><td>Country</td><td>"+reservoir->country+"</td></tr>\n"
+"              <html>"+newline+
+"              <head><META http-equiv=\"Content-Type\" content=\"text/html\"><meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"></head>"+newline+
+"              <body style=\"margin:0px 0px 0px 0px;overflow:auto;background:#FFFFFF;\">"+newline+
+"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-collapse:collapse;padding:3px 3px 3px 3px\">"+newline+
+"              <tr style=\"text-align:center;font-weight:bold;background:#9CBCE2\"><td>"+reservoir->identifier+"</td></tr>"+newline+
+"              <tr><td>"+newline+
+"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">"+newline+
+//"              <tr><td>Reservoir Ref.</td><td>"+reservoir->identifier+"</td></tr>"+newline+
+(pair != NULL ? "              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>"+newline : "")+
+"              <tr bgcolor=\"#D4E4F3\"><td>Elevation</td><td>"+to_string(reservoir->elevation)+"</td></tr>"+newline+
+"              <tr><td>Latitude</td><td>"+dtos(reservoir->latitude,4)+"</td></tr>"+newline+
+"              <tr bgcolor=\"#D4E4F3\"><td>Longitude</td><td>"+dtos(reservoir->longitude,4)+"</td></tr>"+newline+
+"              <tr><td>Volume (GL)</td><td>"+dtos(reservoir->volume,1)+"</td></tr>"+newline+
+"              <tr bgcolor=\"#D4E4F3\"><td>Country</td><td>"+reservoir->country+"</td></tr>"+newline+
 "              </table></td></tr></table></body></html>\n";
 	}else{
 		return
-"              <html>\n"
-"              <head><META http-equiv=\"Content-Type\" content=\"text/html\"><meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"></head>\n"
-"              <body style=\"margin:0px 0px 0px 0px;overflow:auto;background:#FFFFFF;\">\n"
-"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-collapse:collapse;padding:3px 3px 3px 3px\">\n"
-"              <tr style=\"text-align:center;font-weight:bold;background:#9CBCE2\"><td>"+reservoir->identifier+"</td></tr>\n"
-"              <tr><td>\n"
-"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">\n"
-//"              <tr><td>Reservoir Ref.</td><td>"+reservoir->identifier+"</td></tr>\n"
-"              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>\n"
-"              <tr bgcolor=\"#D4E4F3\"><td>Elevation</td><td>"+to_string(reservoir->elevation)+"</td></tr>\n"
-"              <tr><td>Latitude</td><td>"+dtos(reservoir->latitude,4)+"</td></tr>\n"
-"              <tr bgcolor=\"#D4E4F3\"><td>Longitude</td><td>"+dtos(reservoir->longitude,4)+"</td></tr>\n"
-"              <tr><td>Area (ha)</td><td>"+dtos(reservoir->area,0)+"</td></tr>\n"
-"              <tr bgcolor=\"#D4E4F3\"><td>Volume (GL)</td><td>"+dtos(reservoir->volume,1)+"</td></tr>\n"
-"              <tr><td>Dam Wall Height (m)</td><td>"+dtos(reservoir->dam_height,1)+"</td></tr>\n"
-"              <tr bgcolor=\"#D4E4F3\"><td>Dam Length (m)</td><td>"+dtos(reservoir->dam_length,0)+"</td></tr>\n"
-"              <tr><td>Dam Volume (GL)</td><td>"+dtos(reservoir->dam_volume,1)+"</td></tr>\n"
-"              <tr bgcolor=\"#D4E4F3\"><td>Water/Rock Ratio</td><td>"+dtos(reservoir->water_rock,1)+"</td></tr>\n"
-"              <tr><td>Country</td><td>"+reservoir->country+"</td></tr>\n"
+"              <html>"+newline+
+"              <head><META http-equiv=\"Content-Type\" content=\"text/html\"><meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"></head>"+newline+
+"              <body style=\"margin:0px 0px 0px 0px;overflow:auto;background:#FFFFFF;\">"+newline+
+"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-collapse:collapse;padding:3px 3px 3px 3px\">"+newline+
+"              <tr style=\"text-align:center;font-weight:bold;background:#9CBCE2\"><td>"+reservoir->identifier+"</td></tr>"+newline+
+"              <tr><td>"+newline+
+"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">"+newline+
+//"              <tr><td>Reservoir Ref.</td><td>"+reservoir->identifier+"</td></tr>"+newline+
+(pair != NULL ? "              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>"+newline : "")+
+"              <tr bgcolor=\"#D4E4F3\"><td>Elevation</td><td>"+to_string(reservoir->elevation)+"</td></tr>"+newline+
+"              <tr><td>Latitude</td><td>"+dtos(reservoir->latitude,4)+"</td></tr>"+newline+
+"              <tr bgcolor=\"#D4E4F3\"><td>Longitude</td><td>"+dtos(reservoir->longitude,4)+"</td></tr>"+newline+
+"              <tr><td>Area (ha)</td><td>"+dtos(reservoir->area,0)+"</td></tr>"+newline+
+"              <tr bgcolor=\"#D4E4F3\"><td>Volume (GL)</td><td>"+dtos(reservoir->volume,1)+"</td></tr>"+newline+
+"              <tr><td>Dam Wall Height (m)</td><td>"+dtos(reservoir->dam_height,1)+"</td></tr>"+newline+
+"              <tr bgcolor=\"#D4E4F3\"><td>Dam Length (m)</td><td>"+dtos(reservoir->dam_length,0)+"</td></tr>"+newline+
+"              <tr><td>Dam Volume (GL)</td><td>"+dtos(reservoir->dam_volume,1)+"</td></tr>"+newline+
+"              <tr bgcolor=\"#D4E4F3\"><td>Water/Rock Ratio</td><td>"+dtos(reservoir->water_rock,1)+"</td></tr>"+newline+
+"              <tr><td>Country</td><td>"+reservoir->country+"</td></tr>"+newline+
 "              </table></td></tr></table></body></html>\n";
 	}
 }
 
 string get_html(Pair* pair){
+	string newline = "";
 	return
-"              <html>\n"
-"              <head><META http-equiv=\"Content-Type\" content=\"text/html\"><meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"></head>\n"
-"              <body style=\"margin:0px 0px 0px 0px;overflow:auto;background:#FFFFFF;\">\n"
-"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-collapse:collapse;padding:3px 3px 3px 3px\">\n"
-"              <tr style=\"text-align:center;font-weight:bold;background:#9CBCE2\">\n"
-"              <td>"+pair->identifier+"</td></tr>\n"
-"              <tr><td>\n"
-"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">\n"
-"              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>\n"
-"              <tr bgcolor=\"#D4E4F3\"><td>Head (m)</td><td>"+to_string(pair->head)+"</td></tr>\n"
-"              <tr><td>Separation (km)</td><td>"+dtos(pair->distance,1)+"</td></tr>\n"
-"              <tr bgcolor=\"#D4E4F3\"><td>Average Slope (%)</td><td>"+dtos(pair->slope*100,0)+"</td></tr>\n"
-"              <tr><td>Volume (GL)</td><td>"+dtos(pair->volume,1)+"</td></tr>\n"
-"              <tr bgcolor=\"#D4E4F3\"><td>Water to Rock (Pair)</td><td>"+dtos(pair->water_rock,1)+"</td></tr>\n"
-"              <tr><td>Energy (GWh)</td><td>"+energy_capacity_to_string(pair->energy_capacity)+"</td></tr>\n"
-"              <tr bgcolor=\"#D4E4F3\"><td>Storage time (h)</td><td>"+to_string(pair->storage_time)+"</td></tr>\n"
-"              <tr><td>Country</td><td>"+pair->country+"</td></tr>\n"
-"              </table>\n"
-"              </body>\n"
+"              <html>"+newline+
+"              <head><META http-equiv=\"Content-Type\" content=\"text/html\"><meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"></head>"+newline+
+"              <body style=\"margin:0px 0px 0px 0px;overflow:auto;background:#FFFFFF;\">"+newline+
+"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-collapse:collapse;padding:3px 3px 3px 3px\">"+newline+
+"              <tr style=\"text-align:center;font-weight:bold;background:#9CBCE2\">"+newline+
+"              <td>"+pair->identifier+"</td></tr>"+newline+
+"              <tr><td>"+newline+
+"              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">"+newline+
+"              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>"+newline+
+"              <tr bgcolor=\"#D4E4F3\"><td>Head (m)</td><td>"+to_string(pair->head)+"</td></tr>"+newline+
+"              <tr><td>Separation (km)</td><td>"+dtos(pair->distance,1)+"</td></tr>"+newline+
+"              <tr bgcolor=\"#D4E4F3\"><td>Average Slope (%)</td><td>"+dtos(pair->slope*100,0)+"</td></tr>"+newline+
+"              <tr><td>Volume (GL)</td><td>"+dtos(pair->volume,1)+"</td></tr>"+newline+
+"              <tr bgcolor=\"#D4E4F3\"><td>Water to Rock (Pair)</td><td>"+dtos(pair->water_rock,1)+"</td></tr>"+newline+
+"              <tr><td>Energy (GWh)</td><td>"+energy_capacity_to_string(pair->energy_capacity)+"</td></tr>"+newline+
+"              <tr bgcolor=\"#D4E4F3\"><td>Storage time (h)</td><td>"+to_string(pair->storage_time)+"</td></tr>"+newline+
+"              <tr><td>Country</td><td>"+pair->country+"</td></tr>"+newline+
+"              </table>"+newline+
+"              </body>"+newline+
 "              </html>\n";
 }
 
@@ -287,14 +289,18 @@ string output_kml(KML_Holder* kml_holder, string square, Test test){
 	return to_return;
 }
 
-void update_kml_holder(KML_Holder* kml_holder, Pair* pair, Pair_KML* pair_kml){
+void update_kml_holder(KML_Holder* kml_holder, Pair* pair, Pair_KML* pair_kml, bool keep_upper, bool keep_lower){
 	kml_holder->points.push_back(get_point_kml(pair, pair_kml->point));
 	kml_holder->lines.push_back(get_line_kml(pair, pair_kml->line));
-	kml_holder->uppers.push_back(get_reservoir_kml(&pair->upper, upper_colour, pair_kml->upper, pair));
-	if(!pair->upper.brownfield)
-		kml_holder->upper_dams.push_back(get_dam_kml(&pair->upper, pair_kml->upper));
-	if(!pair->lower.ocean)
-		kml_holder->lowers.push_back(get_reservoir_kml(&pair->lower, lower_colour, pair_kml->lower, pair));
-	if(!pair->lower.brownfield && !pair->lower.ocean)
-		kml_holder->lower_dams.push_back(get_dam_kml(&pair->lower, pair_kml->lower));
+	if (keep_upper) {
+		kml_holder->uppers.push_back(get_reservoir_kml(&pair->upper, upper_colour, pair_kml->upper, pair));
+		if(!pair->upper.brownfield)
+			kml_holder->upper_dams.push_back(get_dam_kml(&pair->upper, pair_kml->upper));
+	}
+	if (keep_lower) {
+		if(!pair->lower.ocean)
+			kml_holder->lowers.push_back(get_reservoir_kml(&pair->lower, lower_colour, pair_kml->lower, pair));
+		if(!pair->lower.brownfield && !pair->lower.ocean)
+			kml_holder->lower_dams.push_back(get_dam_kml(&pair->lower, pair_kml->lower));
+	}
 }

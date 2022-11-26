@@ -82,8 +82,7 @@ vector<CategoryCutoff> category_cutoffs;
 
 void parse_variables(char* filename){
     if(!file_exists(filename)){
-		if(display)
-			cout << "No file: " << filename << "\n";
+		search_config.logger.error("No file: " + string(filename));
 		throw(1);
 	}
 	ifstream in(filename);

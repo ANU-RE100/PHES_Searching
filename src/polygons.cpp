@@ -30,8 +30,7 @@ void read_shp_filter(string filename, Model<bool>* filter){
 	char *shp_filename = new char[filename.length() + 1];
 	strcpy(shp_filename, filename.c_str());
     if(!file_exists(shp_filename)){
-		if(display)
-			cout << "No file: "+filename;
+		search_config.logger.error("No file: "+filename);
 		throw(1);
 	}
 	SHPHandle SHP = SHPOpen(convert_string(filename), "rb" );
@@ -67,8 +66,7 @@ void read_shp_filter(string filename, Model<bool>* filter){
 	        	relevant_polygons.push_back(temp_poly);
 	        SHPDestroyObject( shape );
 	    }
-	    if(display)
-	    	printf("%d Polygons imported from %s\n", (int)relevant_polygons.size(), convert_string(filename));
+	    search_config.logger.debug(to_string((int)relevant_polygons.size()) + "Polygons imported from " + filename);
 	    for(uint i = 0; i<relevant_polygons.size(); i++){
             polygon_to_raster(relevant_polygons[i], filter);
 	    }
