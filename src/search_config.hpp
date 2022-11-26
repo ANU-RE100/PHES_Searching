@@ -62,6 +62,8 @@ class Logger {
     Logger(char* c){
       if (atoi(c))
         logging_level = DEBUG;
+      else
+        logging_level = ERROR;
     }
     constexpr operator level() const { return logging_level; }
 
