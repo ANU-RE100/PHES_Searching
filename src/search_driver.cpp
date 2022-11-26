@@ -5,7 +5,7 @@
 #include "boost/filesystem.hpp"
 namespace fs = boost::filesystem;
 
-int display = true;
+SearchConfig search_config;
 
 // Create a lockfile for this driver and process, returning the ID of the driver
 int set_worker(string process){
