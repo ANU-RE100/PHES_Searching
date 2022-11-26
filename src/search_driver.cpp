@@ -6,7 +6,6 @@
 namespace fs = boost::filesystem;
 
 SearchConfig search_config;
-int display = true;
 
 // Create a lockfile for this driver and process, returning the ID of the driver
 int set_worker(string process){

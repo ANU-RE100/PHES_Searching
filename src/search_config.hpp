@@ -21,6 +21,9 @@ class SearchType {
     bool grid_cell(){
       return value == GREENFIELD || value == OCEAN || value == BULK_EXISTING;
     }
+    bool single(){
+      return value == SINGLE_EXISTING || value == PIT;
+    }
 
     // Filename prefix
     std::string prefix(){
@@ -88,7 +91,6 @@ class SearchConfig {
 
     SearchConfig() : search_type(SearchType::GREENFIELD), logger(Logger::ERROR){}
     SearchConfig(int nargs, char **argv) : search_type(SearchType::GREENFIELD), logger(Logger::ERROR) {
-
       std::string arg1(argv[1]);
       int adj = 0;
       if (arg1.compare("ocean") == 0) {

@@ -1,8 +1,7 @@
 #include "phes_base.h"
+#include "search_config.hpp"
 
 SearchConfig search_config;
-int display = false;
-bool ocean = false;
 
 vector<vector<Pair>> pairs;
 
@@ -96,63 +95,24 @@ bool check_pair(Pair& pair, Model<bool>* seen, BigModel& big_model){
 int main(int nargs, char **argv)
 {
 	GridSquare square_coordinate;
-	string fname;
-	string arg1(argv[1]);
-	string prefix = "";
-	bool brownfield = false;
+  search_config = SearchConfig(nargs, argv);
 
-	int adj = 0;
-	if(arg1.compare("ocean")==0){
-		ocean = true;
-		prefix = "ocean_";
-		adj = 1;
-		arg1 = argv[1+adj];
-	}
-	if(arg1.compare("pit")==0){
-		brownfield = true;
-		prefix = "pit_";
-		adj = 1;
-		arg1 = argv[1+adj];
-		fname = prefix+format_for_filename(arg1);
-		if(nargs>2+adj)
-			display = atoi(argv[2+adj]);
-	}else if(arg1.compare("reservoir")==0){
-		brownfield = true;
-		adj = 1;
-		arg1 = argv[1+adj];
-		fname = prefix+format_for_filename(arg1);
-		if(nargs>2+adj)
-			display = atoi(argv[2+adj]);
-	}else{
-		try{
-			int lon = stoi(arg1);
-			square_coordinate = GridSquare_init(atoi(argv[2+adj]), lon);
-			if(nargs>3+adj)
-				display = atoi(argv[3+adj]);
-			fname=prefix+str(square_coordinate);
-		}catch(exception& e){
-			brownfield = true;
-			fname = prefix+format_for_filename(arg1);
-			if(nargs>2+adj)
-				display = atoi(argv[2+adj]);
-		}
-	}
-	printf("Pretty set started for %s\n",convert_string(fname));
+	cout << "Pretty set started for " << search_config.filename();
 
 	GDALAllRegister();
 	parse_variables(convert_string("storage_location"));
 	parse_variables(convert_string(file_storage_location+"variables"));
 	unsigned long t_usec = walltime_usec();
 	
-	if(brownfield)
-		square_coordinate = get_square_coordinate(get_existing_reservoir(arg1));
+	if(search_config.search_type.single())
+		search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
 	
 	BigModel big_model = BigModel_init(square_coordinate);
 
-	pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pairs/"+fname+"_rough_pairs_data.csv"));
+	pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pairs/"+search_config.filename()+"_rough_pairs_data.csv"));
 
 	mkdir(convert_string(file_storage_location+"processing_files/pretty_set_pairs"),0777);
-	FILE *csv_data_file = fopen(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+fname+"_rough_pretty_set_pairs_data.csv"), "w");
+	FILE *csv_data_file = fopen(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+search_config.filename()+"_rough_pretty_set_pairs_data.csv"), "w");
 	write_rough_pair_data_header(csv_data_file);
 
 	for(uint i = 0; i<tests.size(); i++){
@@ -160,8 +120,8 @@ int main(int nargs, char **argv)
 		Model<bool>* seen = new Model<bool>(big_model.DEM->nrows(), big_model.DEM->nrows(), MODEL_SET_ZERO);
 		seen->set_geodata(big_model.DEM->get_geodata());
 
-		if(brownfield){
-			ExistingReservoir r = get_existing_reservoir(arg1);
+		if(search_config.search_type.single()){
+			ExistingReservoir r = get_existing_reservoir(search_config.name);
 			polygon_to_raster(r.polygon, seen);
 		}
 
@@ -173,8 +133,7 @@ int main(int nargs, char **argv)
 			}
 		}
 		delete seen;
-		if(display)
-			printf("%d %.1fGWh %dh Pairs\n", count, tests[i].energy_capacity, tests[i].storage_time);
+		search_config.logger.debug(to_string(count) + " " + to_string(tests[i].energy_capacity) + "GWh "+to_string(tests[i].storage_time) + "h Pairs");
 	}
-	printf("Pretty set finished for %s. Runtime: %.2f sec\n", convert_string(fname), 1.0e-6*(walltime_usec() - t_usec) );
+	cout << "Pretty set finished for " << search_config.filename() << ". Runtime: " << 1.0e-6*(walltime_usec() - t_usec)<< " sec" << endl;
 }

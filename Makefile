@@ -10,7 +10,7 @@ OBJS5 = src/search_driver.o $(GEN_OBJS)
 DIRS = bin input output processing_files driver_files
 INCDIRS = -Iinclude
 
-utils: $(shell mkdir -p $(DIRS)) bin/shapefile_tiling bin/screening bin/pairing bin/pretty_set bin/constructor bin/search_driver
+utils: $(shell mkdir -p $(DIRS)) bin/shapefile_tiling bin/screening bin/pairing bin/pretty_set bin/constructor bin/search_driver bin/reservoir_constructor bin/depression_volume_finding
 
 bin/shapefile_tiling: $(OBJS0)
 	g++ $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
@@ -28,6 +28,12 @@ bin/constructor: $(OBJS4)
 	g++  $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 bin/search_driver: $(OBJS5)
+	g++  $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+
+bin/reservoir_constructor: src/reservoir_constructor.o $(GEN_OBJS)
+	g++  $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
+
+bin/depression_volume_finding: src/depression_volume_finding.o $(GEN_OBJS)
 	g++  $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $@
 
 .c.o:

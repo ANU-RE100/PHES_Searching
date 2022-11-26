@@ -1,12 +1,8 @@
 #include "phes_base.h"
+#include "kml.h"
 
-int display = false;
+SearchConfig search_config;
 
-struct Reservoir_KML_Coordinates{
-	string reservoir;
-	vector<string> dam;
-	bool is_turkeys_nest;
-};
 
 // Returns a tuple with the two cells adjacent to an edge defined by two points
 ArrayCoordinate* get_adjacent_cells(ArrayCoordinate point1, ArrayCoordinate point2){
@@ -159,38 +155,6 @@ string str(vector<GeographicCoordinate> polygon, double elevation){
 	return to_return;
 }
 
-string kml_start = 
-"<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n"
-"  <Document id=\"Layers\">\n"
-"    <Style id=\"reservoir_style\">\n"
-"      <LineStyle>\n"
-"        <width>0</width>\n"
-"      </LineStyle>\n"
-"    </Style>\n"
-"    <Style id=\"wall_style\">\n"
-"      <LineStyle>\n"
-"        <width>0</width>\n"
-"      </LineStyle>\n"
-"      <PolyStyle>\n"
-"        <color>ff999999</color>\n"
-"      </PolyStyle>\n"
-"    </Style>\n"
-"    <Style id=\"pipe_style\">\n"
-"      <LineStyle>\n"
-"        <color>88ffffff</color>\n"
-"        <width>2</width>\n"
-"      </LineStyle>\n"
-"    </Style>\n"
-"    <Style id=\"pin_style\">\n"
-"      <LabelStyle>\n"
-"        <color>00ffffff</color>\n"
-"        <scale>0.6</scale>\n"
-"      </LabelStyle>\n"
-"    </Style>\n";
-
-string kml_end = 
-"  </Document>\n"
-"</kml>\n";
 string get_html(Reservoir* reservoir){
 	return
 "              <html>\n"
@@ -212,48 +176,8 @@ string get_html(Reservoir* reservoir){
 "              <tr bgcolor=\"#D4E4F3\"><td>Water/Rock Ratio</td><td>"+dtos(reservoir->water_rock,1)+"</td></tr>\n"
 "              </table></td></tr></table></body></html>\n";
 }
-string get_reservoir_geometry(Reservoir_KML_Coordinates coordinates){
-	return
-"        <MultiGeometry>\n"
-"          <Polygon>\n"
-"            <extrude>1</extrude>\n"
-"            <altitudeMode>absolute</altitudeMode>\n"
-"            <outerBoundaryIs><LinearRing>\n"
-"              <coordinates>"+coordinates.reservoir+"</coordinates>\n"
-"            </LinearRing></outerBoundaryIs>\n"
-"          </Polygon>\n"
-"        </MultiGeometry>\n";
-}
-string get_dam_geometry(Reservoir_KML_Coordinates coordinates){
-	string to_return =
-"        <MultiGeometry>\n";
-	if(coordinates.is_turkeys_nest){
-		to_return+=
-"          <Polygon>\n"
-"            <extrude>1</extrude>\n"
-"            <altitudeMode>absolute</altitudeMode>\n"
-"            <outerBoundaryIs><LinearRing>\n"
-"              <coordinates>"+coordinates.dam[0]+"</coordinates>\n"
-"            </LinearRing></outerBoundaryIs>\n"
-"            <innerBoundaryIs><LinearRing>\n"
-"              <coordinates>"+coordinates.reservoir+"</coordinates>\n"
-"            </LinearRing></innerBoundaryIs>\n"
-"          </Polygon>\n";
-	}else{
-		for(uint i = 0; i<coordinates.dam.size(); i++){
-			to_return+=
-"          <Polygon>\n"
-"            <extrude>1</extrude>\n"
-"            <altitudeMode>absolute</altitudeMode>\n"
-"            <outerBoundaryIs><LinearRing>\n"
-"              <coordinates>"+coordinates.dam[i]+"</coordinates>\n"
-"            </LinearRing></outerBoundaryIs>\n"
-"          </Polygon>\n";
-		}
-	}
-	return to_return+
-"        </MultiGeometry>\n";
-}
+
+
 string get_reservoir_kml(Reservoir* reservoir, string colour, Reservoir_KML_Coordinates coordinates){
 	return
 "      <Placemark>\n"
@@ -273,15 +197,6 @@ string get_reservoir_kml(Reservoir* reservoir, string colour, Reservoir_KML_Coor
 "      </Placemark>\n";
 }
 
-string get_dam_kml(Reservoir* reservoir, Reservoir_KML_Coordinates coordinates){
-	return
-"      <Placemark>\n"
-"        <name><![CDATA["+reservoir->identifier+" Dam]]></name>\n"
-"        <styleUrl>#wall_style</styleUrl>\n"
-			+get_dam_geometry(coordinates)+
-"      </Placemark>\n";
-}
-
 
 string output_kml(Reservoir* reservoir, Reservoir_KML_Coordinates coordinates){
 	string to_return;
@@ -294,8 +209,12 @@ string output_kml(Reservoir* reservoir, Reservoir_KML_Coordinates coordinates){
 
 int main(int nargs, char **argv)
 {
+  if(nargs < 3){
+    cout << "Not enough arguements" << endl;
+    return -1;
+  }
 	GridSquare square_coordinate = GridSquare_init(atoi(argv[2]), atoi(argv[1]));
-	display = true;
+  search_config.logger = Logger::DEBUG;
 
 	printf("Reservoir constructor started for %s\n",convert_string(str(square_coordinate)));
 
@@ -307,8 +226,7 @@ int main(int nargs, char **argv)
 	Model<char>* full_cur_model = new Model<char>(big_model.DEM->nrows(), big_model.DEM->ncols(), MODEL_SET_ZERO);
 
 	vector<RoughReservoir> reservoirs = read_rough_reservoir_data(convert_string(file_storage_location+"processing_files/reservoirs/"+str(square_coordinate)+"_reservoirs_data.csv"));
-	if(display)
-		printf("Read in %zu reservoirs\n", reservoirs.size());
+  search_config.logger.debug("Read in " + to_string(reservoirs.size()) + " reservoirs");
 
 	string rs(argv[3]);
 

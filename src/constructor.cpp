@@ -2,12 +2,8 @@
 #include "kml.h"
 
 SearchConfig search_config;
-int display = false;
 
 vector<vector<Pair>> pairs;
-bool brownfield = false;
-bool ocean = false;
-bool pit = false;
 ExistingPit pit_details;
 
 // find_polygon_intersections returns an array containing the longitude of all line. Assumes last coordinate is same as first
@@ -38,8 +34,7 @@ vector<vector<vector<GeographicCoordinate>>> read_countries(string filename, vec
     char *shp_filename = new char[filename.length() + 1];
     strcpy(shp_filename, filename.c_str());
     if(!file_exists(shp_filename)){
-        if(display)
-            cout << "No file: "+filename << endl;
+        cout << "No file: "+filename << endl;
         throw(1);
     }
     vector<vector<vector<GeographicCoordinate>>> relevant_polygons;
@@ -502,65 +497,22 @@ bool model_pair(Pair* pair, Pair_KML* pair_kml, Model<bool>* seen, bool* non_ove
 
 int main(int nargs, char **argv)
 {
-    GridSquare square_coordinate;
-    string fname;
-    string arg1(argv[1]);
-    string prefix = "";
+  search_config = SearchConfig(nargs, argv);
 
-    int adj = 0;
-    if(arg1.compare("ocean")==0){
-        ocean = true;
-        prefix = "ocean_";
-        adj = 1;
-        arg1 = argv[1+adj];
-    }
-    if(arg1.compare("pit")==0){
-        brownfield = true;
-        prefix = "pit_";
-        pit = true;
-        adj = 1;
-        arg1 = argv[1+adj];
-        fname = prefix+format_for_filename(arg1);
-        if(nargs>2+adj)
-            display = atoi(argv[2+adj]);
-        cout << convert_string("Constructor started for "+fname+"\n");
-    }else if(arg1.compare("reservoir")==0){
-        brownfield = true;
-        adj = 1;
-        arg1 = argv[1+adj];
-        fname = prefix+format_for_filename(arg1);
-        if(nargs>2+adj)
-            display = atoi(argv[2+adj]);
-        printf("Constructor started for %s\n",argv[1]);
-    }else{
-        try{
-            int lon = stoi(arg1);
-            square_coordinate = GridSquare_init(atoi(argv[2+adj]), lon);
-            if(nargs>3+adj)
-                display = atoi(argv[3+adj]);
-            fname=prefix+str(square_coordinate);
-            printf("Constructor started for %s\n",convert_string(prefix+str(square_coordinate)));
-        }catch(exception& e){
-            brownfield = true;
-            fname = prefix+format_for_filename(arg1);
-            if(nargs>2+adj)
-                display = atoi(argv[2+adj]);
-            printf("Constructor started for %s\n",argv[1]);
-        }
-    }
+  cout << "Constructor started for " << search_config.filename() << endl;
 
     GDALAllRegister();
     parse_variables(convert_string("storage_location"));
     parse_variables(convert_string(file_storage_location+"variables"));
     unsigned long t_usec = walltime_usec();
 
-    if(brownfield)
-        square_coordinate = get_square_coordinate(get_existing_reservoir(arg1));
+    if(search_config.search_type.single())
+        search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
 
-    if (pit)
-        pit_details = get_pit_details(arg1);
+    if (search_config.search_type == SearchType::PIT)
+        pit_details = get_pit_details(search_config.name);
 
-    BigModel big_model = BigModel_init(square_coordinate);
+    BigModel big_model = BigModel_init(search_config.grid_square);
     vector<string> country_names;
     vector<vector<vector<GeographicCoordinate>>> countries = read_countries(file_storage_location+"input/countries/countries.txt", country_names);
 
@@ -568,15 +520,15 @@ int main(int nargs, char **argv)
     seen->set_geodata(big_model.DEM->get_geodata());
     Model<char>* full_cur_model = new Model<char>(big_model.DEM->nrows(), big_model.DEM->ncols(), MODEL_SET_ZERO);
 
-    pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+fname+"_rough_pretty_set_pairs_data.csv"));
+    pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+search_config.filename()+"_rough_pretty_set_pairs_data.csv"));
     mkdir(convert_string(file_storage_location+"output/final_output_classes"), 0777);
-    mkdir(convert_string(file_storage_location+"output/final_output_classes/"+fname),0777);
+    mkdir(convert_string(file_storage_location+"output/final_output_classes/"+search_config.filename()),0777);
     mkdir(convert_string(file_storage_location+"output/final_output_FOM"), 0777);
-    mkdir(convert_string(file_storage_location+"output/final_output_FOM/"+fname),0777);
+    mkdir(convert_string(file_storage_location+"output/final_output_FOM/"+search_config.filename()),0777);
 
-    FILE *total_csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+fname+"/"+fname+"_total.csv"), "w");
+    FILE *total_csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+search_config.filename()+"/"+search_config.filename()+"_total.csv"), "w");
     write_total_csv_header(total_csv_file_classes);
-    FILE *total_csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+fname+"/"+fname+"_total.csv"), "w");
+    FILE *total_csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+search_config.filename()+"/"+search_config.filename()+"_total.csv"), "w");
     write_total_csv_header(total_csv_file_FOM);
 
     int total_count = 0;
@@ -584,13 +536,13 @@ int main(int nargs, char **argv)
     for(uint i = 0; i<tests.size(); i++){
         sort(pairs[i].begin(), pairs[i].end());
         
-        FILE *csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+fname+"/"+fname+"_"+str(tests[i])+".csv"), "w");
+        FILE *csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+search_config.filename()+"/"+search_config.filename()+"_"+str(tests[i])+".csv"), "w");
         write_pair_csv_header(csv_file_classes, false);
-        FILE *csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+fname+"/"+fname+"_"+str(tests[i])+".csv"), "w");
+        FILE *csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+search_config.filename()+"/"+search_config.filename()+"_"+str(tests[i])+".csv"), "w");
         write_pair_csv_header(csv_file_FOM, true);
 
-        ofstream kml_file_classes(convert_string(file_storage_location+"output/final_output_classes/"+fname+"/"+fname+"_"+str(tests[i])+".kml"), ios::out);
-        ofstream kml_file_FOM(convert_string(file_storage_location+"output/final_output_FOM/"+fname+"/"+fname+"_"+str(tests[i])+".kml"), ios::out);
+        ofstream kml_file_classes(convert_string(file_storage_location+"output/final_output_classes/"+search_config.filename()+"/"+search_config.filename()+"_"+str(tests[i])+".kml"), ios::out);
+        ofstream kml_file_FOM(convert_string(file_storage_location+"output/final_output_FOM/"+search_config.filename()+"/"+search_config.filename()+"_"+str(tests[i])+".kml"), ios::out);
         KML_Holder kml_holder;
 
         sort(pairs[i].begin(), pairs[i].end());
@@ -619,18 +571,17 @@ int main(int nargs, char **argv)
             }
         }
 
-        kml_file_classes << output_kml(&kml_holder, fname, tests[i]);
-        kml_file_FOM << output_kml(&kml_holder, fname, tests[i]);
-        if(display)
-            printf("%d %.1fGWh %dh Pairs\n", count, tests[i].energy_capacity, tests[i].storage_time);
+        kml_file_classes << output_kml(&kml_holder, search_config.filename(), tests[i]);
+        kml_file_FOM << output_kml(&kml_holder, search_config.filename(), tests[i]);
+        search_config.logger.debug(to_string(count) + " " + to_string(tests[i].energy_capacity) + "GWh "+to_string(tests[i].storage_time) + "h Pairs");
         kml_file_classes.close();
         kml_file_FOM.close();
         fclose(csv_file_classes);
         fclose(csv_file_FOM);
     }
-    write_total_csv(total_csv_file_classes, str(square_coordinate), total_count, total_capacity);
-    write_total_csv(total_csv_file_FOM, str(square_coordinate), total_count, total_capacity);
+    write_total_csv(total_csv_file_classes, str(search_config.grid_square), total_count, total_capacity);
+    write_total_csv(total_csv_file_FOM, str(search_config.grid_square), total_count, total_capacity);
     fclose(total_csv_file_classes);
     fclose(total_csv_file_FOM);
-    printf("Constructor finished for %s. Found %d non-overlapping pairs with a total of %dGWh. Runtime: %.2f sec\n", convert_string(fname), total_count, total_capacity, 1.0e-6*(walltime_usec() - t_usec) );
+    printf("Constructor finished for %s. Found %d non-overlapping pairs with a total of %dGWh. Runtime: %.2f sec\n", convert_string(search_config.filename()), total_count, total_capacity, 1.0e-6*(walltime_usec() - t_usec) );
 }

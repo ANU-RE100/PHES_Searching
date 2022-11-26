@@ -1,6 +1,5 @@
 #include "phes_base.h"
 
-int display = false;
 SearchConfig search_config;
 
 // Reads a list of cells to process from the tasks_file (Eg. 148 -36)
