@@ -206,7 +206,7 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
 vector<GeographicCoordinate> convert_poly(vector<ArrayCoordinate> polygon){
     vector<GeographicCoordinate> to_return;
     for(uint i = 0; i<polygon.size(); i++){
-    	to_return.push_back(convert_coordinates(polygon[i]));
+    	to_return.push_back(convert_coordinates(polygon[i], 0));
     }
     return to_return;
 }

@@ -145,9 +145,9 @@ ArrayCoordinate convert_coordinates(GeographicCoordinate c, GeographicCoordinate
 	return ArrayCoordinate_init(convert_to_int((c.lat-origin.lat)/lat_res-0.5), convert_to_int((c.lon-origin.lon)/lon_res-0.5), origin);
 }
 
-GeographicCoordinate convert_coordinates(ArrayCoordinate c)
+GeographicCoordinate convert_coordinates(ArrayCoordinate c, double offset)
 {
-	return GeographicCoordinate_init(c.origin.lat-(c.row+0.5)/3600.0, c.origin.lon+(c.col+0.5)/3600.0);
+	return GeographicCoordinate_init(c.origin.lat-(c.row+offset)/3600.0, c.origin.lon+(c.col+offset)/3600.0);
 }
 
 

@@ -42,7 +42,7 @@ double find_distance(GeographicCoordinate c1, GeographicCoordinate c2,
 double find_distance_sqd(GeographicCoordinate c1, GeographicCoordinate c2);
 double find_distance_sqd(GeographicCoordinate c1, GeographicCoordinate c2,
                          double coslat);
-GeographicCoordinate convert_coordinates(ArrayCoordinate c);
+GeographicCoordinate convert_coordinates(ArrayCoordinate c, double offset=0.5);
 ArrayCoordinate convert_coordinates(GeographicCoordinate c,
                                     GeographicCoordinate origin);
 ArrayCoordinate convert_coordinates(GeographicCoordinate c,
