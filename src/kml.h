@@ -30,6 +30,7 @@ void update_kml_holder(KML_Holder* kml_holder, Pair* pair, Pair_KML* pair_kml, b
 string get_reservoir_geometry(Reservoir_KML_Coordinates coordinates);
 string get_dam_geometry(Reservoir_KML_Coordinates coordinates);
 string get_dam_kml(Reservoir* reservoir, Reservoir_KML_Coordinates coordinates);
+string get_reservoir_kml(Reservoir* reservoir, string colour, Reservoir_KML_Coordinates coordinates, Pair* pair);
 extern string kml_start;
 extern string kml_end;
 // void write_fusion_csv_header(FILE *csv_file);
