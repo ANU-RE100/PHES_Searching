@@ -67,20 +67,24 @@ vector<vector<vector<GeographicCoordinate>>> read_countries(string filename, vec
 /*
  * Returns a tuple with the two cells adjacent to an edge defined by two points
  */
-ArrayCoordinate* get_adjacent_cells(ArrayCoordinate point1, ArrayCoordinate point2){
-    double average_row = (point1.row+point2.row)/2.0;
-    double average_col = (point1.col+point2.col)/2.0;
+ArrayCoordinate *get_adjacent_cells(ArrayCoordinate point1, ArrayCoordinate point2) {
+  double average_row = (point1.row + point2.row) / 2.0;
+  double average_col = (point1.col + point2.col) / 2.0;
 
-    ArrayCoordinate* points = (ArrayCoordinate*)malloc(2*sizeof(ArrayCoordinate));
+  ArrayCoordinate *points = (ArrayCoordinate *)malloc(2 * sizeof(ArrayCoordinate));
 
-    if(average_row-(int)average_row>0.9 || average_row-(int)average_row<0.1){
-        points[0] = ArrayCoordinate_init((int)(average_row+EPS),(int)(average_col-0.5+EPS), point1.origin);
-    	points[1] = ArrayCoordinate_init((int)(average_row-1+EPS),(int)(average_col-0.5+EPS), point1.origin);
-    }else{
-    	points[0] = ArrayCoordinate_init((int)(average_row-0.5+EPS),(int)(average_col+EPS), point1.origin);
-    	points[1] = ArrayCoordinate_init((int)(average_row-0.5+EPS),(int)(average_col-1+EPS), point1.origin);
-    }
-    return points;
+  if (average_row - (int)average_row > 0.9 || average_row - (int)average_row < 0.1) {
+    points[0] = ArrayCoordinate_init((int)(average_row + EPS), (int)(average_col - 0.5 + EPS),
+                                     point1.origin);
+    points[1] = ArrayCoordinate_init((int)(average_row - 1 + EPS), (int)(average_col - 0.5 + EPS),
+                                     point1.origin);
+  } else {
+    points[0] = ArrayCoordinate_init((int)(average_row - 0.5 + EPS), (int)(average_col + EPS),
+                                     point1.origin);
+    points[1] = ArrayCoordinate_init((int)(average_row - 0.5 + EPS), (int)(average_col - 1 + EPS),
+                                     point1.origin);
+  }
+  return points;
 }
 
 /*
@@ -190,7 +194,8 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
         }
     }
     if(!succesful_path){
-        throw 1;
+      search_config.logger.error("Could not find a succesful path around the polygon.");
+      throw 1;
     }
     return to_return;
 }
@@ -362,14 +367,9 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
     return true;
 
   vector<ArrayCoordinate> reservoir_polygon;
-  try {
-    reservoir_polygon =
-        convert_to_polygon(full_cur_model, offset, reservoir->pour_point, 1);
-  } catch (int e) {
-    return false;
-  }
+  reservoir_polygon = convert_to_polygon(full_cur_model, offset, reservoir->pour_point, 1);
 
-        //full_cur_model->write("out1.tif", GDT_Byte);
+  // full_cur_model->write("out1.tif", GDT_Byte);
   // DAM WALL
   reservoir->dam_volume = 0;
   reservoir->dam_length = 0;
@@ -391,13 +391,12 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
                                DEM->get(adjacent[1].row + offset.row,
                                         adjacent[1].col + offset.col)) /
                               2.0;
-      if (full_cur_model->get(adjacent[0].row + offset.row,
-                              adjacent[0].col + offset.col) == 0)
-        full_cur_model->set(adjacent[0].row + offset.row,
-                            adjacent[0].col + offset.col, 2);
-      else
-        full_cur_model->set(adjacent[1].row + offset.row,
-                            adjacent[1].col + offset.col, 2);
+      if (full_cur_model->get(adjacent[0].row + offset.row, adjacent[0].col + offset.col) != 1) {
+        full_cur_model->set(adjacent[0].row + offset.row, adjacent[0].col + offset.col, 2);
+
+      } else {
+        full_cur_model->set(adjacent[1].row + offset.row, adjacent[1].col + offset.col, 2);
+      }
       if (!last) {
         vector<ArrayCoordinate> temp;
         temp.push_back(point1);
@@ -417,7 +416,7 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
     }
   }
 
-	//full_cur_model->write("out2.tif", GDT_Byte);
+  //full_cur_model->write("out2.tif", GDT_Byte);
   if (polygon_bool[0] && polygon_bool[dam_polygon.size() - 1] &&
       !is_turkeys_nest && dam_polygon.size() > 1) {
     for (uint i = 0; i < dam_polygon[dam_polygon.size() - 1].size(); i++) {
@@ -426,42 +425,21 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
     dam_polygon.pop_back();
   }
 
-  if (is_turkeys_nest) {
-    ArrayCoordinate *adjacent =
-        get_adjacent_cells(dam_polygon[0][0], dam_polygon[0][1]);
+  for (uint i = 0; i < dam_polygon.size(); i++) {
+    ArrayCoordinate *adjacent = get_adjacent_cells(dam_polygon[i][0], dam_polygon[i][1]);
     ArrayCoordinate to_check = adjacent[1];
-    if (full_cur_model->get(adjacent[0].row + offset.row,
-                            adjacent[0].col + offset.col) == 2)
+    if (full_cur_model->get(adjacent[0].row + offset.row, adjacent[0].col + offset.col) == 2)
       to_check = adjacent[0];
     vector<GeographicCoordinate> polygon;
     try {
-      polygon = compress_poly(corner_cut_poly(convert_poly(
-          convert_to_polygon(full_cur_model, offset, to_check, 2))));
+      polygon = compress_poly(
+          corner_cut_poly(convert_poly(convert_to_polygon(full_cur_model, offset, to_check, 2))));
     } catch (int e) {
       return false;
     }
     string polygon_string =
         str(polygon, reservoir->elevation + reservoir->dam_height + freeboard);
     coordinates->dam.push_back(polygon_string);
-  } else {
-    for (uint i = 0; i < dam_polygon.size(); i++) {
-      ArrayCoordinate *adjacent =
-          get_adjacent_cells(dam_polygon[i][0], dam_polygon[i][1]);
-      ArrayCoordinate to_check = adjacent[1];
-      if (full_cur_model->get(adjacent[0].row + offset.row,
-                              adjacent[0].col + offset.col) == 2)
-        to_check = adjacent[0];
-      vector<GeographicCoordinate> polygon;
-      try {
-        polygon = compress_poly(corner_cut_poly(convert_poly(
-            convert_to_polygon(full_cur_model, offset, to_check, 2))));
-      } catch (int e) {
-        return false;
-      }
-      string polygon_string = str(
-          polygon, reservoir->elevation + reservoir->dam_height + freeboard);
-      coordinates->dam.push_back(polygon_string);
-    }
   }
 
   reservoir->volume += (reservoir->dam_volume) / 2;
