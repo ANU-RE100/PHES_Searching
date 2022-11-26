@@ -559,35 +559,39 @@ int main(int nargs, char **argv)
 	for(uint i = 0; i<pairs.size(); i++)
 		total_pairs += pairs[i].size();
 
-	if (total_pairs > 0) {
+	if (total_pairs == 0) {
+        printf("Constructor finished for %s. Found no pairs. Runtime: %.2f sec\n", convert_string(fname), 1.0e-6*(walltime_usec() - t_usec) );
+        return 0;
+    }
 
-        mkdir(convert_string(file_storage_location+"output/final_output_classes"), 0777);
-        mkdir(convert_string(file_storage_location+"output/final_output_classes/"+fname),0777);
-        mkdir(convert_string(file_storage_location+"output/final_output_FOM"), 0777);
-        mkdir(convert_string(file_storage_location+"output/final_output_FOM/"+fname),0777);
+    mkdir(convert_string(file_storage_location+"output/final_output_classes"), 0777);
+    mkdir(convert_string(file_storage_location+"output/final_output_classes/"+fname),0777);
+    mkdir(convert_string(file_storage_location+"output/final_output_FOM"), 0777);
+    mkdir(convert_string(file_storage_location+"output/final_output_FOM/"+fname),0777);
 
-        if(brownfield)
-            square_coordinate = get_square_coordinate(get_existing_reservoir(arg1));
+    if(brownfield)
+        square_coordinate = get_square_coordinate(get_existing_reservoir(arg1));
 
-        if (pit)
-            pit_details = get_pit_details(arg1);
+    if (pit)
+        pit_details = get_pit_details(arg1);
 
-        BigModel big_model = BigModel_init(square_coordinate);
-        vector<string> country_names;
-        vector<vector<vector<GeographicCoordinate>>> countries = read_countries(file_storage_location+"input/countries/countries.txt", country_names);
+    BigModel big_model = BigModel_init(square_coordinate);
+    vector<string> country_names;
+    vector<vector<vector<GeographicCoordinate>>> countries = read_countries(file_storage_location+"input/countries/countries.txt", country_names);
 
-        Model<bool>* seen = new Model<bool>(big_model.DEM->nrows(), big_model.DEM->nrows(), MODEL_SET_ZERO);
-        seen->set_geodata(big_model.DEM->get_geodata());
-        Model<char>* full_cur_model = new Model<char>(big_model.DEM->nrows(), big_model.DEM->ncols(), MODEL_SET_ZERO);
+    Model<bool>* seen = new Model<bool>(big_model.DEM->nrows(), big_model.DEM->nrows(), MODEL_SET_ZERO);
+    seen->set_geodata(big_model.DEM->get_geodata());
+    Model<char>* full_cur_model = new Model<char>(big_model.DEM->nrows(), big_model.DEM->ncols(), MODEL_SET_ZERO);
 
-        FILE *total_csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+fname+"/"+fname+"_total.csv"), "w");
-        write_total_csv_header(total_csv_file_classes);
-        FILE *total_csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+fname+"/"+fname+"_total.csv"), "w");
-        write_total_csv_header(total_csv_file_FOM);
+    FILE *total_csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+fname+"/"+fname+"_total.csv"), "w");
+    write_total_csv_header(total_csv_file_classes);
+    FILE *total_csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+fname+"/"+fname+"_total.csv"), "w");
+    write_total_csv_header(total_csv_file_FOM);
 
-        int total_count = 0;
-        int total_capacity = 0;
-        for(uint i = 0; i<tests.size(); i++){
+    int total_count = 0;
+    int total_capacity = 0;
+    for(uint i = 0; i<tests.size(); i++){
+        if (pairs[i].size() != 0) {
             sort(pairs[i].begin(), pairs[i].end());
             
             FILE *csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+fname+"/"+fname+"_"+str(tests[i])+".csv"), "w");
@@ -634,12 +638,10 @@ int main(int nargs, char **argv)
             fclose(csv_file_classes);
             fclose(csv_file_FOM);
         }
-        write_total_csv(total_csv_file_classes, str(square_coordinate), total_count, total_capacity);
-        write_total_csv(total_csv_file_FOM, str(square_coordinate), total_count, total_capacity);
-        fclose(total_csv_file_classes);
-        fclose(total_csv_file_FOM);
-        printf("Constructor finished for %s. Found %d non-overlapping pairs with a total of %dGWh. Runtime: %.2f sec\n", convert_string(fname), total_count, total_capacity, 1.0e-6*(walltime_usec() - t_usec) );
     }
-    else
-        printf("Constructor finished for %s. Found no pairs. Runtime: %.2f sec\n", convert_string(fname), 1.0e-6*(walltime_usec() - t_usec) );
+    write_total_csv(total_csv_file_classes, str(square_coordinate), total_count, total_capacity);
+    write_total_csv(total_csv_file_FOM, str(square_coordinate), total_count, total_capacity);
+    fclose(total_csv_file_classes);
+    fclose(total_csv_file_FOM);
+    printf("Constructor finished for %s. Found %d non-overlapping pairs with a total of %dGWh. Runtime: %.2f sec\n", convert_string(fname), total_count, total_capacity, 1.0e-6*(walltime_usec() - t_usec) );
 }
