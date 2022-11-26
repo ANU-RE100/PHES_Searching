@@ -1,7 +1,5 @@
 #include "phes_base.h"
 
-SearchConfig search_config;
-
 // Reads a list of cells to process from the tasks_file (Eg. 148 -36)
 vector<GridSquare> read_tasklist(char *tasks_file)
 {
@@ -56,12 +54,12 @@ int main()
 		        }
 		        vector<GeographicCoordinate> temp_poly;
 
-		        
+
 		        for(int j = 0, iPart = 1; j < shape->nVertices; j++ )
 		        {
 		            if( iPart < shape->nParts && shape->panPartStart[iPart] == j )
 		            {
-		            	
+
 		            	for(int lat = -90; lat<90; lat++)
 		            		for(int lon = -180; lon<180; lon++)
 		            			if(to_keep->get(lat+90, lon+180)){
@@ -120,7 +118,7 @@ int main()
 	    	}
 	    	psObject = SHPCreateObject( SHPT_POLYGON, -1, 0, panParts, NULL,
                             nVertices, padfX, padfY, padfZ, padfM );
-	    	
+
 		    SHPWriteObject( SHP, -1, psObject );
 		    SHPDestroyObject( psObject );
 		    delete padfY;
@@ -128,7 +126,7 @@ int main()
 	    }
 	    SHPClose(SHP);
 	}
-			
+
 	printf("Tiling finished. Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - start_usec) );
 }
 

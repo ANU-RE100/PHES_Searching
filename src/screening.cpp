@@ -3,8 +3,6 @@
 bool debug_output = false;
 bool debug = false;
 
-SearchConfig search_config;
-
 void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_to_filter){
 	try{
 		Model<unsigned char>* tif_filter = new Model<unsigned char>(filename, GDT_Byte);
@@ -72,7 +70,7 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 			}
 		}else{
 			read_shp_filter(file_storage_location+filename, filter);
-		}		
+		}
 	}
 	for(int row = 0; row<DEM->nrows(); row++)
 		for(int col = 0; col<DEM->ncols(); col++)
@@ -111,7 +109,7 @@ Model<double>* fill(Model<short>* DEM)
 	ArrayCoordinateWithHeight c;
 	ArrayCoordinateWithHeight neighbor;
 	while ( !q.empty() || !pq.empty()) {
-		
+
 		if (q.empty()){
 			c = pq.top();
 			pq.pop();
@@ -121,7 +119,7 @@ Model<double>* fill(Model<short>* DEM)
 		}
 
 		for (uint d=0; d<directions.size(); d++) {
-			neighbor = ArrayCoordinateWithHeight_init(c.row+directions[d].row,c.col+directions[d].col,0);		
+			neighbor = ArrayCoordinateWithHeight_init(c.row+directions[d].row,c.col+directions[d].col,0);
 			if (!DEM->check_within(c.row+directions[d].row, c.col+directions[d].col) || seen->get(neighbor.row,neighbor.col))
 				continue;
 			neighbor.h = DEM_filled_no_flat->get(neighbor.row,neighbor.col);
@@ -186,7 +184,7 @@ Model<bool>* find_ocean(Model<short>* DEM)
 		}
 
 		for (uint d=0; d<directions.size(); d++) {
-			neighbor = ArrayCoordinateWithHeight_init(c.row+directions[d].row,c.col+directions[d].col,0);		
+			neighbor = ArrayCoordinateWithHeight_init(c.row+directions[d].row,c.col+directions[d].col,0);
 			if (!DEM->check_within(c.row+directions[d].row, c.col+directions[d].col) || seen->get(neighbor.row,neighbor.col))
 				continue;
 			neighbor.h = DEM->get(neighbor.row,neighbor.col);
@@ -239,7 +237,7 @@ static Model<char>* flow_direction(Model<double>* DEM_filled_no_flat)
 	flow_dirn->set_geodata(DEM_filled_no_flat->get_geodata());
 	double coslat = COS(RADIANS(flow_dirn->get_origin().lat-(0.5+border/(double)(flow_dirn->nrows()-2*border))));
 	for (int row=1; row<flow_dirn->nrows()-1;row++)
-		for (int col=1; col<flow_dirn->ncols()-1; col++) 
+		for (int col=1; col<flow_dirn->ncols()-1; col++)
 			flow_dirn->set(row,col,find_lowest_neighbor(row, col, DEM_filled_no_flat, coslat));
 
 	for (int row=0; row<flow_dirn->nrows()-1;row++) {
@@ -294,7 +292,7 @@ static Model<bool>* find_streams(Model<int>* flow_accumulation)
 	streams->set_geodata(flow_accumulation->get_geodata());
 	int stream_site_count=0;
 	for (int row=0; row<flow_accumulation->nrows(); row++)
-		for (int col=0; col<flow_accumulation->ncols();col++) 
+		for (int col=0; col<flow_accumulation->ncols();col++)
 			if(flow_accumulation->get(row,col) >= stream_threshold){
 				streams->set(row,col,true);
 				stream_site_count++;
@@ -350,13 +348,13 @@ static RoughReservoir model_reservoir(ArrayCoordinate pour_point, Model<char>* f
 		if (filter->get(p.row,p.col))
 			reservoir.max_dam_height = MIN(reservoir.max_dam_height,elevation_above_pp);
 
-		area_at_elevation[elevation_above_pp+1] += find_area(p); 
+		area_at_elevation[elevation_above_pp+1] += find_area(p);
 		modelling_array->set(p.row,p.col,iterator);
 
 		for (uint d=0; d<directions.size(); d++) {
 			ArrayCoordinate neighbor = {p.row+directions[d].row, p.col+directions[d].col, p.origin};
 			if (flow_directions->check_within(neighbor.row, neighbor.col) &&
-			    flows_to(neighbor, p, flow_directions) &&
+			    flow_directions->flows_to(neighbor, p) &&
 			    ((int)(DEM_filled->get(neighbor.row,neighbor.col)-DEM_filled->get(pour_point.row,pour_point.col)) < max_wall_height) ) {
 				q.push(neighbor);
 			}
@@ -377,13 +375,13 @@ static RoughReservoir model_reservoir(ArrayCoordinate pour_point, Model<char>* f
 		for (uint d=0; d<directions.size(); d++) {
 			ArrayCoordinate neighbor = {p.row+directions[d].row, p.col+directions[d].col, p.origin};
 			if (flow_directions->check_within(neighbor.row, neighbor.col)){
-				if(flows_to(neighbor, p, flow_directions) &&
+				if(flow_directions->flows_to(neighbor, p) &&
 			    ((int)(DEM_filled->get(neighbor.row,neighbor.col)-DEM_filled->get(pour_point.row,pour_point.col)) < max_wall_height) ) {
 					q.push(neighbor);
 				}
 				if ((directions[d].row * directions[d].col == 0) // coordinate orthogonal directions
 				    && (modelling_array->get(neighbor.row,neighbor.col) < iterator ) ){
-					dam_length_at_elevation[MIN(MAX(elevation_above_pp, (int)(DEM_filled->get(neighbor.row,neighbor.col)-reservoir.elevation)),max_wall_height)] +=find_orthogonal_nn_distance(p, neighbor);	//WE HAVE PROBLEM IF VALUE IS NEGATIVE???	
+					dam_length_at_elevation[MIN(MAX(elevation_above_pp, (int)(DEM_filled->get(neighbor.row,neighbor.col)-reservoir.elevation)),max_wall_height)] +=find_orthogonal_nn_distance(p, neighbor);	//WE HAVE PROBLEM IF VALUE IS NEGATIVE???
 				}
 			}
 		}
@@ -616,8 +614,8 @@ int main(int nargs, char **argv)
 					pour_points->write(file_storage_location+"debug/ocean/"+str(search_config.grid_square)+"_ocean.tif",GDT_Byte);
 				}
 			}else{
-				
-				
+
+
 				Model<bool>* streams = find_streams(flow_accumulation);
 				if (search_config.logger.output_debug()) {
 					printf("\nStreams (Greater than %d accumulation):\n", stream_threshold);

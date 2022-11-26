@@ -16,8 +16,6 @@ using namespace std;
 
 void parse_variables(char *filename);
 
-extern SearchConfig search_config;
-
 const double EPS = 1.0e-6;
 const double INF = 1.0e18;
 const double J_GWh_conversion = 3.6e12;

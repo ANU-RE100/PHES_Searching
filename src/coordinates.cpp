@@ -80,11 +80,6 @@ string str(GridSquare square)
 	return to_return;
 }
 
-bool flows_to(ArrayCoordinate c1, ArrayCoordinate c2, Model<char>* flow_directions) {
-	return ( ( c1.row + directions[flow_directions->get(c1.row,c1.col)].row == c2.row ) &&
-		 ( c1.col + directions[flow_directions->get(c1.row,c1.col)].col == c2.col ) );
-}
-
 // area of single cell in ha
 double find_area(ArrayCoordinate c)
 {

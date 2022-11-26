@@ -5,8 +5,6 @@
 #include "boost/filesystem.hpp"
 namespace fs = boost::filesystem;
 
-SearchConfig search_config;
-
 // Create a lockfile for this driver and process, returning the ID of the driver
 int set_worker(string process){
 	mkdir(convert_string(file_storage_location+"driver_files/"+process+"_workers"), 0770);
@@ -14,7 +12,7 @@ int set_worker(string process){
 	while(true){
 		string workerlockfile = file_storage_location+"driver_files/"+process+"_workers/"+to_string(i);
 		int fds = open(convert_string(workerlockfile), O_CREAT | O_EXCL | O_WRONLY, 0600);
-		
+
 		if (!(fds < 0)) {
 			mkdir(convert_string(file_storage_location+"driver_files/"+process+"_done_workers/"), 0770);
 			mkdir(convert_string(file_storage_location+"driver_files/"+process+"_done_workers/"+to_string(i)), 0770);
@@ -45,10 +43,10 @@ bool all_done(string process)
 
     for ( std::vector<fs::directory_entry>::const_iterator it = v.begin(); it != v.end();  ++ it )
     {
-        struct stat buffer;   
+        struct stat buffer;
   		if(!(stat (((*it).path().string()+"/done").c_str(), &buffer) == 0))
-  			return false; 
-    }    
+  			return false;
+    }
 
     return true;
 }
@@ -113,7 +111,7 @@ int main()
 		mkdir(convert_string(file_storage_location+"driver_files"), 0770);
 		int id = set_worker(process);
 		mkdir(convert_string(file_storage_location+"debug1/"+process+"_logfiles"), 0770);
-		
+
 		for(auto task : tasklist){
 			mkdir(convert_string(file_storage_location+"driver_files/lockfiles"), 0770);
 			string tasklockfile = file_storage_location+"driver_files/lockfiles/"+process+"_task_"+format_for_filename(task);
@@ -144,7 +142,7 @@ int main()
 				write_to_logfile(id, process, "Problem running command: ./bin/"+process+" "+task+"\n");
 				// exit(1);
 			}
-			
+
 		}
 		unset_worker(id, process);
 		write_to_logfile(id, process, "Done\n");

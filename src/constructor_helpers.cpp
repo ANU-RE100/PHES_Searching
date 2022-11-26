@@ -1,19 +1,25 @@
 #include "constructor_helpers.hpp"
 
-// find_polygon_intersections returns an array containing the longitude of all line. Assumes last coordinate is same as first
-vector<double> find_polygon_intersections(double lat, vector<GeographicCoordinate> &polygon){
-    vector<double> to_return;
-    for(uint i = 0; i<polygon.size()-1; i++){
-        GeographicCoordinate line[2] = {polygon[i], polygon[(i+1)]};
-        if((line[0].lat < lat && line[1].lat>=lat) || (line[0].lat >= lat && line[1].lat < lat)){
-            to_return.push_back(line[0].lon+(lat-line[0].lat)/(line[1].lat-line[0].lat)*(line[1].lon-line[0].lon));
-        }
+/*
+ * Returns sorted vector containing the longitude of all polgon boundary interections at certain
+ * latitude. Assumes last coordinate of polygon is the same as the first
+ */
+vector<double> find_polygon_intersections(double lat, vector<GeographicCoordinate> &polygon) {
+  vector<double> to_return;
+  for (uint i = 0; i < polygon.size() - 1; i++) {
+    GeographicCoordinate line[2] = {polygon[i], polygon[(i + 1)]};
+    if ((line[0].lat < lat && line[1].lat >= lat) || (line[0].lat >= lat && line[1].lat < lat)) {
+      to_return.push_back(line[0].lon + (lat - line[0].lat) / (line[1].lat - line[0].lat) *
+                                            (line[1].lon - line[0].lon));
     }
-    sort(to_return.begin(), to_return.end());
-    return to_return;
+  }
+  sort(to_return.begin(), to_return.end());
+  return to_return;
 }
 
-
+/*
+ * Check if a geographic point is inside a polygon
+ */
 bool check_within(GeographicCoordinate point, vector<vector<GeographicCoordinate>> polygons){
     for(vector<GeographicCoordinate> polygon:polygons){
         vector<double> polygon_intersections = find_polygon_intersections(point.lat, polygon);
@@ -24,6 +30,9 @@ bool check_within(GeographicCoordinate point, vector<vector<GeographicCoordinate
     return false;
 }
 
+/*
+ * Read countries from custom country file in /input/countries/countries.txt
+ */
 vector<vector<vector<GeographicCoordinate>>> read_countries(string filename, vector<string>& country_names){
     char *shp_filename = new char[filename.length() + 1];
     strcpy(shp_filename, filename.c_str());
@@ -55,11 +64,13 @@ vector<vector<vector<GeographicCoordinate>>> read_countries(string filename, vec
     return relevant_polygons;
 }
 
-// Returns a tuple with the two cells adjacent to an edge defined by two points
+/*
+ * Returns a tuple with the two cells adjacent to an edge defined by two points
+ */
 ArrayCoordinate* get_adjacent_cells(ArrayCoordinate point1, ArrayCoordinate point2){
     double average_row = (point1.row+point2.row)/2.0;
     double average_col = (point1.col+point2.col)/2.0;
-    
+
     ArrayCoordinate* points = (ArrayCoordinate*)malloc(2*sizeof(ArrayCoordinate));
 
     if(average_row-(int)average_row>0.9 || average_row-(int)average_row<0.1){
@@ -72,14 +83,16 @@ ArrayCoordinate* get_adjacent_cells(ArrayCoordinate point1, ArrayCoordinate poin
     return points;
 }
 
-// Determines if two points give the edge of a reservoir given its raster model
+/*
+ * Determine if two points define an edge of a reservoir given its raster model
+ */
 bool is_edge(ArrayCoordinate point1, ArrayCoordinate point2, Model<char>* model, ArrayCoordinate offset, int threshold){
-    
+
     if (point1.row+offset.row<0 || point1.col+offset.col<0 || point1.row+offset.row>model->nrows() || point1.col+offset.col>model->ncols())
         return false;
     if (point2.row+offset.row<0 || point2.col+offset.col<0 || point2.row+offset.row>model->nrows() || point2.col+offset.col>model->ncols())
         return false;
-    
+
     ArrayCoordinate* to_check = get_adjacent_cells(point1, point2);
 
     if((!model->check_within(to_check[0].row+offset.row,to_check[0].col+offset.col) && model->get(to_check[1].row+offset.row,to_check[1].col+offset.col)>=threshold)||
@@ -90,20 +103,22 @@ bool is_edge(ArrayCoordinate point1, ArrayCoordinate point2, Model<char>* model,
         return true;
     if (model->get(to_check[1].row+offset.row,to_check[1].col+offset.col)<threshold && model->get(to_check[0].row+offset.row,to_check[0].col+offset.col)>=threshold)
         return true;
-    
+
     return false;
 }
 
-// Determines if an edge of a reservoir between two points requires a dam wall
+/*
+ * Determines if an edge of a reservoir between two points requires a dam wall
+ */
 bool is_dam_wall(ArrayCoordinate point1, ArrayCoordinate point2, Model<short>* DEM, ArrayCoordinate offset, double wall_elevation){
     if (point1.row<0 || point1.col<0 || point1.row>DEM->nrows() || point1.col>DEM->ncols())
         return false;
     if (point2.row<0 || point2.col<0 || point2.row>DEM->nrows() || point2.col>DEM->ncols())
         return false;
-    
+
     double average_row = (point1.row+point2.row)/2.0;
     double average_col = (point1.col+point2.col)/2.0;
-    
+
     ArrayCoordinate* to_check = get_adjacent_cells(point1, point2);
 
     if(average_row-(int)average_row>0.9 || average_row-(int)average_row<0.1){
@@ -126,11 +141,13 @@ int dir_def[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
 int dir_to_do[4][3] = {{2,0,3},{3,1,2},{1,2,0},{0,3,1}};
 int testsa[] = {1, 2, 0, 3};
 
-// Converts a raster model to a polygon given a raster model and a point on the interior edge of the polygon
+/*
+ * Converts a raster model to a polygon given a raster model and a point on the interior edge of the polygon
+ */
 vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate offset, ArrayCoordinate pour_point, int threshold){
 
     vector<ArrayCoordinate> to_return;
-    
+
     ArrayCoordinate test_coordinates[] = {
         ArrayCoordinate_init(pour_point.row+1, pour_point.col+1, pour_point.origin),
         ArrayCoordinate_init(pour_point.row+1, pour_point.col, pour_point.origin),
@@ -178,6 +195,9 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
     return to_return;
 }
 
+/*
+ * Convert polygon of grid vertices to polygon of geographic coordinates
+ */
 vector<GeographicCoordinate> convert_poly(vector<ArrayCoordinate> polygon){
     vector<GeographicCoordinate> to_return;
     for(uint i = 0; i<polygon.size(); i++){
@@ -186,7 +206,9 @@ vector<GeographicCoordinate> convert_poly(vector<ArrayCoordinate> polygon){
     return to_return;
 }
 
-// "Smooths" a polygon by cutting the corners
+/*
+ * "Smooth" a polygon by cutting the corners (take midpoint of each side)
+ */
 vector<GeographicCoordinate> corner_cut_poly(vector<GeographicCoordinate> polygon){
     vector<GeographicCoordinate> to_return;
     for(uint i = 0; i<polygon.size(); i++){
@@ -196,20 +218,25 @@ vector<GeographicCoordinate> corner_cut_poly(vector<GeographicCoordinate> polygo
     return to_return;
 }
 
-// Compresses a polygon by removing collinear points
+/*
+ * Compresses a polygon by removing collinear points
+ */
 vector<GeographicCoordinate> compress_poly(vector<GeographicCoordinate> polygon){
     vector<GeographicCoordinate> to_return;
     to_return.push_back(polygon[0]);
     for(uint i = 1; i<polygon.size()-1; i++){
-        if ((polygon[i+1].lon-polygon[i].lon)/(polygon[i+1].lat-polygon[i].lat) < (polygon[i].lon-polygon[i-1].lon)/(polygon[i].lat-polygon[i-1].lat)-EPS 
+        if ((polygon[i+1].lon-polygon[i].lon)/(polygon[i+1].lat-polygon[i].lat) < (polygon[i].lon-polygon[i-1].lon)/(polygon[i].lat-polygon[i-1].lat)-EPS
         	|| (polygon[i+1].lon-polygon[i].lon)/(polygon[i+1].lat-polygon[i].lat) > (polygon[i].lon-polygon[i-1].lon)/(polygon[i].lat-polygon[i-1].lat)+EPS ){
             to_return.push_back(polygon[i]);
         }
     }
-    to_return.push_back(polygon[polygon.size()-1]);                           
+    to_return.push_back(polygon[polygon.size()-1]);
     return to_return;
 }
 
+/*
+ * Convert geographic polygon to KML coordinate string
+ */
 string str(vector<GeographicCoordinate> polygon, double elevation) {
   string to_return = "";
   for (uint i = 0; i < polygon.size(); i++) {
@@ -219,33 +246,31 @@ string str(vector<GeographicCoordinate> polygon, double elevation) {
   return to_return;
 }
 
-// Pass negative reservoir volume to model single dam wall height
-bool model_reservoir(Reservoir *reservoir,
-                     Reservoir_KML_Coordinates *coordinates, Model<bool> *seen,
-                     bool *non_overlap, vector<ArrayCoordinate> *used_points,
+/*
+ * Accurately model a single reservoir, determining optimal dam wall height for given volume.
+ *
+ * Pass negative reservoir volume to model single dam wall height
+ */
+bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates,
+                     Model<bool> *seen, bool *non_overlap, vector<ArrayCoordinate> *used_points,
                      BigModel big_model, Model<char> *full_cur_model,
                      vector<vector<vector<GeographicCoordinate>>> &countries,
                      vector<string> &country_names) {
+
   Model<short> *DEM = big_model.DEM;
   Model<char> *flow_directions = big_model.flow_directions[0];
 
   for (int i = 0; i < 9; i++)
-    if (big_model.neighbors[i].lat ==
-            convert_to_int(FLOOR(reservoir->latitude + EPS)) &&
-        big_model.neighbors[i].lon ==
-            convert_to_int(FLOOR(reservoir->longitude + EPS)))
+    if (big_model.neighbors[i].lat == convert_to_int(FLOOR(reservoir->latitude + EPS)) &&
+        big_model.neighbors[i].lon == convert_to_int(FLOOR(reservoir->longitude + EPS)))
       flow_directions = big_model.flow_directions[i];
 
-  ArrayCoordinate offset =
-      convert_coordinates(convert_coordinates(ArrayCoordinate_init(
-                              0, 0, flow_directions->get_origin())),
-                          DEM->get_origin());
-  // cout << offset.row << " " << offset.col << "\n";
-  // cout << flow_directions->get_origin().lat << " " <<
-  // flow_directions->get_origin().lon << "\n"; cout << DEM->get_origin().lat <<
-  // " " << DEM->get_origin().lon << "\n";
-  ArrayCoordinate reservoir_big_ac = convert_coordinates(
-      convert_coordinates(reservoir->pour_point), DEM->get_origin());
+  ArrayCoordinate offset = convert_coordinates(
+      convert_coordinates(ArrayCoordinate_init(0, 0, flow_directions->get_origin())),
+      DEM->get_origin());
+
+  ArrayCoordinate reservoir_big_ac =
+      convert_coordinates(convert_coordinates(reservoir->pour_point), DEM->get_origin());
 
   double req_volume = reservoir->volume;
   reservoir->volume = 0;
@@ -270,11 +295,10 @@ bool model_reservoir(Reservoir *reservoir,
       ArrayCoordinate p = q.front();
       q.pop();
 
-			if (full_cur_model != NULL)
-				full_cur_model->set(p.row + offset.row, p.col + offset.col, 1);
+      if (full_cur_model != NULL)
+        full_cur_model->set(p.row + offset.row, p.col + offset.col, 1);
 
-      ArrayCoordinate full_big_ac = {p.row + offset.row, p.col + offset.col,
-                                     DEM->get_origin()};
+      ArrayCoordinate full_big_ac = {p.row + offset.row, p.col + offset.col, DEM->get_origin()};
 
       temp_used_points.push_back(full_big_ac);
 			if (seen != NULL && seen->get(full_big_ac.row, full_big_ac.col)){
@@ -299,7 +323,7 @@ bool model_reservoir(Reservoir *reservoir,
         ArrayCoordinate neighbor = {p.row + directions[d].row,
                                     p.col + directions[d].col, p.origin};
         if (flow_directions->check_within(neighbor.row, neighbor.col) &&
-            flows_to(neighbor, p, flow_directions) &&
+            flow_directions->flows_to(neighbor, p) &&
             ((DEM->get(neighbor.row + offset.row, neighbor.col + offset.col) -
               DEM->get(reservoir_big_ac.row, reservoir_big_ac.col)) <
              reservoir->dam_height)) {

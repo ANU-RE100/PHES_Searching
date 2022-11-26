@@ -142,4 +142,6 @@ class SearchConfig {
     }
 };
 
+extern SearchConfig search_config;
+
 #endif

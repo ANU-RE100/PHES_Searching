@@ -2,8 +2,6 @@
 #include "constructor_helpers.hpp"
 #include "kml.h"
 
-SearchConfig search_config;
-
 vector<vector<Pair>> pairs;
 ExistingPit pit_details;
 
@@ -139,7 +137,7 @@ int main(int nargs, char **argv)
     int total_capacity = 0;
     for(uint i = 0; i<tests.size(); i++){
         sort(pairs[i].begin(), pairs[i].end());
-        
+
         FILE *csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+search_config.filename()+"/"+search_config.filename()+"_"+str(tests[i])+".csv"), "w");
         write_pair_csv_header(csv_file_classes, false);
         FILE *csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+search_config.filename()+"/"+search_config.filename()+"_"+str(tests[i])+".csv"), "w");

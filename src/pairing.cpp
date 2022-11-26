@@ -2,7 +2,6 @@
 #include "search_config.hpp"
 
 ExistingPit pit_details;
-SearchConfig search_config;
 
 vector<int> pairs;
 

@@ -3,8 +3,6 @@
 #include "phes_base.h"
 #include <gdal/gdal.h>
 
-SearchConfig search_config;
-
 string output_kml(Reservoir *reservoir, Reservoir_KML_Coordinates coordinates) {
   string to_return;
   to_return += kml_start;

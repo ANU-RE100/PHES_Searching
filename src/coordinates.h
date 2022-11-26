@@ -42,8 +42,6 @@ double find_distance(GeographicCoordinate c1, GeographicCoordinate c2,
 double find_distance_sqd(GeographicCoordinate c1, GeographicCoordinate c2);
 double find_distance_sqd(GeographicCoordinate c1, GeographicCoordinate c2,
                          double coslat);
-bool flows_to(ArrayCoordinate c1, ArrayCoordinate c2,
-              Model<char> *flow_directions);
 GeographicCoordinate convert_coordinates(ArrayCoordinate c);
 ArrayCoordinate convert_coordinates(GeographicCoordinate c,
                                     GeographicCoordinate origin);
