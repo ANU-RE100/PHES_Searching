@@ -44,7 +44,7 @@ string get_html(Reservoir* reservoir, Pair* pair){
 "              <tr style=\"text-align:center;font-weight:bold;background:#9CBCE2\"><td>"+reservoir->identifier+"</td></tr>"+newline+
 "              <tr><td>"+newline+
 "              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">"+newline+
-"              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>"+newline+
+(pair != NULL ? "              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>"+newline : "") +
 "              <tr bgcolor=\"#D4E4F3\"><td>Elevation</td><td>"+to_string(reservoir->elevation)+"</td></tr>"+newline+
 "              <tr><td>Depth</td><td>"+dtos(reservoir->dam_height,0)+"</td></tr>"+newline+
 "              <tr bgcolor=\"#D4E4F3\"><td>Latitude</td><td>"+dtos(reservoir->latitude,4)+"</td></tr>"+newline+
@@ -62,7 +62,7 @@ string get_html(Reservoir* reservoir, Pair* pair){
 "              <tr><td>"+newline+
 "              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">"+newline+
 //"              <tr><td>Reservoir Ref.</td><td>"+reservoir->identifier+"</td></tr>"+newline+
-"              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>"+newline+
+(pair != NULL ? "              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>"+newline : "")+
 "              <tr bgcolor=\"#D4E4F3\"><td>Elevation</td><td>"+to_string(reservoir->elevation)+"</td></tr>"+newline+
 "              <tr><td>Latitude</td><td>"+dtos(reservoir->latitude,4)+"</td></tr>"+newline+
 "              <tr bgcolor=\"#D4E4F3\"><td>Longitude</td><td>"+dtos(reservoir->longitude,4)+"</td></tr>"+newline+
@@ -79,7 +79,7 @@ string get_html(Reservoir* reservoir, Pair* pair){
 "              <tr><td>"+newline+
 "              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">"+newline+
 //"              <tr><td>Reservoir Ref.</td><td>"+reservoir->identifier+"</td></tr>"+newline+
-"              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>"+newline+
+(pair != NULL ? "              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>"+newline : "")+
 "              <tr bgcolor=\"#D4E4F3\"><td>Elevation</td><td>"+to_string(reservoir->elevation)+"</td></tr>"+newline+
 "              <tr><td>Latitude</td><td>"+dtos(reservoir->latitude,4)+"</td></tr>"+newline+
 "              <tr bgcolor=\"#D4E4F3\"><td>Longitude</td><td>"+dtos(reservoir->longitude,4)+"</td></tr>"+newline+

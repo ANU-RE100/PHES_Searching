@@ -1,0 +1,3 @@
+SpacesBeforeTrailingComments: 2
+AllowShortFunctionsOnASingleLine: Inline
+ColumnLimit: 100

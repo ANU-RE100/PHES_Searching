@@ -1,0 +1,11 @@
+remote_theme: pages-themes/slate@v0.2.0
+plugins:
+- jekyll-remote-theme
+title: PHES Searching
+description: Documentation for the PHES Searching software
+relative_links:
+  enabled: true
+  collections: true
+include:
+  - input.md
+  - running.md
