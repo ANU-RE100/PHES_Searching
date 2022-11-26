@@ -77,6 +77,10 @@ class Logger {
       if (this->output_debug())
         std::cout << message << std::endl;
     }
+    void warning(std::string message){
+      if (this->output_debug())
+        std::cout << message << std::endl;
+    }
 
   private:
     level logging_level = DEBUG;

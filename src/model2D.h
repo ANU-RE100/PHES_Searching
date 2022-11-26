@@ -104,7 +104,7 @@ template <typename T> Model<T>::Model(string filename, GDALDataType data_type) {
   char *tif_filename = new char[filename.length() + 1];
   strcpy(tif_filename, filename.c_str());
   if (!file_exists(tif_filename)) {
-    search_config.logger.error("No file: " + filename);
+    search_config.logger.warning("No file: " + filename);
     throw(1);
   }
   GDALDataset *Dataset = (GDALDataset *)GDALOpen(tif_filename, GA_ReadOnly);

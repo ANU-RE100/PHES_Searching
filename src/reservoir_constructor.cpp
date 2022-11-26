@@ -209,8 +209,8 @@ string output_kml(Reservoir* reservoir, Reservoir_KML_Coordinates coordinates){
 
 int main(int nargs, char **argv)
 {
-  if(nargs < 3){
-    cout << "Not enough arguements" << endl;
+  if(nargs < 5){
+    cout << "Not enough arguements. Need <lon> <lat> <res_id> <dam_height>" << endl;
     return -1;
   }
 	GridSquare square_coordinate = GridSquare_init(atoi(argv[2]), atoi(argv[1]));
@@ -220,6 +220,7 @@ int main(int nargs, char **argv)
 
 	GDALAllRegister();
 	unsigned long t_usec = walltime_usec();
+	parse_variables(convert_string("storage_location"));
 	parse_variables(convert_string(file_storage_location+"variables"));
 
 	BigModel big_model = BigModel_init(square_coordinate);

@@ -94,10 +94,9 @@ bool check_pair(Pair& pair, Model<bool>* seen, BigModel& big_model){
 
 int main(int nargs, char **argv)
 {
-	GridSquare square_coordinate;
   search_config = SearchConfig(nargs, argv);
 
-	cout << "Pretty set started for " << search_config.filename();
+	cout << "Pretty set started for " << search_config.filename() << endl;
 
 	GDALAllRegister();
 	parse_variables(convert_string("storage_location"));
@@ -107,7 +106,7 @@ int main(int nargs, char **argv)
 	if(search_config.search_type.single())
 		search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
 	
-	BigModel big_model = BigModel_init(square_coordinate);
+	BigModel big_model = BigModel_init(search_config.grid_square);
 
 	pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pairs/"+search_config.filename()+"_rough_pairs_data.csv"));
 
