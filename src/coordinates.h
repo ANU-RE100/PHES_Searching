@@ -30,6 +30,7 @@ ArrayCoordinateWithHeight ArrayCoordinateWithHeight_init(int row, int col,
 GeographicCoordinate get_origin(GridSquare square, int border);
 bool check_within(ArrayCoordinateWithHeight c, int shape[2]);
 bool check_within(ArrayCoordinate c, int shape[2]);
+bool check_within(GeographicCoordinate gc, GridSquare gs);
 string str(GridSquare square);
 double find_area(ArrayCoordinate c);
 double find_distance(ArrayCoordinate c1, ArrayCoordinate c2);

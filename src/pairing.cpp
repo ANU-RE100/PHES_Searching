@@ -346,7 +346,8 @@ int main(int nargs, char **argv) {
 
   vector<RoughReservoir> upper_reservoirs;
   if (search_config.search_type.existing()) {
-    search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
+    if(search_config.search_type != SearchType::BULK_EXISTING)
+      search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
     upper_reservoirs = read_rough_reservoir_data(
         convert_string(file_storage_location + "processing_files/reservoirs/" +
                        search_config.filename() + "_reservoirs_data.csv"));
