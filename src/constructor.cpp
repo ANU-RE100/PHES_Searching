@@ -111,11 +111,31 @@ int main(int nargs, char **argv)
 
     pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+search_config.filename()+"_rough_pretty_set_pairs_data.csv"));
 
+    mkdir(convert_string(file_storage_location+"output/final_output_classes"), 0777);
+    mkdir(convert_string(file_storage_location+"output/final_output_classes/"+search_config.filename()),0777);
+    mkdir(convert_string(file_storage_location+"output/final_output_FOM"), 0777);
+    mkdir(convert_string(file_storage_location+"output/final_output_FOM/"+search_config.filename()),0777);
+
+    FILE *total_csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+search_config.filename()+"/"+search_config.filename()+"_total.csv"), "w");
+    write_summary_csv_header(total_csv_file_classes);
+    FILE *total_csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+search_config.filename()+"/"+search_config.filename()+"_total.csv"), "w");
+    write_summary_csv_header(total_csv_file_FOM);
+
     uint total_pairs = 0;
 	for(uint i = 0; i<pairs.size(); i++)
 		total_pairs += pairs[i].size();
 
 	if (total_pairs == 0) {
+        for(uint i = 0; i<tests.size(); i++){ 
+            write_summary_csv(total_csv_file_classes, str(search_config.grid_square), str(tests[i]), 
+                                0, 0, 0);
+            write_summary_csv(total_csv_file_FOM, str(search_config.grid_square), str(tests[i]), 
+                                0, 0, 0);
+        }
+        write_summary_csv(total_csv_file_classes, str(search_config.grid_square), "TOTAL", 0, -1, 0);
+        write_summary_csv(total_csv_file_FOM, str(search_config.grid_square), "TOTAL", 0, -1, 0);
+        fclose(total_csv_file_classes);
+        fclose(total_csv_file_FOM);
         cout << "Constructor finished for " << convert_string(search_config.filename()) << ". Found no pairs. Runtime: " << 1.0e-6*(walltime_usec() - t_usec) << " sec" << endl;
         return 0;
     }
@@ -135,19 +155,11 @@ int main(int nargs, char **argv)
     Model<char>* full_cur_model = new Model<char>(big_model.DEM->nrows(), big_model.DEM->ncols(), MODEL_SET_ZERO);
     full_cur_model->set_geodata(big_model.DEM->get_geodata());
 
-    mkdir(convert_string(file_storage_location+"output/final_output_classes"), 0777);
-    mkdir(convert_string(file_storage_location+"output/final_output_classes/"+search_config.filename()),0777);
-    mkdir(convert_string(file_storage_location+"output/final_output_FOM"), 0777);
-    mkdir(convert_string(file_storage_location+"output/final_output_FOM/"+search_config.filename()),0777);
-
-    FILE *total_csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+search_config.filename()+"/"+search_config.filename()+"_total.csv"), "w");
-    write_total_csv_header(total_csv_file_classes);
-    FILE *total_csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+search_config.filename()+"/"+search_config.filename()+"_total.csv"), "w");
-    write_total_csv_header(total_csv_file_FOM);
-
     int total_count = 0;
     int total_capacity = 0;
-    for(uint i = 0; i<tests.size(); i++){     
+    for(uint i = 0; i<tests.size(); i++){ 
+      int count = 0;
+      int non_overlapping_count = 0;    
       if (pairs[i].size() != 0) {
         FILE *csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+search_config.filename()+"/"+search_config.filename()+"_"+str(tests[i])+".csv"), "w");
         write_pair_csv_header(csv_file_classes, false);
@@ -159,7 +171,6 @@ int main(int nargs, char **argv)
         KML_Holder kml_holder;
 
         sort(pairs[i].begin(), pairs[i].end());
-        int count = 0;
 	    set<string> lowers;
         set<string> uppers;
         bool keep_lower;
@@ -178,12 +189,12 @@ int main(int nargs, char **argv)
                 update_kml_holder(&kml_holder, &pairs[i][j], &pair_kml, keep_upper, keep_lower);
                 count++;
                 if(non_overlap){
+                    non_overlapping_count++;
                     total_count++;
                     total_capacity+=tests[i].energy_capacity;
                 }
             }
         }
-
         kml_file_classes << output_kml(&kml_holder, search_config.filename(), tests[i]);
         kml_file_FOM << output_kml(&kml_holder, search_config.filename(), tests[i]);
         search_config.logger.debug(to_string(count) + " " + to_string(tests[i].energy_capacity) + "GWh "+to_string(tests[i].storage_time) + "h Pairs");
@@ -192,9 +203,13 @@ int main(int nargs, char **argv)
         fclose(csv_file_classes);
         fclose(csv_file_FOM);
       }
+      write_summary_csv(total_csv_file_classes, str(search_config.grid_square), str(tests[i]), 
+                        non_overlapping_count, count, count*tests[i].energy_capacity);
+      write_summary_csv(total_csv_file_FOM, str(search_config.grid_square), str(tests[i]), 
+                        non_overlapping_count, count, count*tests[i].energy_capacity);
     }
-    write_total_csv(total_csv_file_classes, str(search_config.grid_square), total_count, total_capacity);
-    write_total_csv(total_csv_file_FOM, str(search_config.grid_square), total_count, total_capacity);
+    write_summary_csv(total_csv_file_classes, str(search_config.grid_square), "TOTAL", total_count, -1, total_capacity);
+    write_summary_csv(total_csv_file_FOM, str(search_config.grid_square), "TOTAL", total_count, -1, total_capacity);
     fclose(total_csv_file_classes);
     fclose(total_csv_file_FOM);
     cout << "Constructor finished for " << convert_string(search_config.filename()) << ". Found " << total_count << " non-overlapping pairs with a total of " << total_capacity << "GWh. Runtime: " << 1.0e-6*(walltime_usec() - t_usec) << " sec" << endl;

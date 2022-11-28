@@ -25,7 +25,9 @@ vector<vector<Pair> > read_rough_pair_data(char* filename);
 
 void write_pair_csv_header(FILE *csv_file, bool output_FOM);
 void write_pair_csv(FILE *csv_file, Pair *pair, bool output_FOM);
-void write_total_csv_header(FILE *csv_file);
-void write_total_csv(FILE *csv_file, string square_name, int num_sites, int energy_capacity);
+void write_summary_csv_header(FILE *csv_file);
+void write_summary_csv(FILE *csv_file, string square_name, string test, 
+                      int non_overlapping_sites, int num_sites, 
+                      int energy_capacity);
 
 #endif
