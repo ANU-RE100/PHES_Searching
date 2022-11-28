@@ -1,4 +1,5 @@
 #include "phes_base.h"
+#include "reservoir.h"
 
 bool debug_output = false;
 
@@ -322,11 +323,11 @@ static Model<bool>* find_pour_points(Model<bool>* streams, Model<char>* flow_dir
 }
 
 // Find details of possible reservoirs at pour_point
-static RoughReservoir model_reservoir(ArrayCoordinate pour_point, Model<char>* flow_directions, Model<short>* DEM_filled, Model<bool>* filter,
+static RoughGreenfieldReservoir model_greenfield_reservoir(ArrayCoordinate pour_point, Model<char>* flow_directions, Model<short>* DEM_filled, Model<bool>* filter,
 				  Model<int>* modelling_array, int iterator)
 {
 
-	RoughReservoir reservoir = RoughReservoir_init(pour_point, (int)(DEM_filled->get(pour_point.row,pour_point.col)));
+	RoughGreenfieldReservoir reservoir = RoughReservoir(pour_point, (int)(DEM_filled->get(pour_point.row,pour_point.col)));
 
 	double area_at_elevation[max_wall_height+1] = {0};
 	double cumulative_area_at_elevation[max_wall_height+1] = {0};
@@ -460,7 +461,7 @@ model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_points,
                 true) {
           ArrayCoordinate pour_point = {row, col,
                                         get_origin(square_coordinate, border)};
-          RoughReservoir reservoir = RoughReservoir_init(pour_point, 0);
+          RoughGreenfieldReservoir reservoir = RoughReservoir(pour_point, 0);
           reservoir.identifier =
               str(square_coordinate) + "_OCEAN_RES" + str(count);
           reservoir.ocean = true;
@@ -474,7 +475,7 @@ model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_points,
           }
           update_reservoir_boundary(reservoir.shape_bound, pour_point, 1);
           write_rough_reservoir_csv(csv_file, reservoir);
-          write_rough_reservoir_data(csv_data_file, reservoir);
+          write_rough_reservoir_data(csv_data_file, &reservoir);
           count++;
         }
       } else {
@@ -483,7 +484,7 @@ model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_points,
         ArrayCoordinate pour_point = {row, col,
                                       get_origin(square_coordinate, border)};
         i++;
-        RoughReservoir reservoir = model_reservoir(
+        RoughGreenfieldReservoir reservoir = model_greenfield_reservoir(
             pour_point, flow_directions, DEM_filled, filter, model, i);
         reservoir.ocean = false;
         if (max(reservoir.volumes) >= min_reservoir_volume &&
@@ -495,7 +496,7 @@ model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_points,
           reservoir.identifier = str(square_coordinate) + "_RES" + str(i);
 
           write_rough_reservoir_csv(csv_file, reservoir);
-          write_rough_reservoir_data(csv_data_file, reservoir);
+          write_rough_reservoir_data(csv_data_file, &reservoir);
           count++;
         }
       }
@@ -666,12 +667,11 @@ int main(int nargs, char **argv) {
     else
       existing_reservoirs = get_existing_reservoirs(search_config.grid_square);
 
-    vector<RoughReservoir> reservoirs;
     for(ExistingReservoir r : existing_reservoirs){
-      RoughReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
+      RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
       reservoir.pit = search_config.search_type == SearchType::PIT;
       write_rough_reservoir_csv(csv_file, reservoir);
-      write_rough_reservoir_data(csv_data_file, reservoir);
+      write_rough_reservoir_data(csv_data_file, &reservoir);
     }
 
     fclose(csv_file);

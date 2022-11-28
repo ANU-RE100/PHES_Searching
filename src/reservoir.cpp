@@ -32,30 +32,6 @@ void update_reservoir_boundary(
   }
 }
 
-RoughReservoir RoughReservoir_init(ArrayCoordinate pour_point, int elevation) {
-  RoughReservoir reservoir;
-  reservoir.elevation = elevation;
-  reservoir.brownfield = false;
-  reservoir.pit = false;
-  GeographicCoordinate geo_coordinate = convert_coordinates(pour_point);
-  reservoir.latitude = geo_coordinate.lat;
-  reservoir.longitude = geo_coordinate.lon;
-  reservoir.pour_point = pour_point;
-  reservoir.max_dam_height = max_wall_height;
-
-  // initialize bounds
-  for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
-    array<ArrayCoordinate, directions.size()> temp_array;
-    for (uint idir = 0; idir < directions.size(); idir++) {
-      temp_array[idir].row = -100000 * directions[idir].row;
-      temp_array[idir].col = -100000 * directions[idir].col;
-    }
-    reservoir.shape_bound.push_back(temp_array);
-  }
-
-  return reservoir;
-}
-
 ExistingReservoir ExistingReservoir_init(string identifier, double latitude,
                                          double longitude, int elevation,
                                          double volume) {

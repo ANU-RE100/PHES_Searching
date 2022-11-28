@@ -1,5 +1,7 @@
+#include "coordinates.h"
 #include "kml.h"
 #include "phes_base.h"
+#include "reservoir.h"
 
 string ReplaceAll(string str, const string &from, const string &to) {
   size_t start_pos = 0;
@@ -19,8 +21,7 @@ void write_to_csv_file(FILE *csv_file, vector<string> cols) {
       cols[i] = ReplaceAll(cols[i], string("\n"), string(""));
       cols[i] = '"' + cols[i] + '"';
     }
-    char *s = convert_string(cols[i]);
-    fprintf(csv_file, "%s", s);
+    fprintf(csv_file, "%s", cols[i].c_str());
     if (i != cols.size() - 1)
       fprintf(csv_file, ",");
   }
@@ -151,9 +152,9 @@ void write_rough_reservoir_data_header(FILE *csv_file) {
     header.push_back(dtos(dam_wall_heights[i], 0) + "m reservoir area (ha)");
   for (uint i = 0; i < dam_wall_heights.size(); i++)
     header.push_back(dtos(dam_wall_heights[i], 0) + "m dam volume (GL)");
-  header.push_back("Boundary");
   header.push_back("Brownfield");
   header.push_back("Ocean");
+  header.push_back("Boundary");
   write_to_csv_file(csv_file, header);
 }
 
@@ -175,44 +176,54 @@ void write_rough_reservoir_csv(FILE *csv_file, RoughReservoir reservoir) {
   write_to_csv_file(csv_file, line);
 }
 
-void write_rough_reservoir_data(FILE *csv_file, RoughReservoir reservoir) {
-  vector<string> line = {reservoir.identifier,
-                         dtos(reservoir.latitude, 5),
-                         dtos(reservoir.longitude, 5),
-                         to_string(reservoir.elevation),
-                         dtos(reservoir.max_dam_height, 1),
-                         dtos(reservoir.watershed_area, 2)};
+void write_rough_reservoir_data(FILE *csv_file, RoughReservoir *reservoir) {
+  vector<string> line = {reservoir->identifier,
+                         dtos(reservoir->latitude, 5),
+                         dtos(reservoir->longitude, 5),
+                         to_string(reservoir->elevation),
+                         dtos(reservoir->max_dam_height, 1),
+                         dtos(reservoir->watershed_area, 2)};
   for (uint i = 0; i < dam_wall_heights.size(); i++)
-    line.push_back(dtos(reservoir.volumes[i], 5));
+    line.push_back(dtos(reservoir->volumes[i], 5));
   for (uint i = 0; i < dam_wall_heights.size(); i++)
-    line.push_back(dtos(reservoir.areas[i], 2));
+    line.push_back(dtos(reservoir->areas[i], 2));
   for (uint i = 0; i < dam_wall_heights.size(); i++)
-    line.push_back(dtos(reservoir.dam_volumes[i], 5));
-  for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
-    for (uint idir = 0; idir < directions.size(); idir++) {
-      line.push_back(to_string(reservoir.shape_bound[ih][idir].row));
-      line.push_back(to_string(reservoir.shape_bound[ih][idir].col));
-    }
-  }
-  if (reservoir.pit)
+    line.push_back(dtos(reservoir->dam_volumes[i], 5));
+  if (reservoir->pit)
     line.push_back("2");
-  else if (reservoir.brownfield)
+  else if (reservoir->brownfield)
     line.push_back("1");
   else
     line.push_back("0");
-  line.push_back(to_string(reservoir.ocean));
+  line.push_back(to_string(reservoir->ocean));
+  if(RoughGreenfieldReservoir* gr = dynamic_cast<RoughGreenfieldReservoir*>(reservoir))
+    for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
+      for (uint idir = 0; idir < directions.size(); idir++) {
+        line.push_back(to_string(gr->shape_bound[ih][idir].row));
+        line.push_back(to_string(gr->shape_bound[ih][idir].col));
+      }
+    }
+  if(RoughBfieldReservoir* br = dynamic_cast<RoughBfieldReservoir*>(reservoir)){
+    line.push_back(to_string(br->shape_bound.size()));
+    for(ArrayCoordinate c : br->shape_bound){
+      line.push_back(to_string(c.row));
+      line.push_back(to_string(c.col));
+    }
+  }
   write_to_csv_file(csv_file, line);
 }
 
-vector<RoughReservoir> read_rough_reservoir_data(char *filename) {
-  vector<RoughReservoir> reservoirs;
+vector<unique_ptr<RoughReservoir>> read_rough_reservoir_data(char *filename) {
+  vector<unique_ptr<RoughReservoir>> reservoirs;
   ifstream inputFile(filename);
   string s;
   bool header = true;
+  bool compressed_format = false;
   while (getline(inputFile, s)) {
-
     if (header) {
       header = false;
+      vector<string> line = read_from_csv_file(s);
+      compressed_format = line[6+3*dam_wall_heights.size()+1] == "Ocean";
       continue;
     }
     vector<string> line = read_from_csv_file(s);
@@ -221,46 +232,63 @@ vector<RoughReservoir> read_rough_reservoir_data(char *filename) {
     GeographicCoordinate origin = get_origin(
         GridSquare_init((int)FLOOR(gc.lat) - EPS, (int)FLOOR(gc.lon) + EPS),
         border);
-    RoughReservoir reservoir =
-        RoughReservoir_init(convert_coordinates(gc, origin), stoi(line[3]));
+    unique_ptr<RoughReservoir> reservoir(new RoughReservoir(convert_coordinates(gc, origin), stoi(line[3])));
     for (uint i = 0; i < dam_wall_heights.size(); i++)
-      reservoir.volumes.push_back(stod(line[6 + i]));
+      reservoir->volumes.push_back(stod(line[6 + i]));
     for (uint i = 0; i < dam_wall_heights.size(); i++)
-      reservoir.areas.push_back(stod(line[6 + dam_wall_heights.size() + i]));
+      reservoir->areas.push_back(stod(line[6 + dam_wall_heights.size() + i]));
     for (uint i = 0; i < dam_wall_heights.size(); i++)
-      reservoir.dam_volumes.push_back(
+      reservoir->dam_volumes.push_back(
           stod(line[6 + 2 * dam_wall_heights.size() + i]));
-    reservoir.max_dam_height = stod(line[4]);
-    reservoir.watershed_area = stod(line[5]);
-    reservoir.identifier = line[0];
-    for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
-      for (uint idir = 0; idir < directions.size(); idir++) {
-        reservoir.shape_bound[ih][idir].row =
-            stoi(line[6 + 3 * dam_wall_heights.size() +
-                      (ih * directions.size() + idir) * 2]);
-        reservoir.shape_bound[ih][idir].col =
-            stoi(line[6 + 3 * dam_wall_heights.size() + 1 +
-                      (ih * directions.size() + idir) * 2]);
-        reservoir.shape_bound[ih][idir].origin = origin;
-      }
+    reservoir->max_dam_height = stod(line[4]);
+    reservoir->watershed_area = stod(line[5]);
+    reservoir->identifier = line[0];
+    if(compressed_format){
+      reservoir->brownfield =
+          stoi(line[6 + 3 * dam_wall_heights.size()]) > 0;
+      reservoir->pit =
+          stoi(line[6 + 3 * dam_wall_heights.size()]) > 1;
+      reservoir->ocean =
+          stoi(line[6 + 3 * dam_wall_heights.size() + 1]) > 0;
+    }else{
+      reservoir->brownfield =
+          stoi(line[6 + 3 * dam_wall_heights.size() +
+                    (dam_wall_heights.size() * directions.size()) * 2]) > 0;
+      reservoir->pit =
+          stoi(line[6 + 3 * dam_wall_heights.size() +
+                    (dam_wall_heights.size() * directions.size()) * 2]) > 1;
+      reservoir->ocean =
+          stoi(line[6 + 3 * dam_wall_heights.size() +
+                    (dam_wall_heights.size() * directions.size()) * 2 + 1]) > 0;
     }
 
-    reservoir.brownfield =
-        stoi(line[6 + 3 * dam_wall_heights.size() +
-                  (dam_wall_heights.size() * directions.size()) * 2]) > 0;
-    reservoir.pit =
-        stoi(line[6 + 3 * dam_wall_heights.size() +
-                  (dam_wall_heights.size() * directions.size()) * 2]) > 1;
-    reservoir.ocean =
-        stoi(line[6 + 3 * dam_wall_heights.size() +
-                  (dam_wall_heights.size() * directions.size()) * 2 + 1]) > 0;
-
-    reservoirs.push_back(reservoir);
+    if(!compressed_format || (!reservoir->ocean && !reservoir->brownfield)){
+      unique_ptr<RoughGreenfieldReservoir> greenfield_reservoir(new RoughGreenfieldReservoir(*reservoir));
+      for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
+        for (uint idir = 0; idir < directions.size(); idir++) {
+          greenfield_reservoir->shape_bound[ih][idir].row =
+              stoi(line[(compressed_format ? 8 : 6) + 3 * dam_wall_heights.size() +
+                        (ih * directions.size() + idir) * 2]);
+          greenfield_reservoir->shape_bound[ih][idir].col =
+              stoi(line[(compressed_format ? 8 : 6) + 3 * dam_wall_heights.size() + 1 +
+                        (ih * directions.size() + idir) * 2]);
+          greenfield_reservoir->shape_bound[ih][idir].origin = origin;
+        }
+      }
+      reservoirs.push_back(std::move(greenfield_reservoir));
+    } else if(reservoir->ocean || reservoir->brownfield){
+      int point_len = stoi(line[8]);
+      unique_ptr<RoughBfieldReservoir> bfield_reservoir(new RoughBfieldReservoir(*reservoir));
+      for(int i = 0; i<point_len; i++){
+        bfield_reservoir->shape_bound.push_back(ArrayCoordinate_init(stoi(line[8+3*dam_wall_heights.size()+i*2]), stoi(line[8+3*dam_wall_heights.size()+i*2+1]), origin));
+      }
+      reservoirs.push_back(std::move(bfield_reservoir));
+    }
   }
   if (header) {
+    cout << "Cannot read empty CSV " << filename << endl;
     throw 1;
   }
-
   return reservoirs;
 }
 
