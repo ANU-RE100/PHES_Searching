@@ -50,6 +50,10 @@ bool check_within(ArrayCoordinate c, int shape[2])
         return false;
 }
 
+bool check_within(GeographicCoordinate gc, GridSquare gs){
+  return (int)FLOOR(gc.lat) == gs.lat && (int)FLOOR(gc.lon) == gs.lon;
+}
+
 bool check_strictly_within(ArrayCoordinate c, int shape[2])
 {
 	if(c.row>0 && c.col>0 && c.row<shape[0]-1 && c.col<shape[1]-1){

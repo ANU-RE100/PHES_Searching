@@ -1,4 +1,5 @@
 #include "phes_base.h"
+#include "coordinates.h"
 
 int convert_to_int(double f)
 {
@@ -198,9 +199,13 @@ GeographicCoordinate get_origin(double latitude, double longitude, int border){
 
 ExistingReservoir get_existing_reservoir(string name) {
   ExistingReservoir to_return;
+  string filename = file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv;
+  if(!file_exists(convert_string(filename))){
+    cout << "File " << filename << " does not exist." << endl;
+    throw 1;
+  }
   vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(
-      convert_string(file_storage_location + "input/existing_reservoirs/" +
-                     existing_reservoirs_csv));
+      convert_string(filename));
 
   for (ExistingReservoir r : reservoirs)
     if (r.identifier == name)
@@ -216,7 +221,7 @@ ExistingReservoir get_existing_reservoir(string name) {
       i++;
   }
 
-  string filename = file_storage_location + "input/existing_reservoirs/" +
+  filename = file_storage_location + "input/existing_reservoirs/" +
                     existing_reservoirs_shp;
   char *shp_filename = new char[filename.length() + 1];
   strcpy(shp_filename, filename.c_str());
@@ -246,6 +251,7 @@ ExistingReservoir get_existing_reservoir(string name) {
     }
     SHPDestroyObject(shape);
   } else {
+    cout << "Could not read shapefile " << filename << endl;
     throw(1);
   }
   SHPClose(SHP);
@@ -253,9 +259,72 @@ ExistingReservoir get_existing_reservoir(string name) {
   return to_return;
 }
 
-RoughReservoir get_existing_rough_reservoir(string name){
+vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square) {
+  vector<ExistingReservoir> to_return;
+  string filename = file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv;
+  if (!file_exists(convert_string(filename))) {
+    cout << "File " << filename << " does not exist." << endl;
+    throw 1;
+  }
+  vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(filename));
+
+  vector<string> names = read_names(convert_string(
+      file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_shp_names));
+
+  filename = file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_shp;
+
+  char *shp_filename = new char[filename.length() + 1];
+  strcpy(shp_filename, filename.c_str());
+  if (!file_exists(shp_filename)) {
+    search_config.logger.debug("No file: " + filename);
+    throw(1);
+  }
+  SHPHandle SHP = SHPOpen(convert_string(filename), "rb");
+  if (SHP != NULL) {
+    int nEntities;
+    vector<vector<GeographicCoordinate>> relevant_polygons;
+    SHPGetInfo(SHP, &nEntities, NULL, NULL, NULL);
+
+    SHPObject *shape;
+    for(int i = 0; i<nEntities; i++){
+      shape = SHPReadObject(SHP, i);
+      if (shape == NULL) {
+        fprintf(stderr, "Unable to read shape %d, terminating object reading.\n", i);
+      }
+      int idx = -1;
+      for (uint r = 0; r < reservoirs.size(); r++) {
+        if (reservoirs[r].identifier == names[i]) {
+          idx = r;
+        }
+      }
+      if (idx < 0) {
+        search_config.logger.debug("Could not find reservoir with id " + names[i]);
+      }
+      ExistingReservoir reservoir = reservoirs[idx];
+      GeographicCoordinate gc = GeographicCoordinate_init(reservoir.latitude, reservoir.longitude);
+      if(!check_within(gc, grid_square))
+        continue;
+      vector<GeographicCoordinate> temp_poly;
+      for (int j = 0; j < shape->nVertices; j++) {
+        // if(shape->panPartStart[iPart] == j )
+        //  break;
+        GeographicCoordinate temp_point =
+            GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
+        reservoir.polygon.push_back(temp_point);
+      }
+      SHPDestroyObject(shape);
+        to_return.push_back(reservoir);
+    }
+  } else {
+    cout << "Could not read shapefile " << filename << endl;
+    throw(1);
+  }
+  SHPClose(SHP);
+  return to_return;
+}
+
+RoughReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r){
 	RoughReservoir reservoir;
-	ExistingReservoir r = get_existing_reservoir(name);
 	reservoir.identifier = r.identifier;
     reservoir.brownfield = true;
     reservoir.ocean = false;
@@ -278,7 +347,7 @@ RoughReservoir get_existing_rough_reservoir(string name){
 	}
 
 	GeographicCoordinate origin = get_origin(r.latitude, r.longitude, border);
-	
+
 	for(GeographicCoordinate c : r.polygon){
 		ArrayCoordinate p = convert_coordinates(c, origin);
 		update_reservoir_boundary(reservoir.shape_bound, p, 0);

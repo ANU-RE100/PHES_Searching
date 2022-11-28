@@ -66,6 +66,7 @@ vector<ExistingReservoir> read_existing_reservoir_data(char *filename) {
     reservoirs.push_back(reservoir);
   }
   if (header) {
+    cout << "CSV file " << filename << " is empty." << endl;
     throw 1;
   }
 
@@ -119,6 +120,7 @@ vector<string> read_names(char *filename) {
     names.push_back(read_from_csv_file(s)[0]);
   }
   if (header) {
+    cout << "CSV file " << filename << " is empty." << endl;
     throw 1;
   }
   return names;
