@@ -9,6 +9,7 @@ class RoughReservoir{
     bool brownfield = false;
     bool ocean;
     bool pit;
+    bool turkey;
     double latitude;
     double longitude;
     int elevation;
