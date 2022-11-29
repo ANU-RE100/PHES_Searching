@@ -323,8 +323,8 @@ vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square) {
   return to_return;
 }
 
-RoughReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r){
-	RoughReservoir reservoir;
+RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r){
+	RoughBfieldReservoir reservoir;
 	reservoir.identifier = r.identifier;
     reservoir.brownfield = true;
     reservoir.ocean = false;
@@ -336,22 +336,11 @@ RoughReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r){
 		reservoir.dam_volumes.push_back(0);
 		reservoir.areas.push_back(0);
 		reservoir.water_rocks.push_back(1000000000);
-	}
-	for (uint ih=0; ih < dam_wall_heights.size(); ih++) {
-		array<ArrayCoordinate, directions.size()> temp_array;
-		for (uint idir=0; idir < directions.size(); idir++) {
-			temp_array[idir].row = -100000 * directions[idir].row;
-			temp_array[idir].col = -100000 * directions[idir].col;
-		}
-		reservoir.shape_bound.push_back(temp_array);
-	}
+  }
 
 	GeographicCoordinate origin = get_origin(r.latitude, r.longitude, border);
-
-	for(GeographicCoordinate c : r.polygon){
-		ArrayCoordinate p = convert_coordinates(c, origin);
-		update_reservoir_boundary(reservoir.shape_bound, p, 0);
-	}
+	for(GeographicCoordinate c : r.polygon)
+    reservoir.shape_bound.push_back(convert_coordinates(c, origin));
 	return reservoir;
 }
 

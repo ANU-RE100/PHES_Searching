@@ -14,8 +14,8 @@ vector<string> read_names(char* filename);
 void write_rough_reservoir_csv_header(FILE *csv_file);
 void write_rough_reservoir_data_header(FILE *csv_file);
 void write_rough_reservoir_csv(FILE *csv_file, RoughReservoir reservoir);
-void write_rough_reservoir_data(FILE *csv_file, RoughReservoir reservoir);
-vector<RoughReservoir> read_rough_reservoir_data(char* filename);
+void write_rough_reservoir_data(FILE *csv_file, RoughReservoir *reservoir);
+vector<unique_ptr<RoughReservoir>> read_rough_reservoir_data(char *filename);
 
 void write_rough_pair_csv_header(FILE *csv_file);
 void write_rough_pair_data_header(FILE *csv_file);

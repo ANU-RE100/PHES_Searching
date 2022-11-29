@@ -1,4 +1,8 @@
+#include "coordinates.h"
+#include "model2D.h"
 #include "phes_base.h"
+#include "reservoir.h"
+#include "search_config.hpp"
 
 bool debug_output = false;
 
@@ -280,7 +284,7 @@ static Model<int>* find_flow_accumulation(Model<char>* flow_directions, Model<do
 			flow_accumulation->set(downstream.row,downstream.col, flow_accumulation->get(p.row,p.col)+flow_accumulation->get(downstream.row,downstream.col)+1);
 		}
 	}
-	delete to_check;
+	delete[] to_check;
 	return flow_accumulation;
 }
 
@@ -322,11 +326,11 @@ static Model<bool>* find_pour_points(Model<bool>* streams, Model<char>* flow_dir
 }
 
 // Find details of possible reservoirs at pour_point
-static RoughReservoir model_reservoir(ArrayCoordinate pour_point, Model<char>* flow_directions, Model<short>* DEM_filled, Model<bool>* filter,
+static RoughGreenfieldReservoir model_greenfield_reservoir(ArrayCoordinate pour_point, Model<char>* flow_directions, Model<short>* DEM_filled, Model<bool>* filter,
 				  Model<int>* modelling_array, int iterator)
 {
 
-	RoughReservoir reservoir = RoughReservoir_init(pour_point, (int)(DEM_filled->get(pour_point.row,pour_point.col)));
+	RoughGreenfieldReservoir reservoir = RoughReservoir(pour_point, (int)(DEM_filled->get(pour_point.row,pour_point.col)));
 
 	double area_at_elevation[max_wall_height+1] = {0};
 	double cumulative_area_at_elevation[max_wall_height+1] = {0};
@@ -443,67 +447,73 @@ model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_points,
   Model<int> *model = new Model<int>(pour_points->nrows(), pour_points->ncols(),
                                      MODEL_SET_ZERO);
 
-  for (int row = border; row < border + DEM_filled->nrows() - 2 * border; row++)
-    for (int col = border; col < border + DEM_filled->ncols() - 2 * border;
-         col++) {
-      if (search_config.search_type == SearchType::OCEAN) {
+  if (search_config.search_type == SearchType::OCEAN) {
+    unique_ptr<ArrayCoordinate> pp(new ArrayCoordinate{-1, -1, get_origin(square_coordinate, border)});
+    for (int row = border + 1; row < border + DEM_filled->nrows() - 2 * border - 1; row++)
+      for (int col = border + 1; col < border + DEM_filled->ncols() - 2 * border - 1; col++) {
         if (filter->get(row, col))
           continue;
-        if (row == border || col == border ||
-            row == border + DEM_filled->nrows() - 2 * border - 1 ||
-            col == border + DEM_filled->ncols() - 2 * border - 1)
-          continue;
         if (DEM_filled->get(row, col) >= 1 - EPS &&
-            pour_points->get(
-                row + directions.at(flow_directions->get(row, col)).row,
-                col + directions.at(flow_directions->get(row, col)).col) ==
-                true) {
-          ArrayCoordinate pour_point = {row, col,
-                                        get_origin(square_coordinate, border)};
-          RoughReservoir reservoir = RoughReservoir_init(pour_point, 0);
-          reservoir.identifier =
-              str(square_coordinate) + "_OCEAN_RES" + str(count);
-          reservoir.ocean = true;
-          reservoir.watershed_area = 0;
-          reservoir.max_dam_height = 0;
-          for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
-            reservoir.areas.push_back(0);
-            reservoir.dam_volumes.push_back(0);
-            reservoir.volumes.push_back(INF);
-            reservoir.water_rocks.push_back(INF);
-          }
-          update_reservoir_boundary(reservoir.shape_bound, pour_point, 1);
-          write_rough_reservoir_csv(csv_file, reservoir);
-          write_rough_reservoir_data(csv_data_file, reservoir);
-          count++;
+            pour_points->get(row + directions.at(flow_directions->get(row, col)).row,
+                             col + directions.at(flow_directions->get(row, col)).col) == true) {
+          pp->row = row;
+          pp->col = col;
         }
-      } else {
+      }
+    if (pp->row>0) {
+      RoughBfieldReservoir reservoir = RoughReservoir(*pp, 0);
+      reservoir.identifier = str(square_coordinate) + "_OCEAN";
+      reservoir.ocean = true;
+      reservoir.watershed_area = 0;
+      reservoir.max_dam_height = 0;
+      for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
+        reservoir.areas.push_back(0);
+        reservoir.dam_volumes.push_back(0);
+        reservoir.volumes.push_back(INF);
+        reservoir.water_rocks.push_back(INF);
+      }
+      for (int row = border + 1; row < border + DEM_filled->nrows() - 2 * border - 1; row++)
+        for (int col = border + 1; col < border + DEM_filled->ncols() - 2 * border - 1; col++) {
+          if (filter->get(row, col))
+            continue;
+          if (DEM_filled->get(row, col) >= 1 - EPS &&
+              pour_points->get(row + directions.at(flow_directions->get(row, col)).row,
+                               col + directions.at(flow_directions->get(row, col)).col) == true) {
+            ArrayCoordinate pour_point = {row, col, get_origin(square_coordinate, border)};
+            reservoir.shape_bound.push_back(pour_point);
+            count++;
+          }
+        }
+      write_rough_reservoir_csv(csv_file, reservoir);
+      write_rough_reservoir_data(csv_data_file, &reservoir);
+    }
+  } else {
+    for (int row = border; row < border + DEM_filled->nrows() - 2 * border; row++)
+      for (int col = border; col < border + DEM_filled->ncols() - 2 * border; col++) {
         if (!pour_points->get(row, col) || filter->get(row, col))
           continue;
-        ArrayCoordinate pour_point = {row, col,
-                                      get_origin(square_coordinate, border)};
+        ArrayCoordinate pour_point = {row, col, get_origin(square_coordinate, border)};
         i++;
-        RoughReservoir reservoir = model_reservoir(
-            pour_point, flow_directions, DEM_filled, filter, model, i);
+        RoughGreenfieldReservoir reservoir =
+            model_greenfield_reservoir(pour_point, flow_directions, DEM_filled, filter, model, i);
         reservoir.ocean = false;
         if (max(reservoir.volumes) >= min_reservoir_volume &&
             max(reservoir.water_rocks) > min_reservoir_water_rock &&
             reservoir.max_dam_height >= min_max_dam_height) {
-          reservoir.watershed_area =
-              find_area(pour_point) * flow_accumulation->get(row, col);
+          reservoir.watershed_area = find_area(pour_point) * flow_accumulation->get(row, col);
 
           reservoir.identifier = str(square_coordinate) + "_RES" + str(i);
 
           write_rough_reservoir_csv(csv_file, reservoir);
-          write_rough_reservoir_data(csv_data_file, reservoir);
+          write_rough_reservoir_data(csv_data_file, &reservoir);
           count++;
         }
       }
-    }
+  }
   fclose(csv_file);
   fclose(csv_data_file);
   return count;
-}
+  }
 
 int main(int nargs, char **argv) {
   search_config = SearchConfig(nargs, argv);
@@ -666,12 +676,11 @@ int main(int nargs, char **argv) {
     else
       existing_reservoirs = get_existing_reservoirs(search_config.grid_square);
 
-    vector<RoughReservoir> reservoirs;
     for(ExistingReservoir r : existing_reservoirs){
-      RoughReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
+      RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
       reservoir.pit = search_config.search_type == SearchType::PIT;
       write_rough_reservoir_csv(csv_file, reservoir);
-      write_rough_reservoir_data(csv_data_file, reservoir);
+      write_rough_reservoir_data(csv_data_file, &reservoir);
     }
 
     fclose(csv_file);
