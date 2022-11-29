@@ -300,7 +300,8 @@ void pairing(vector<unique_ptr<RoughReservoir>> &upper_reservoirs,
       double distance_sqd = find_distance_sqd(
           upper_reservoir->pour_point, lower_reservoir->pour_point, coslat);
 
-      if (SQ(head * 0.001) <= distance_sqd * SQ(min_pp_slope))
+      if (!upper_reservoir->brownfield && !lower_reservoir->brownfield && !lower_reservoir->ocean &&
+          SQ(head * 0.001) <= distance_sqd * SQ(min_pp_slope))
         continue;
 
       for (uint itest = 0; itest < tests.size(); itest++) {
