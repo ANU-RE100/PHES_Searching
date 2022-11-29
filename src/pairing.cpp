@@ -288,7 +288,7 @@ void pairing(vector<unique_ptr<RoughReservoir>> &upper_reservoirs,
 
   for (uint iupper = 0; iupper < upper_reservoirs.size(); iupper++) {
     RoughReservoir* upper_reservoir = upper_reservoirs[iupper].get();
-    double coslat = COS(upper_reservoir->latitude);
+    double coslat = COS(RADIANS(upper_reservoir->latitude));
     for (uint ilower = 0; ilower < lower_reservoirs.size(); ilower++) {
       RoughReservoir* lower_reservoir = lower_reservoirs[ilower].get();
 
@@ -300,9 +300,27 @@ void pairing(vector<unique_ptr<RoughReservoir>> &upper_reservoirs,
       double distance_sqd = find_distance_sqd(
           upper_reservoir->pour_point, lower_reservoir->pour_point, coslat);
 
-      if (!upper_reservoir->brownfield && !lower_reservoir->brownfield && !lower_reservoir->ocean &&
-          SQ(head * 0.001) <= distance_sqd * SQ(min_pp_slope))
+      if(upper_reservoir->brownfield){
+        RoughBfieldReservoir* br = static_cast<RoughBfieldReservoir*>(upper_reservoir);
+        for(ArrayCoordinate ac: br->shape_bound)
+          distance_sqd =
+              MIN(find_distance_sqd(ac, lower_reservoir->pour_point, coslat), distance_sqd);
+      }
+      if(lower_reservoir->brownfield || lower_reservoir->ocean){
+        RoughBfieldReservoir* lr = static_cast<RoughBfieldReservoir*>(lower_reservoir);
+        for(ArrayCoordinate ac: lr->shape_bound){
+          distance_sqd =
+              MIN(find_distance_sqd(ac, upper_reservoir->pour_point, coslat), distance_sqd);
+          if(distance_sqd<0)
+            cout << distance_sqd << " " << ac.row << " " << ac.col << " "
+                 << upper_reservoir->pour_point.row << " " << upper_reservoir->pour_point.col << " "
+                 << coslat << endl;
+        }
+      }
+
+      if (SQ(head * 0.001) <= distance_sqd * SQ(min_pp_slope))
         continue;
+
 
       for (uint itest = 0; itest < tests.size(); itest++) {
         Pair temp_pair;
