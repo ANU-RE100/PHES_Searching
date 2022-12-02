@@ -20,6 +20,11 @@ min_reservoir_volume = 1.0;		// Minimum reservoir volume (GL) at maximum dam wal
 min_reservoir_water_rock = 3.0;	// Minimum reservoir water to rock ratio at optimal dam wall height
 min_max_dam_height = 5.0;		// Minimum maximum dam height (m) (Before overlapping filters) to be considered a potential reservoir
 
+// Turkey nest screening
+min_reservoir_area = 50000;                      // Minimum reservoir area (m^2)
+TN_elevation_tolerance = 5;		                 // Allowable tolerance of the DEM elevation along the rough turkey nest dam wall (m)
+TN_scan_radius = 390;                            // Radius around reservoir that is scanned for turkey nest sites (cells) 
+
 // filter = use_world_urban;						// Use world urban data from tiffs stored in fileformat input/WORLD_URBAN/55H_hbase_human_built_up_and_settlement_extent_geographic_30m
 // filter = use_tiled_filter;						// Use shapefile filters output from shapefile_tiling
 // filter = input/CLUM/CLUM541550552_WGS84.shp;	

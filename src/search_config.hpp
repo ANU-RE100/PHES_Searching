@@ -8,7 +8,7 @@
 
 class SearchType {
   public:
-    enum type {GREENFIELD, OCEAN, SINGLE_EXISTING, BULK_EXISTING, PIT};
+    enum type {GREENFIELD, OCEAN, SINGLE_EXISTING, BULK_EXISTING, PIT, TURKEY};
     constexpr SearchType(type search_type) : value(search_type){}
     constexpr operator type() const { return value; }
 
@@ -106,6 +106,11 @@ class SearchConfig {
       }
       if (arg1.compare("bulk_existing") == 0) {
         search_type = SearchType::BULK_EXISTING;
+        adj = 1;
+        arg1 = argv[1 + adj];
+      }
+      if (arg1.compare("turkey") == 0) {
+        search_type = SearchType::TURKEY;
         adj = 1;
         arg1 = argv[1 + adj];
       }
