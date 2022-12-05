@@ -549,149 +549,64 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_poin
   return count;
 }
 
-Model<bool> *turkey_nest_pour_points(Model<short int> *DEM, vector<unique_ptr<RoughReservoir>> &reservoirs_gs,
-                                    Model<bool> *filter, GridSquare square_coordinate) {
-  unsigned long start_usec = walltime_usec();
-  unsigned long t_usec = start_usec;
-
+Model<bool> *turkey_nest_pour_points(Model<short int> *DEM, GridSquare square_coordinate, Model<char> *flow_directions) {
   if (search_config.logger.output_debug())
     printf("Started screening for turkey nest pour points in the grid "
            "square\n");
-
-  // Define the counters for the row and column size of each rough rectangular turkey nest
-  int TN_row_size = 0;
-  int TN_col_size = 0;
-
-  // Create Boolean DEM model for grid square to be scanned for eligible turkey
-  // nest sites
-  t_usec = walltime_usec();
-  Model<bool> *TN_scanning_DEM = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
-  TN_scanning_DEM->set_geodata(DEM->get_geodata());
-
-  // Define the scan regions within the gridsquare
-  for (uint res = 0; res < reservoirs_gs.size(); res++) {
-    RoughReservoir* reservoir = reservoirs_gs[res].get();
-    ArrayCoordinate scan_centre = reservoir->pour_point;
-
-    for (int horizontal_offset = -1 * TN_scan_radius; horizontal_offset <= TN_scan_radius;
-         horizontal_offset++) {
-      for (int vertical_offset = -1 * TN_scan_radius; vertical_offset <= TN_scan_radius;
-           vertical_offset++) {
-        if (ceil(sqrt(pow(horizontal_offset, 2) + pow(vertical_offset, 2))) <= TN_scan_radius) {
-          TN_scanning_DEM->set(vertical_offset + scan_centre.row,
-                               horizontal_offset + scan_centre.col, true);
-        }
-      }
-    }
-  }
-
-  if (search_config.logger.output_debug()) {
-    printf("\nTN_scanning_DEM:\n");
-    TN_scanning_DEM->print();
-    printf("TN_scanning_DEM Runtime: %.2f sec\n", 1.0e-6 * (walltime_usec() - t_usec));
-  }
-  if (debug_output) {
-    mkdir(convert_string(file_storage_location + "debug/TN_scanning_DEM"), 0777);
-    TN_scanning_DEM->write(file_storage_location + "debug/TN_scanning_DEM/" +
-                               str(square_coordinate) + "_TN_scanning_DEM.tif",
-                           GDT_Byte);
-  }
-
-  // Define model that specifies top-left cell of each rectangular turkey nest site
-  Model<bool> *TN_corners = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
-  TN_corners->set_geodata(DEM->get_geodata());
-
-  // Define model that specifies whether a cell in the grid square has been scanned for a rough
-  // turkey nest site
-  Model<bool> *TN_seen = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
-  TN_seen->set_geodata(DEM->get_geodata());
-
-  // Define model of turkey nest pour points
+  
+  Model<bool> *TN_scanning_region = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
+  TN_scanning_region->set_geodata(DEM->get_geodata());
   Model<bool> *TN_pour_points = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
   TN_pour_points->set_geodata(DEM->get_geodata());
+  Model<bool> *seen = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 
-  for (int row = 0; row < DEM->nrows(); row++) {
+  queue<ArrayCoordinate> q;
+
+  ArrayCoordinate c;
+  ArrayCoordinate neighbor;
+  vector<ArrayCoordinate> flat_region_coordinates;
+  double flat_region_area = 0;
+
+  // Algorithm finds a connected area of relatively flat cells (i.e. each cell has a slope that is smaller than the user defined tolerance)
+  // If that connected area is greater than the user-defined minimum reservoir area, the cells are marked "true" in the TN_scanning_region model
+  // TN_scanning_region is used in place of the *streams input for the find_pour_points function
+  for (int row = 0; row < DEM->nrows(); row++){
     for (int col = 0; col < DEM->ncols(); col++) {
-      // Only define upper-left corner points within scan region and outside filter region
-      if ((TN_scanning_DEM->get(row, col) == true) && (filter->get(row, col) != true)) {
+      if (DEM->get_slope(row, col) <= TN_elevation_tolerance && !seen->get(row, col)) {  
+        c = ArrayCoordinate_init(row,col,get_origin(square_coordinate,border));
+        flat_region_coordinates.clear();
+        flat_region_coordinates.push_back(c);
+        flat_region_area = find_area(c);
+        q.push(c);
+        seen->set(c.row,c.col,true);
 
-        t_usec = walltime_usec();
+        while (!q.empty()) {
+          c = q.front();
+          q.pop();
 
-        // Determine the size of the rectangular flat region that contains the turkey nest pour
-        // point
-        TN_row_size = 0;
-        TN_col_size = 0;
-
-        // Determine the number of rows that form a flat region based upon the
-        // TN_elevation_tolerance
-        while ((row + TN_row_size + 1 <= 3600 + border) &&
-               (DEM->get(row + TN_row_size + 1, col) <=
-                DEM->get(row, col) + TN_elevation_tolerance) &&
-               (DEM->get(row + TN_row_size + 1, col) >=
-                DEM->get(row, col) - TN_elevation_tolerance) &&
-               (TN_seen->get(row + TN_row_size + 1, col) == 0) &&
-               (TN_seen->get(row + TN_row_size, col) == 0)) {
-          if (TN_row_size == 0) {
-            TN_corners->set(row, col, true);
+          for (uint d = 0; d < directions.size(); d++) {
+            neighbor =
+                ArrayCoordinate_init(c.row + directions[d].row, c.col + directions[d].col, get_origin(square_coordinate,border));
+            if (DEM->check_within(c.row + directions[d].row, c.col + directions[d].col) && !seen->get(neighbor.row, neighbor.col) &&
+                DEM->get_slope(neighbor.row, neighbor.col) <= TN_elevation_tolerance) {
+                  seen->set(neighbor.row, neighbor.col, true);
+                  flat_region_area+=find_area(neighbor);
+                  q.push(neighbor);
+            }                
           }
-
-          TN_row_size++;
-        }
-
-        // Determine the number of columns that form a flat region based upon the
-        // TN_elevation_tolerance
-        while ((col + TN_col_size + 1 <= 3600 + border) &&
-               (DEM->get(row, col + TN_col_size + 1) <=
-                DEM->get(row, col) + TN_elevation_tolerance) &&
-               (DEM->get(row, col + TN_col_size + 1) >=
-                DEM->get(row, col) - TN_elevation_tolerance) &&
-               (TN_seen->get(row, col + TN_col_size + 1) == 0) &&
-               (TN_seen->get(row, col + TN_col_size) == 0)) {
-          
-          TN_col_size++;
-        }
-
-		// Only consider flat rectangular regions that are larger than 12 x 12 cells
-        if ((TN_row_size >= 12) && (TN_col_size >= 12)) {
-			// Mark the rectangular region in the TN_seen DEM
-			for (int TN_row = 0; TN_row < TN_row_size; TN_row++)
-				for (int TN_col = 0; TN_col < TN_col_size; TN_col++)
-					TN_seen->set(row + TN_row, col + TN_col, true);
-
-          // Define variable that stores the minimum elevation within rectangular region
-          ArrayCoordinate res_min_point =
-              ArrayCoordinate_init(row, col, get_origin(square_coordinate, border));
-
-          for (int TN_row = 0; TN_row < TN_row_size; TN_row++) {
-            for (int TN_col = 0; TN_col < TN_col_size; TN_col++) {
-                if (DEM->get(row+TN_row, col+TN_col) < DEM->get(res_min_point.row, res_min_point.col)) {
-					res_min_point = ArrayCoordinate_init(row + TN_row, col + TN_col,
-														get_origin(square_coordinate, border));
-				}
-            }
-          }
-
-		  TN_pour_points->set(res_min_point.row, res_min_point.col, true);
-        }
+        } 
+        
+        if (flat_region_area >= min_reservoir_area) {
+          for (uint coord_index = 0; coord_index < flat_region_coordinates.size(); coord_index++)
+            TN_scanning_region->set(flat_region_coordinates[coord_index].row, flat_region_coordinates[coord_index].col, true);
+        }      
       }
-    }
-  }
+    }    
+  } 
 
-  if (search_config.logger.output_debug()) {
-    printf("\nTN_corners:\n");
-    TN_corners->print();
-	printf("\nTN_seen:\n");
-    TN_seen->print();
-	printf("\nTN_pour_points:\n");
-    TN_pour_points->print();
-    printf("TN_pour_points Runtime: %.2f sec\n", 1.0e-6 * (walltime_usec() - t_usec));
-  }
-  if (debug_output) {
-    mkdir(convert_string(file_storage_location + "debug/pour_points"), 0777);
-    TN_pour_points->write(file_storage_location + "debug/pour_points/" +
-                               str(square_coordinate) + "_TN_pour_points.tif",
-                           GDT_Byte);
-  }
+  delete seen;
+
+  TN_pour_points = find_pour_points(TN_scanning_region, flow_directions, DEM); 
 
   return TN_pour_points;
 }
@@ -821,72 +736,22 @@ int main(int nargs, char **argv) {
                            GDT_Byte);
       }
     } else if (search_config.search_type == SearchType::TURKEY) {
-      // Import reservoir data for grid square FIX THESE FILENAMES TO BE THOSE THAT
-      // ARE ACTUALLY OUTPUT BY OTHER CODE
-      if (search_config.logger.output_debug())
-        printf("Reading reservoir data for turkey nest screening in grid square\n");
 
-      vector<unique_ptr<RoughReservoir>> existing_reservoirs_gs;
-      vector<unique_ptr<RoughReservoir>> pit_reservoirs_gs;
-      vector<unique_ptr<RoughReservoir>> ocean_reservoirs_gs;
-      vector<unique_ptr<RoughReservoir>> reservoirs_gs;
-
-	try {
-        reservoirs_gs = read_rough_reservoir_data(
-            convert_string(file_storage_location + "processing_files/reservoirs/" +
-                           str(search_config.grid_square) + "_reservoirs_data.csv"));
-      } catch (int e) {
-        printf("No greenfield reservoir data found for %s\n",
-               convert_string(str(search_config.grid_square)));
-      }
-
-      try {
-        existing_reservoirs_gs = read_rough_reservoir_data(
-            convert_string(file_storage_location + "processing_files/reservoirs/reservoir_" +
-                           str(search_config.grid_square) + "_reservoirs_data.csv"));
-        reservoirs_gs.insert(reservoirs_gs.end(), std::make_move_iterator(existing_reservoirs_gs.begin()),
-                             std::make_move_iterator(existing_reservoirs_gs.end()));
-      } catch (int e) {
-        printf("No existing reservoir data found for %s\n", convert_string(str(search_config.grid_square)));
-      }
-
-      try {
-        pit_reservoirs_gs = read_rough_reservoir_data(
-            convert_string(file_storage_location + "processing_files/reservoirs/pit_" +
-                           str(search_config.grid_square) + "_reservoirs_data.csv"));
-        reservoirs_gs.insert(reservoirs_gs.end(), std::make_move_iterator(pit_reservoirs_gs.begin()),
-                             std::make_move_iterator(pit_reservoirs_gs.end()));
-      } catch (int e) {
-        printf("No pit data found for %s\n", convert_string(str(search_config.grid_square)));
-      }
-
-      try {
-        ocean_reservoirs_gs = read_rough_reservoir_data(
-            convert_string(file_storage_location + "processing_files/reservoirs/ocean_" +
-                           str(search_config.grid_square) + "_reservoirs_data.csv"));
-        reservoirs_gs.insert(reservoirs_gs.end(), std::make_move_iterator(ocean_reservoirs_gs.begin()),
-                             std::make_move_iterator(ocean_reservoirs_gs.end()));
-      } catch (int e) {
-        printf("No ocean reservoir data found for %s\n", convert_string(str(search_config.grid_square)));
-      }
+      // Screen for turkey nest pour points in grid square
+      pour_points = turkey_nest_pour_points(DEM_filled, search_config.grid_square, flow_directions);
 
       if (search_config.logger.output_debug()) {
-        int reservoir_count =
-            (int)reservoirs_gs.size();  // Uint will not exceed maximum size of 32-bit int
-        printf("Successfully read reservoir data of %d reservoirs for turkey nest "
-               "screening in grid square\n",
-               reservoir_count);
+        printf("\nTN_pour_points:\n");
+        pour_points->print();
+        printf("TN_pour_points Runtime: %.2f sec\n", 1.0e-6 * (walltime_usec() - t_usec));
       }
-
-      // Look within grid square with border for eligible turkey nest sites, within
-      // specified radius of the pour point (390 cells or 12 km)
-      if (reservoirs_gs.size() > 0) {
-
-        // Screen for turkey nest pour points in grid square
-        pour_points = turkey_nest_pour_points(DEM_filled, reservoirs_gs, filter, search_config.grid_square);
-      } else {
-        printf("No reservoirs found in grid square\n");
-      }
+      if (debug_output) {
+        mkdir(convert_string(file_storage_location + "debug/pour_points"), 0777);
+        pour_points->write(file_storage_location + "debug/pour_points/" +
+                               str(search_config.grid_square) + "_TN_pour_points.tif",
+                           GDT_Byte);
+  }
+      
     } else {
 
       Model<bool> *streams = find_streams(flow_accumulation);
