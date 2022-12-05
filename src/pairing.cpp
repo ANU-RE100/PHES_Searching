@@ -237,6 +237,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   upper_reservoir.max_dam_height = upper->max_dam_height;
   upper_reservoir.brownfield = upper->brownfield;
   upper_reservoir.pit = upper->pit;
+  upper_reservoir.turkey = upper->turkey;
 
   lower_reservoir.identifier = lower->identifier;
   lower_reservoir.volume = required_volume;
@@ -254,6 +255,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   lower_reservoir.brownfield = lower->brownfield;
   lower_reservoir.pit = lower->pit;
   lower_reservoir.ocean = lower->ocean;
+  lower_reservoir.turkey = lower->turkey;
 
   pair->identifier = upper->identifier + " & " + lower->identifier;
   pair->upper = upper_reservoir;

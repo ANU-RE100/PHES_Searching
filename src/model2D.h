@@ -95,6 +95,29 @@ public:
                                               get_coordinate(nrows(), 0)};
     return to_return;
   }
+  double get_slope(int row, int col) {
+    double to_return = 0;
+    double dz_dx = 0; // Change in elevation of the cell along the horizontal
+                      // axis of the DEM
+    double dz_dy =
+        0; // Change in elevation of the cell along the vertical axis of the DEM
+
+    // Slope of the cell in three dimensions is calculated according to the 3rd
+    // order finite differences approach
+    if (row > 0 && col > 0 && row < nrows() - 1 && col < nrows() - 1) {
+      dz_dx = ((get(row - 1, col + 1) - get(row - 1, col - 1)) +
+               2 * (get(row, col + 1) - get(row, col - 1)) +
+               (get(row + 1, col + 1) - get(row + 1, col - 1))) /
+              (8.0 * 111000.0 / 3600.0);
+      dz_dy = ((get(row - 1, col - 1) - get(row + 1, col - 1)) +
+               2 * (get(row - 1, col) - get(row + 1, col)) +
+               (get(row + 1, col + 1) - get(row - 1, col + 1))) /
+              (8.0 * 111000.0 / 3600.0);
+      // Calculate the slope and convert from rads to degrees
+      to_return = atan(pow(dz_dx * dz_dx + dz_dy * dz_dy, 0.5)) * 180.0 / pi;
+    }
+    return to_return;
+  }
 
   bool flows_to(ArrayCoordinate c1, ArrayCoordinate c2);
 private:

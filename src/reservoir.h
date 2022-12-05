@@ -24,7 +24,7 @@ class RoughReservoir{
     RoughReservoir() {};
     virtual ~RoughReservoir() = default;
     RoughReservoir(ArrayCoordinate pour_point, int elevation): brownfield(false),
-    pit(false), elevation(elevation), pour_point(pour_point), max_dam_height(max_wall_height){
+    pit(false), turkey(false), elevation(elevation), pour_point(pour_point), max_dam_height(max_wall_height){
       GeographicCoordinate geo_coordinate = convert_coordinates(pour_point);
       this->latitude = geo_coordinate.lat;
       this->longitude = geo_coordinate.lon;
@@ -87,6 +87,7 @@ struct Reservoir {
   bool brownfield;
   bool pit;
   bool ocean;
+  bool turkey;
   double latitude;
   double longitude;
   int elevation;
