@@ -336,6 +336,7 @@ void write_rough_pair_data_header(FILE *csv_file) {
                            "Upper water to rock estimate",
                            "Upper area estimate (ha)",
                            "Upper Brownfield",
+                           "Upper Turkey",
                            "Lower Identifier",
                            "Lower latitude",
                            "Lower longitude",
@@ -346,6 +347,7 @@ void write_rough_pair_data_header(FILE *csv_file) {
                            "Lower area estimate (ha)",
                            "Lower Brownfield",
                            "Lower Ocean",
+                           "Lower Turkey",
                            "Head (m)",
                            "Pourpoint separation (km)",
                            "Separation (km)",
@@ -398,6 +400,7 @@ void write_rough_pair_data(FILE *csv_file, Pair *pair) {
       dtos(pair->upper.water_rock, 5),
       dtos(pair->upper.area, 1),
       pair->upper.pit ? "2" : to_string(pair->upper.brownfield),
+      to_string(pair->upper.turkey),
       pair->lower.identifier,
       dtos(pair->lower.latitude, 6),
       dtos(pair->lower.longitude, 6),
@@ -408,6 +411,7 @@ void write_rough_pair_data(FILE *csv_file, Pair *pair) {
       dtos(pair->lower.area, 1),
       pair->lower.pit ? "2" : to_string(pair->lower.brownfield),
       to_string(pair->lower.ocean),
+      to_string(pair->lower.turkey),
       to_string(pair->head),
       dtos(pair->pp_distance, 5),
       dtos(pair->distance, 5),
@@ -444,12 +448,12 @@ vector<vector<Pair>> read_rough_pair_data(char *filename) {
                                    convert_to_int(FLOOR(gc.lon + EPS))),
                    border);
     pair.upper = Reservoir_init(convert_coordinates(gc, origin), stoi(line[4]));
-    gc = GeographicCoordinate_init(stod(line[11]), stod(line[12]));
+    gc = GeographicCoordinate_init(stod(line[12]), stod(line[13]));
     origin = get_origin(GridSquare_init(convert_to_int(FLOOR(gc.lat + EPS)),
                                         convert_to_int(FLOOR(gc.lon + EPS))),
                         border);
     pair.lower =
-        Reservoir_init(convert_coordinates(gc, origin), stoi(line[13]));
+        Reservoir_init(convert_coordinates(gc, origin), stoi(line[14]));
 
     pair.identifier = line[0];
 
@@ -460,27 +464,29 @@ vector<vector<Pair>> read_rough_pair_data(char *filename) {
     pair.upper.area = stod(line[8]);
     pair.upper.brownfield = stoi(line[9]) > 0;
     pair.upper.pit = stoi(line[9]) > 1;
+    pair.upper.turkey = stoi(line[10]) > 0;
 
-    pair.lower.identifier = line[10];
-    pair.lower.dam_height = stod(line[14]);
-    pair.lower.max_dam_height = stod(line[15]);
-    pair.lower.water_rock = stod(line[16]);
-    pair.lower.area = stod(line[17]);
-    pair.lower.brownfield = stoi(line[18]) > 0;
-    pair.lower.pit = stoi(line[18]) > 1;
-    pair.lower.ocean = stoi(line[19]) > 0;
+    pair.lower.identifier = line[11];
+    pair.lower.dam_height = stod(line[15]);
+    pair.lower.max_dam_height = stod(line[16]);
+    pair.lower.water_rock = stod(line[17]);
+    pair.lower.area = stod(line[18]);
+    pair.lower.brownfield = stoi(line[19]) > 0;
+    pair.lower.pit = stoi(line[19]) > 1;
+    pair.lower.ocean = stoi(line[20]) > 0;
+    pair.lower.turkey = stoi(line[21]) > 0;
 
-    pair.head = stoi(line[20]);
-    pair.pp_distance = stod(line[21]);
-    pair.distance = stod(line[22]);
-    pair.slope = stod(line[23]);
-    pair.required_volume = stod(line[24]);
-    pair.upper.volume = stod(line[24]);
-    pair.lower.volume = stod(line[24]);
-    pair.energy_capacity = stod(line[25]);
-    pair.storage_time = stoi(line[26]);
+    pair.head = stoi(line[22]);
+    pair.pp_distance = stod(line[23]);
+    pair.distance = stod(line[24]);
+    pair.slope = stod(line[25]);
+    pair.required_volume = stod(line[26]);
+    pair.upper.volume = stod(line[26]);
+    pair.lower.volume = stod(line[26]);
+    pair.energy_capacity = stod(line[27]);
+    pair.storage_time = stoi(line[28]);
 
-    pair.FOM = stod(line[27]);
+    pair.FOM = stod(line[29]);
 
     for (uint i = 0; i < tests.size(); i++)
       if (abs(pair.energy_capacity - tests[i].energy_capacity) < EPS &&

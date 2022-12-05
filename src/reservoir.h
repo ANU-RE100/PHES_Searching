@@ -87,6 +87,7 @@ struct Reservoir {
   bool brownfield;
   bool pit;
   bool ocean;
+  bool turkey;
   double latitude;
   double longitude;
   int elevation;

@@ -16,10 +16,10 @@ class SearchType {
       return value == SINGLE_EXISTING || value == BULK_EXISTING || value == PIT;
     }
     bool not_existing(){
-      return value == GREENFIELD || value == OCEAN;
+      return value == GREENFIELD || value == OCEAN || value == TURKEY;
     }
     bool grid_cell(){
-      return value == GREENFIELD || value == OCEAN || value == BULK_EXISTING;
+      return value == GREENFIELD || value == OCEAN || value == BULK_EXISTING || value == TURKEY;
     }
     bool single(){
       return value == SINGLE_EXISTING || value == PIT;
@@ -34,6 +34,8 @@ class SearchType {
           return "pit_";
         case BULK_EXISTING:
           return "existing_";
+        case TURKEY:
+          return "turkey_";
         default:
           return "";
       }

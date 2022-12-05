@@ -443,11 +443,11 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_poin
   FILE *csv_file;
   if (search_config.search_type == SearchType::OCEAN)
     csv_file = fopen(convert_string(file_storage_location + "output/reservoirs/ocean_" +
-                                    str(square_coordinate) + "_reservoirs.csv"),
+                                    search_config.filename() + "_reservoirs.csv"),
                      "w");
   else
     csv_file = fopen(convert_string(file_storage_location + "output/reservoirs/" +
-                                    str(square_coordinate) + "_reservoirs.csv"),
+                                    search_config.filename() + "_reservoirs.csv"),
                      "w");
   if (!csv_file) {
     cout << "Failed to open reservoir CSV file" << endl;
@@ -459,11 +459,11 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_poin
   if (search_config.search_type == SearchType::OCEAN)
     csv_data_file =
         fopen(convert_string(file_storage_location + "processing_files/reservoirs/ocean_" +
-                             str(square_coordinate) + "_reservoirs_data.csv"),
+                             search_config.filename() + "_reservoirs_data.csv"),
               "w");
   else
     csv_data_file = fopen(convert_string(file_storage_location + "processing_files/reservoirs/" +
-                                         str(square_coordinate) + "_reservoirs_data.csv"),
+                                         search_config.filename() + "_reservoirs_data.csv"),
                           "w");
   if (!csv_file) {
     fprintf(stderr, "failed to open reservoir CSV data file\n");
@@ -549,7 +549,7 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_poin
   return count;
 }
 
-Model<bool> *turkey_nest_pour_points(Model<short int> *DEM, vector<unique_ptr<RoughReservoir>> reservoirs_gs,
+Model<bool> *turkey_nest_pour_points(Model<short int> *DEM, vector<unique_ptr<RoughReservoir>> &reservoirs_gs,
                                     Model<bool> *filter, GridSquare square_coordinate) {
   unsigned long start_usec = walltime_usec();
   unsigned long t_usec = start_usec;
@@ -626,16 +626,14 @@ Model<bool> *turkey_nest_pour_points(Model<short int> *DEM, vector<unique_ptr<Ro
         // TN_elevation_tolerance
         while ((row + TN_row_size + 1 <= 3600 + border) &&
                (DEM->get(row + TN_row_size + 1, col) <=
-                DEM->get(row + TN_row_size, col) + TN_elevation_tolerance) &&
+                DEM->get(row, col) + TN_elevation_tolerance) &&
                (DEM->get(row + TN_row_size + 1, col) >=
-                DEM->get(row + TN_row_size, col) - TN_elevation_tolerance) &&
+                DEM->get(row, col) - TN_elevation_tolerance) &&
                (TN_seen->get(row + TN_row_size + 1, col) == 0) &&
                (TN_seen->get(row + TN_row_size, col) == 0)) {
           if (TN_row_size == 0) {
             TN_corners->set(row, col, true);
           }
-
-          TN_seen->set(row + TN_row_size, col, true);
 
           TN_row_size++;
         }
@@ -644,19 +642,22 @@ Model<bool> *turkey_nest_pour_points(Model<short int> *DEM, vector<unique_ptr<Ro
         // TN_elevation_tolerance
         while ((col + TN_col_size + 1 <= 3600 + border) &&
                (DEM->get(row, col + TN_col_size + 1) <=
-                DEM->get(row, col + TN_col_size) + TN_elevation_tolerance) &&
+                DEM->get(row, col) + TN_elevation_tolerance) &&
                (DEM->get(row, col + TN_col_size + 1) >=
-                DEM->get(row, col + TN_col_size) - TN_elevation_tolerance) &&
+                DEM->get(row, col) - TN_elevation_tolerance) &&
                (TN_seen->get(row, col + TN_col_size + 1) == 0) &&
                (TN_seen->get(row, col + TN_col_size) == 0)) {
-          for (int TN_row = 0; TN_row < TN_row_size; TN_row++)
-            TN_seen->set(row + TN_row, col + TN_col_size, true);
-
+          
           TN_col_size++;
         }
 
-        // Only consider flat rectangular regions that are larger than 12 x 12 cells
+		// Only consider flat rectangular regions that are larger than 12 x 12 cells
         if ((TN_row_size >= 12) && (TN_col_size >= 12)) {
+			// Mark the rectangular region in the TN_seen DEM
+			for (int TN_row = 0; TN_row < TN_row_size; TN_row++)
+				for (int TN_col = 0; TN_col < TN_col_size; TN_col++)
+					TN_seen->set(row + TN_row, col + TN_col, true);
+
           // Define variable that stores the minimum elevation within rectangular region
           ArrayCoordinate res_min_point =
               ArrayCoordinate_init(row, col, get_origin(square_coordinate, border));
@@ -670,10 +671,26 @@ Model<bool> *turkey_nest_pour_points(Model<short int> *DEM, vector<unique_ptr<Ro
             }
           }
 
-          TN_pour_points->set(res_min_point.row, res_min_point.col, true);
+		  TN_pour_points->set(res_min_point.row, res_min_point.col, true);
         }
       }
     }
+  }
+
+  if (search_config.logger.output_debug()) {
+    printf("\nTN_corners:\n");
+    TN_corners->print();
+	printf("\nTN_seen:\n");
+    TN_seen->print();
+	printf("\nTN_pour_points:\n");
+    TN_pour_points->print();
+    printf("TN_pour_points Runtime: %.2f sec\n", 1.0e-6 * (walltime_usec() - t_usec));
+  }
+  if (debug_output) {
+    mkdir(convert_string(file_storage_location + "debug/pour_points"), 0777);
+    TN_pour_points->write(file_storage_location + "debug/pour_points/" +
+                               str(square_coordinate) + "_TN_pour_points.tif",
+                           GDT_Byte);
   }
 
   return TN_pour_points;
@@ -814,7 +831,7 @@ int main(int nargs, char **argv) {
       vector<unique_ptr<RoughReservoir>> ocean_reservoirs_gs;
       vector<unique_ptr<RoughReservoir>> reservoirs_gs;
 
-      try {
+	try {
         reservoirs_gs = read_rough_reservoir_data(
             convert_string(file_storage_location + "processing_files/reservoirs/" +
                            str(search_config.grid_square) + "_reservoirs_data.csv"));
@@ -827,8 +844,8 @@ int main(int nargs, char **argv) {
         existing_reservoirs_gs = read_rough_reservoir_data(
             convert_string(file_storage_location + "processing_files/reservoirs/reservoir_" +
                            str(search_config.grid_square) + "_reservoirs_data.csv"));
-        reservoirs_gs.insert(reservoirs_gs.end(), existing_reservoirs_gs.begin(),
-                             existing_reservoirs_gs.end());
+        reservoirs_gs.insert(reservoirs_gs.end(), std::make_move_iterator(existing_reservoirs_gs.begin()),
+                             std::make_move_iterator(existing_reservoirs_gs.end()));
       } catch (int e) {
         printf("No existing reservoir data found for %s\n", convert_string(str(search_config.grid_square)));
       }
@@ -837,8 +854,8 @@ int main(int nargs, char **argv) {
         pit_reservoirs_gs = read_rough_reservoir_data(
             convert_string(file_storage_location + "processing_files/reservoirs/pit_" +
                            str(search_config.grid_square) + "_reservoirs_data.csv"));
-        reservoirs_gs.insert(reservoirs_gs.end(), pit_reservoirs_gs.begin(),
-                             pit_reservoirs_gs.end());
+        reservoirs_gs.insert(reservoirs_gs.end(), std::make_move_iterator(pit_reservoirs_gs.begin()),
+                             std::make_move_iterator(pit_reservoirs_gs.end()));
       } catch (int e) {
         printf("No pit data found for %s\n", convert_string(str(search_config.grid_square)));
       }
@@ -847,8 +864,8 @@ int main(int nargs, char **argv) {
         ocean_reservoirs_gs = read_rough_reservoir_data(
             convert_string(file_storage_location + "processing_files/reservoirs/ocean_" +
                            str(search_config.grid_square) + "_reservoirs_data.csv"));
-        reservoirs_gs.insert(reservoirs_gs.end(), ocean_reservoirs_gs.begin(),
-                             ocean_reservoirs_gs.end());
+        reservoirs_gs.insert(reservoirs_gs.end(), std::make_move_iterator(ocean_reservoirs_gs.begin()),
+                             std::make_move_iterator(ocean_reservoirs_gs.end()));
       } catch (int e) {
         printf("No ocean reservoir data found for %s\n", convert_string(str(search_config.grid_square)));
       }

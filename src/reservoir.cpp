@@ -61,6 +61,7 @@ Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation) {
   Reservoir reservoir;
   reservoir.brownfield = false;
   reservoir.pit = false;
+  reservoir.turkey = false;
   reservoir.elevation = elevation;
   GeographicCoordinate geo_coordinate = convert_coordinates(pour_point);
   reservoir.latitude = geo_coordinate.lat;
