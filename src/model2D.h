@@ -8,9 +8,12 @@
 #include <vector>
 #include <iostream>
 #include <iomanip>
+#include "search_config.hpp"
 
 #define MODEL_UNSET 0
 #define MODEL_SET_ZERO 1
+
+const double pi = 3.14159265358979323846;
 
 struct Geodata {
   double geotransform[6];
@@ -102,18 +105,27 @@ public:
     double dz_dy =
         0; // Change in elevation of the cell along the vertical axis of the DEM
 
+    // Define the cell horizontal and vertical lengths at this location
+    ArrayCoordinate centre_cell = ArrayCoordinate_init(row, col, get_origin());
+    ArrayCoordinate right_cell = ArrayCoordinate_init(row, col+1, get_origin());
+    ArrayCoordinate upper_cell = ArrayCoordinate_init(row+1,col, get_origin());
+    double coslat = COS(RADIANS(get_origin().lat -
+                              (0.5 + border / (double)(nrows() - 2 * border))));
+    double x_cell_length = find_distance(centre_cell, right_cell, coslat)*1000; // meters
+    double y_cell_length = find_distance(centre_cell, upper_cell, coslat)*1000; // meters
+
     // Slope of the cell in three dimensions is calculated according to the 3rd
     // order finite differences approach
     if (row > 0 && col > 0 && row < nrows() - 1 && col < nrows() - 1) {
       dz_dx = ((get(row - 1, col + 1) - get(row - 1, col - 1)) +
                2 * (get(row, col + 1) - get(row, col - 1)) +
                (get(row + 1, col + 1) - get(row + 1, col - 1))) /
-              (8.0 * 111000.0 / 3600.0);
+              (8.0 * x_cell_length);
       dz_dy = ((get(row - 1, col - 1) - get(row + 1, col - 1)) +
                2 * (get(row - 1, col) - get(row + 1, col)) +
                (get(row + 1, col + 1) - get(row - 1, col + 1))) /
-              (8.0 * 111000.0 / 3600.0);
-      // Calculate the slope and convert from rads to degrees
+              (8.0 * y_cell_length);
+      // Calculate the slope of the cell and convert from rads to degrees
       to_return = atan(pow(dz_dx * dz_dx + dz_dy * dz_dy, 0.5)) * 180.0 / pi;
     }
     return to_return;
