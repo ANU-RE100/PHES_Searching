@@ -526,9 +526,9 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_poin
         RoughGreenfieldReservoir reservoir =
             model_greenfield_reservoir(pour_point, flow_directions, DEM_filled, filter, model, i);
         reservoir.ocean = false;
-		
-		if (search_config.search_type == SearchType::TURKEY)
-			reservoir.turkey = true;
+
+        if (search_config.search_type == SearchType::TURKEY)
+          reservoir.turkey = true;
 
         if (max(reservoir.volumes) >= min_reservoir_volume &&
             max(reservoir.water_rocks) > min_reservoir_water_rock &&
@@ -591,18 +591,27 @@ Model<bool> *turkey_nest_pour_points(Model<short int> *DEM, GridSquare square_co
                 DEM->get_slope(neighbor.row, neighbor.col) <= TN_elevation_tolerance) {
                   seen->set(neighbor.row, neighbor.col, true);
                   flat_region_area+=find_area(neighbor);
+                  flat_region_coordinates.push_back(neighbor);
                   q.push(neighbor);
             }                
           }
         } 
         
         if (flat_region_area >= min_reservoir_area) {
-          for (uint coord_index = 0; coord_index < flat_region_coordinates.size(); coord_index++)
+          for (uint coord_index = 0; coord_index < flat_region_coordinates.size(); coord_index++) {
             TN_scanning_region->set(flat_region_coordinates[coord_index].row, flat_region_coordinates[coord_index].col, true);
+          }
         }      
       }
     }    
   } 
+
+  if (debug_output) {
+      mkdir(convert_string(file_storage_location + "debug/TN_scanning_region"), 0777);
+      TN_scanning_region->write(file_storage_location + "debug/TN_scanning_region/" + str(search_config.grid_square) +
+                        "_TN_scanning_region.tif",
+                    GDT_Byte);
+    }
 
   delete seen;
 
