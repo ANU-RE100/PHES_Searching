@@ -437,38 +437,40 @@ model_greenfield_reservoir(ArrayCoordinate pour_point, Model<char> *flow_directi
   return reservoir;
 }
 
-RoughGreenfieldReservoir update_TN_volumes(vector<ArrayCoordinateWithHeight> dam_points, vector<ArrayCoordinateWithHeight> reservoir_points, double reservoir_area, double dam_length, RoughGreenfieldReservoir reservoir) {
-  double dam_elevation = 0;
-  double original_volume = 0;
-  vector<double> dam_ground_elevations;
-  vector<double> reservoir_ground_elevations;
-  vector<double> dam_elevation_diffs;
-  vector<double> reservoir_elevation_sqdiffs;
-  
-  for (uint point_index; point_index < dam_points.size(); point_index++)
-    dam_ground_elevations.push_back(dam_points[point_index].h);  
+RoughGreenfieldReservoir update_TN_volumes(vector<vector<ArrayCoordinateWithHeight> > dam_points, vector<vector<ArrayCoordinateWithHeight> > reservoir_points, vector<double> dam_lengths_at_height, RoughGreenfieldReservoir reservoir) {
+  vector<double> dam_elevation;
+  vector<double> original_volume;
+  vector<vector<double> > dam_ground_elevations;
+  vector<vector<double> > reservoir_ground_elevations;
+  vector<vector<double> > dam_elevation_diffs;
+  vector<vector<double> > reservoir_elevation_sqdiffs; 
 
   for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
-    dam_elevation = min_element(*dam_ground_elevations.begin(), *dam_ground_elevations.end()) + dam_wall_heights[ih];
-  
-    for (uint point_index; point_index < dam_points.size(); point_index++)
-      dam_elevation_diffs.push_back(dam_elevation - dam_points[point_index].h);
+    for (uint point_index = 0; point_index < dam_points.size(); point_index++)
+      dam_ground_elevations[ih].push_back(dam_points[ih][point_index].h); 
 
-    for (uint point_index; point_index < reservoir_points.size(); point_index++) {
-      reservoir_ground_elevations.push_back(reservoir_points[point_index].h);
-      reservoir_elevation_sqdiffs.push_back(pow(dam_elevation - reservoir_points[point_index].h, 2));
+    dam_elevation[ih] = *min_element(dam_ground_elevations[ih].begin(), dam_ground_elevations[ih].end()) + dam_wall_heights[ih];
+  
+    for (uint point_index = 0; point_index < dam_points.size(); point_index++)
+      dam_elevation_diffs[ih].push_back(dam_elevation[ih] - dam_points[ih][point_index].h);
+
+    for (uint point_index = 0; point_index < reservoir_points.size(); point_index++) {
+      reservoir_ground_elevations[ih].push_back(reservoir_points[ih][point_index].h);
+      reservoir_elevation_sqdiffs[ih].push_back(pow(dam_elevation[ih] - reservoir_points[ih][point_index].h, 2));
     }
 
-    reservoir.dam_volumes[ih] = dam_length*dambatter*accumulate(reservoir_elevation_sqdiffs.begin(), reservoir_elevation_sqdiffs.end(), 0.0) / reservoir_elevation_sqdiffs.size();
-    original_volume = reservoir_area*accumulate(dam_elevation_diffs.begin(), dam_elevation_diffs.end(), 0.0) / dam_elevation_diffs.size();
-    reservoir.volumes[ih] = original_volume + reservoir.dam_volumes[ih] / 2;  
+    reservoir.dam_volumes[ih] = dam_lengths_at_height[ih]*dambatter*accumulate(reservoir_elevation_sqdiffs[ih].begin(), reservoir_elevation_sqdiffs[ih].end(), 0.0) / reservoir_elevation_sqdiffs[ih].size();
+    original_volume[ih] = reservoir.areas[ih]*accumulate(dam_elevation_diffs[ih].begin(), dam_elevation_diffs[ih].end(), 0.0) / dam_elevation_diffs[ih].size();
+    reservoir.volumes[ih] = original_volume[ih] + reservoir.dam_volumes[ih] / 2;  
     reservoir.water_rocks[ih] = reservoir.volumes[ih] / reservoir.dam_volumes[ih];  
   }
 
   return reservoir;
 }
 
-static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Model<short> *DEM_filled){
+static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Model<short> *DEM_filled, Model<bool> *filter){
+
+  printf("\nsuccess1");
 
   RoughGreenfieldReservoir reservoir =
       RoughReservoir(pour_point, (int)(DEM_filled->get(pour_point.row, pour_point.col)));
@@ -478,61 +480,84 @@ static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Mo
   ArrayCoordinateWithHeight pp_with_height = ArrayCoordinateWithHeight_init(pour_point.row, pour_point.row, DEM_filled->get(pour_point.row, pour_point.row));
   ArrayCoordinateWithHeight neighbor;
   ArrayCoordinate neighbor_no_height;
+  bool q_update_status = true;
+  double lowest_dam_point_elevation = pp_with_height.h;
   
-  vector<ArrayCoordinateWithHeight> dam_points;
-  vector<ArrayCoordinateWithHeight> reservoir_points;  
-  double dam_length = 0;
-  double reservoir_area = 0;
+  vector<vector<ArrayCoordinateWithHeight> > dam_points;
+  vector<vector<ArrayCoordinateWithHeight> > reservoir_points;  
+  vector<double> dam_lengths_at_height;
+  vector<vector<double> > dam_ground_elevations;
 
-  vector<ArrayCoordinateWithHeight> test_dam_points;
-  vector<ArrayCoordinateWithHeight> test_reservoir_points;  
-  double test_dam_length = 0;
-  double test_reservoir_area = 0;
+  vector<vector<ArrayCoordinateWithHeight> > test_dam_points;
+  vector<vector<ArrayCoordinateWithHeight> > test_reservoir_points;  
+  vector<double> test_dam_lengths_at_height;
+
+  ///////// DEBUGGING ///////////////
+  int count = 0;
+  printf("\n%d", count);
+  //////////////////////////////////
 
   // Initialise the vectors, queue, and dam/reservoir parameters
-  reservoir_points.push_back(pp_with_height);
-  reservoir_area += find_area(pour_point);
+  for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
+    reservoir_points[ih].push_back(pp_with_height);
+    reservoir.areas[ih] = 0;
+    reservoir.areas[ih] += find_area(pour_point);
+  }
 
   for (uint d = 0; d < directions.size(); d++) {
       neighbor = ArrayCoordinateWithHeight_init(pp_with_height.row + directions[d].row, pp_with_height.col + directions[d].col, DEM_filled->get(pp_with_height.row + directions[d].row, pp_with_height.col + directions[d].col));
       neighbor_no_height = ArrayCoordinate_init(neighbor.row, neighbor.col, pour_point.origin);
-      dam_points.push_back(neighbor);
-      reservoir_points.push_back(neighbor);
-      reservoir_area += find_area(neighbor_no_height);
 
-      if ((directions[d].row * directions[d].col == 0)) {  // coordinate orthogonal directions            
-          dam_length += find_orthogonal_nn_distance(pour_point, neighbor_no_height);  // WE HAVE PROBLEM IF VALUE IS NEGATIVE???
+      for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
+        dam_points[ih].push_back(neighbor);
+        reservoir_points[ih].push_back(neighbor);
+
+
+        reservoir.areas[ih] += find_area(neighbor_no_height);
+
+        if ((directions[d].row * directions[d].col == 0)) {  // coordinate orthogonal directions            
+            dam_lengths_at_height[ih] += find_orthogonal_nn_distance(pour_point, neighbor_no_height);  // WE HAVE PROBLEM IF VALUE IS NEGATIVE???
+        }
       }
 
-      q.push(neighbor);
+      if (DEM_filled->check_within(neighbor.row, neighbor.col) && !filter->get(neighbor.row,neighbor.col))
+        q.push(neighbor);
   }
 
-  reservoir = update_TN_volumes(dam_points, reservoir_points, reservoir_area, dam_length, reservoir);
+  reservoir = update_TN_volumes(dam_points, reservoir_points, dam_lengths_at_height, reservoir);
   
   // Optimise the site based upon a minimum water-to-rock ratio
-  while (!q.empty()) {
+  //while (!q.empty()) {
+  while (count < 30) { // DEBUG
+    count++; //DEBUG
+
+    q_update_status = true;
     ArrayCoordinateWithHeight p = q.front();
+    ArrayCoordinate p_no_height = ArrayCoordinate_init(p.row,p.col,pour_point.origin);
     q.pop();
 
     // Test expanding turkey nest to the neighbors of point p
     test_dam_points = dam_points;
     test_reservoir_points = reservoir_points;
-    test_dam_length = dam_length;
-    test_reservoir_area = reservoir_area;
+    test_dam_lengths_at_height = dam_lengths_at_height;
+    test_reservoir = reservoir;
 
     for (uint d = 0; d < directions.size(); d++) {
-      neighbor = ArrayCoordinateWithHeight_init(pp_with_height.row + directions[d].row, pp_with_height.col + directions[d].col, DEM_filled->get(pp_with_height.row + directions[d].row, pp_with_height.col + directions[d].col));
+      neighbor = ArrayCoordinateWithHeight_init(p.row + directions[d].row, p.col + directions[d].col, DEM_filled->get(p.row + directions[d].row, p.col + directions[d].col));
       neighbor_no_height = ArrayCoordinate_init(neighbor.row, neighbor.col, pour_point.origin);
-      test_dam_points.push_back(neighbor);
-      test_reservoir_points.push_back(neighbor);
-      test_reservoir_area += find_area(neighbor_no_height);
 
-      if ((directions[d].row * directions[d].col == 0)) {  // coordinate orthogonal directions            
-          test_dam_length += find_orthogonal_nn_distance(pour_point, neighbor_no_height);  // WE HAVE PROBLEM IF VALUE IS NEGATIVE???
+      for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
+        test_dam_points[ih].push_back(neighbor);
+        test_reservoir_points[ih].push_back(neighbor);
+        reservoir.areas[ih] += find_area(neighbor_no_height);
+
+        if ((directions[d].row * directions[d].col == 0)) {  // coordinate orthogonal directions            
+            test_dam_lengths_at_height[ih] += find_orthogonal_nn_distance(p_no_height, neighbor_no_height);  // WE HAVE PROBLEM IF VALUE IS NEGATIVE???
+        }
       }
     }
 
-    test_reservoir = update_TN_volumes(test_dam_points, test_reservoir_points, test_reservoir_area, test_dam_length, reservoir);
+    test_reservoir = update_TN_volumes(test_dam_points, test_reservoir_points, test_dam_lengths_at_height, reservoir);
 
     // If the water-to-rock ratio was reduced by expanding to to the neighbors of point p, accept the tested change
     for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
@@ -540,10 +565,26 @@ static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Mo
         reservoir.dam_volumes[ih] = test_reservoir.dam_volumes[ih];
         reservoir.volumes[ih] = test_reservoir.volumes[ih];  
         reservoir.water_rocks[ih] = test_reservoir.water_rocks[ih];
+        reservoir.areas[ih] = test_reservoir.areas[ih];
+        reservoir_points = test_reservoir_points;
+        dam_points = test_dam_points;
 
-        // ADD NEIGHBORS TO THE Q
-        // UPDATE RESERVOIR AREAS
-        // EXCLUDE FILTER CELLS
+        for (uint point_index = 0; point_index < dam_points.size(); point_index++)
+          dam_ground_elevations[ih].push_back(dam_points[ih][point_index].h); 
+
+        lowest_dam_point_elevation = *min_element(dam_ground_elevations[ih].begin(), dam_ground_elevations[ih].end());
+
+        update_reservoir_boundary(reservoir.shape_bound, p_no_height, lowest_dam_point_elevation);
+
+        if (q_update_status) {
+          q_update_status = false;
+          for (uint d = 0; d < directions.size(); d++) {
+            neighbor = ArrayCoordinateWithHeight_init(p.row + directions[d].row, p.col + directions[d].col, DEM_filled->get(p.row + directions[d].row, p.col + directions[d].col));
+            
+            if (DEM_filled->check_within(neighbor.row, neighbor.col) && !filter->get(neighbor.row,neighbor.col))
+              q.push(neighbor);
+          }
+        }
       }
     }
   }
@@ -639,8 +680,8 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_poin
         ArrayCoordinate pour_point = {row, col, get_origin(square_coordinate, border)};
         i++;
 
-        RoughGreenfieldReservoir reservoir = model_turkey_nest(pour_point, DEM_filled, filter, model, i);
-        reservoir = model_greenfield_reservoir(pour_point, flow_directions, DEM_filled, filter, model, i);
+        RoughGreenfieldReservoir reservoir = model_turkey_nest(pour_point, DEM_filled, filter);
+        reservoir = model_greenfield_reservoir(pour_point, flow_directions, DEM_filled, filter, model, i); // DELETE THIS
         reservoir.ocean = false;
         reservoir.turkey = true;
 
