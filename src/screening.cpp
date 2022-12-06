@@ -437,6 +437,100 @@ model_greenfield_reservoir(ArrayCoordinate pour_point, Model<char> *flow_directi
   return reservoir;
 }
 
+static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Model<short> *DEM_filled, Model<bool> *filter,
+                           Model<int> *modelling_array, int iterator){
+
+  RoughGreenfieldReservoir reservoir =
+      RoughReservoir(pour_point, (int)(DEM_filled->get(pour_point.row, pour_point.col)));
+
+  double area_at_elevation[max_wall_height + 1] = {0};
+  double cumulative_area_at_elevation[max_wall_height + 1] = {0};
+  double volume_at_elevation[max_wall_height + 1] = {0};
+  double dam_length_at_elevation[max_wall_height + 1] = {0};
+  double dam_height_condition = 0;
+
+  deque<ArrayCoordinateWithHeight> q;
+  ArrayCoordinateWithHeight pp_with_height = ArrayCoordinateWithHeight_init(pour_point.row, pour_point.row, DEM_filled->get(pour_point.row, pour_point.row));
+  ArrayCoordinateWithHeight lowest_point = pp_with_height;
+
+  q.push_front(pp_with_height);
+  
+  // While loop condition must be changed so that expansion stops when max dam wall heigh is reached ////////////////////////////////////
+  while (dam_height_condition < max_wall_height) {    
+    // Update the reservoir using the edge point with the lowest elevation (maximises water-to-rock ratio)
+    ArrayCoordinateWithHeight p = q.back();
+    ArrayCoordinate p_no_height = ArrayCoordinate_init(p.row, p.col, pour_point.origin);
+    q.pop_back();
+
+    int elevation = (int)(DEM_filled->get(p.row, p.col));
+    int elevation_above_pp = MAX(elevation - reservoir.elevation, 0);
+
+    update_reservoir_boundary(reservoir.shape_bound, p_no_height, elevation_above_pp);
+
+    if (filter->get(p.row, p.col))
+      reservoir.max_dam_height = MIN(reservoir.max_dam_height, elevation_above_pp);
+
+    area_at_elevation[elevation_above_pp + 1] += find_area(p_no_height);
+    modelling_array->set(p.row, p.col, iterator);
+
+    for (uint d = 0; d < directions.size(); d++) {
+      ArrayCoordinateWithHeight neighbor = ArrayCoordinateWithHeight_init(p.row + directions[d].row, p.col + directions[d].col, DEM_filled->get(p.row + directions[d].row, p.col + directions[d].col));
+      ArrayCoordinate neighbor_no_height = ArrayCoordinate_init(neighbor.row, neighbor.col, pour_point.origin);
+      if (DEM_filled->check_within(neighbor.row, neighbor.col) &&
+          ((int)(DEM_filled->get(neighbor.row, neighbor.col) -
+                 DEM_filled->get(pour_point.row, pour_point.col)) < max_wall_height)) {
+        
+        q.push_back(neighbor);
+
+        if ((directions[d].row * directions[d].col == 0) && (modelling_array->get(neighbor.row, neighbor.col) < iterator)) { // coordinate orthogonal directions
+          dam_length_at_elevation[MIN(
+              MAX(elevation_above_pp,
+                  (int)(DEM_filled->get(neighbor.row, neighbor.col) - reservoir.elevation)),
+              max_wall_height)] +=
+              find_orthogonal_nn_distance(p_no_height, neighbor_no_height);  // WE HAVE PROBLEM IF VALUE IS NEGATIVE???
+        }
+      }
+    }
+
+    // Determine the maximum dam wall height around the reservoir
+    if (q.size() > 100 && q.size() < 110) {
+      printf("\nStart: ");
+      for (uint i = 0; i < q.size(); i++)
+        printf("%.2f ", q[i].h - pp_with_height.h);
+    }
+
+    std::sort(q.begin(), q.end());
+
+    if (q.size() > 100 && q.size() < 120) {
+      printf("\nEnd: ");
+      for (uint i = 0; i < q.size(); i++)
+        printf("%.2f ", q[i].h - pp_with_height.h);
+    }
+
+    lowest_point = q.back();
+    dam_height_condition = MAX(lowest_point.h, pp_with_height.h) - MIN(lowest_point.h, pp_with_height.h);
+    //printf("%d ", int(q.size()));
+
+    // TO DO:
+    // 1. UPDATE LOWEST POINT ACCORDING TO MIN(POUR POINT, NEIGHBOR HEIGHT)
+    // 2. UPDATE THE DAM VOLUME BASED ON LOWEST POINT
+
+    for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
+      int height = dam_wall_heights[ih];
+      reservoir.areas.push_back(cumulative_area_at_elevation[height]);
+      reservoir.dam_volumes.push_back(0);
+      for (int jh = 0; jh < height; jh++)
+        reservoir.dam_volumes[ih] += convert_to_dam_volume(height - jh, dam_length_at_elevation[jh]);
+      reservoir.volumes.push_back(volume_at_elevation[height] + 0.5 * reservoir.dam_volumes[ih]);
+      reservoir.water_rocks.push_back(reservoir.volumes[ih] / reservoir.dam_volumes[ih]);
+    } 
+  } 
+
+  printf("%d", iterator);
+
+  return reservoir;
+}
+
 static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_points,
                             Model<char> *flow_directions, Model<short> *DEM_filled,
                             Model<int> *flow_accumulation, Model<bool> *filter) {
@@ -516,6 +610,33 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_poin
       write_rough_reservoir_csv(csv_file, reservoir);
       write_rough_reservoir_data(csv_data_file, &reservoir);
     }
+  } else if (search_config.search_type == SearchType::TURKEY) {
+
+    for (int row = border; row < border + DEM_filled->nrows() - 2 * border; row++)
+      for (int col = border; col < border + DEM_filled->ncols() - 2 * border; col++) {
+        if (!pour_points->get(row, col) || filter->get(row, col))
+          continue;
+        ArrayCoordinate pour_point = {row, col, get_origin(square_coordinate, border)};
+        i++;
+
+        RoughGreenfieldReservoir reservoir = model_turkey_nest(pour_point, DEM_filled, filter, model, i);
+        reservoir = model_greenfield_reservoir(pour_point, flow_directions, DEM_filled, filter, model, i);
+        reservoir.ocean = false;
+        reservoir.turkey = true;
+
+        if (max(reservoir.volumes) >= min_reservoir_volume &&
+            max(reservoir.water_rocks) > min_reservoir_water_rock &&
+            reservoir.max_dam_height >= min_max_dam_height) {
+          reservoir.watershed_area = find_area(pour_point) * flow_accumulation->get(row, col);
+
+          reservoir.identifier = str(square_coordinate) + "_RES" + str(i);
+
+          write_rough_reservoir_csv(csv_file, reservoir);
+          write_rough_reservoir_data(csv_data_file, &reservoir);
+          count++;
+        }
+      }
+
   } else {
     for (int row = border; row < border + DEM_filled->nrows() - 2 * border; row++)
       for (int col = border; col < border + DEM_filled->ncols() - 2 * border; col++) {
@@ -526,9 +647,6 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_poin
         RoughGreenfieldReservoir reservoir =
             model_greenfield_reservoir(pour_point, flow_directions, DEM_filled, filter, model, i);
         reservoir.ocean = false;
-
-        if (search_config.search_type == SearchType::TURKEY)
-          reservoir.turkey = true;
 
         if (max(reservoir.volumes) >= min_reservoir_volume &&
             max(reservoir.water_rocks) > min_reservoir_water_rock &&

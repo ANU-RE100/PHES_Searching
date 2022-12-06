@@ -28,6 +28,11 @@ double convert_to_dam_volume(double height, double length)
 	return (((height+freeboard)*(cwidth+dambatter*(height+freeboard)))/1000000)*length;
 }
 
+double convert_to_dam_height(double volume, double length) {
+	// Quadratic formula
+	return (-cwidth*length + pow(cwidth*length*cwidth*length + 4*dambatter*length*volume, 0.5))/(2*dambatter*length);
+}
+
 double linear_interpolate(double value, vector<double> x_values, vector<double> y_values)
 {
 	uint i = 0;
