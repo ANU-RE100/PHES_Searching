@@ -2,8 +2,6 @@
 #include "constructor_helpers.hpp"
 #include "kml.h"
 
-SearchConfig search_config;
-
 vector<vector<Pair>> pairs;
 ExistingPit pit_details;
 

@@ -1,57 +1,52 @@
 #include "phes_base.h"
+#include "reservoir.h"
 #include "search_config.hpp"
 
 ExistingPit pit_details;
-SearchConfig search_config;
 
 vector<int> pairs;
 
-vector<GeographicCoordinate>
-find_points_to_test(vector<array<ArrayCoordinate, directions.size()>> &boundary,
-                    double &wall_height, ArrayCoordinate &pour_point) {
-  array<ArrayCoordinate, directions.size()> one_point = {
-      pour_point, pour_point, pour_point, pour_point,
-      pour_point, pour_point, pour_point, pour_point};
-
-  int i = 0;
-  while (dam_wall_heights[i] < wall_height) {
-    i += 1;
-  }
-
-  int lower_wall_height = (i) ? dam_wall_heights[i - 1] : 0;
-  array<ArrayCoordinate, directions.size()> lower_shape =
-      (i) ? boundary[i - 1] : one_point;
+vector<GeographicCoordinate> find_points_to_test(RoughReservoir* &reservoir,
+                                                 double &wall_height, ArrayCoordinate &pour_point) {
   vector<GeographicCoordinate> bound;
-
-  double inv_wall_height_interval = 0.1;
-
-  for (uint j = 0; j < directions.size(); j++) {
-    GeographicCoordinate point1 = convert_coordinates(lower_shape[j]);
-    GeographicCoordinate point2 = convert_coordinates(boundary[i][j]);
-    bound.push_back((GeographicCoordinate){
-        point1.lat + (point2.lat - point1.lat) *
-                         (wall_height - lower_wall_height) *
-                         inv_wall_height_interval,
-        point1.lon + (point2.lon - point1.lon) *
-                         (wall_height - lower_wall_height) *
-                         inv_wall_height_interval});
+  if (RoughGreenfieldReservoir *gr = dynamic_cast<RoughGreenfieldReservoir *>(reservoir)) {
+    array<ArrayCoordinate, directions.size()> one_point = {pour_point, pour_point, pour_point,
+                                                           pour_point, pour_point, pour_point,
+                                                           pour_point, pour_point};
+    int i = 0;
+    while (dam_wall_heights[i] < wall_height) {
+      i += 1;
+    }
+    int lower_wall_height = (i) ? dam_wall_heights[i - 1] : 0;
+    array<ArrayCoordinate, directions.size()> lower_shape =
+        (i) ? gr->shape_bound[i - 1] : one_point;
+    double inv_wall_height_interval = 0.1;
+    for (uint j = 0; j < directions.size(); j++) {
+      GeographicCoordinate point1 = convert_coordinates(lower_shape[j]);
+      GeographicCoordinate point2 = convert_coordinates(gr->shape_bound[i][j]);
+      bound.push_back((GeographicCoordinate){
+          point1.lat + (point2.lat - point1.lat) * (wall_height - lower_wall_height) *
+                           inv_wall_height_interval,
+          point1.lon + (point2.lon - point1.lon) * (wall_height - lower_wall_height) *
+                           inv_wall_height_interval});
+    }
+    bound.push_back(convert_coordinates(pour_point));
+  } else {
+    RoughBfieldReservoir *br = dynamic_cast<RoughBfieldReservoir *>(reservoir);
+    for (ArrayCoordinate c : br->shape_bound)
+      bound.push_back(convert_coordinates(c));
   }
-
-  bound.push_back(convert_coordinates(pour_point));
-
   return bound;
 }
 
-double find_least_distance_sqd(
-    vector<array<ArrayCoordinate, directions.size()>> &upper_boundary,
-    vector<array<ArrayCoordinate, directions.size()>> &lower_boundary,
-    double upper_wall_height, double lower_wall_height,
-    ArrayCoordinate upper_pour_point, ArrayCoordinate lower_pour_point) {
+double find_least_distance_sqd(RoughReservoir* upper, RoughReservoir* &lower,
+                               double upper_wall_height, double lower_wall_height,
+                               ArrayCoordinate upper_pour_point, ArrayCoordinate lower_pour_point) {
   double mindist2 = INF;
   vector<GeographicCoordinate> upper_points =
-      find_points_to_test(upper_boundary, upper_wall_height, upper_pour_point);
+      find_points_to_test(upper, upper_wall_height, upper_pour_point);
   vector<GeographicCoordinate> lower_points =
-      find_points_to_test(lower_boundary, lower_wall_height, lower_pour_point);
+      find_points_to_test(lower, lower_wall_height, lower_pour_point);
 
   for (uint iu = 0; iu < upper_points.size(); iu++) {
     GeographicCoordinate p1 = upper_points[iu];
@@ -96,36 +91,36 @@ double pit_volume(ExistingPit &pit, int bottom_elevation, int top_elevation) {
                             get_volumes(pit));
 }
 
-bool determine_pit_elevation_and_volume(RoughReservoir &upper,
-                                        RoughReservoir &lower,
+bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
+                                        RoughReservoir* &lower,
                                         double energy_capacity,
                                         ExistingPit &pit_details,
                                         double &required_volume, int &head) {
-  RoughReservoir &greenfield = upper;
-  RoughReservoir &pit = lower;
-  if (upper.brownfield) {
+  RoughReservoir* greenfield;
+  RoughReservoir* pit = lower;
+  if (upper->brownfield) {
     greenfield = lower;
     pit = upper;
   }
-  while (pit.elevation < max_altitude(pit_details.volumes)) {
-    pit.max_dam_height = max_altitude(pit_details.volumes) - pit.elevation;
+  while (pit->elevation < max_altitude(pit_details.volumes)) {
+    pit->max_dam_height = max_altitude(pit_details.volumes) - pit->elevation;
     int pit_depth = 0;
-    while (pit_depth < pit.max_dam_height) {
+    while (pit_depth < pit->max_dam_height) {
       pit_depth += 1;
       double volume =
-          pit_volume(pit_details, pit.elevation, pit.elevation + pit_depth);
+          pit_volume(pit_details, pit->elevation, pit->elevation + pit_depth);
       double greenfield_wall_height =
-          linear_interpolate(volume, greenfield.volumes, dam_wall_heights);
+          linear_interpolate(volume, greenfield->volumes, dam_wall_heights);
       head = (int)ABS(((0.5 * (double)greenfield_wall_height +
-                        (double)greenfield.elevation) -
-                       (0.5 * (double)pit_depth + (double)pit.elevation)));
+                        (double)greenfield->elevation) -
+                       (0.5 * (double)pit_depth + (double)pit->elevation)));
       if (head < min_head || head > max_head)
         continue;
       double head_ratio =
           (head + 0.5 * (greenfield_wall_height + (double)pit_depth)) /
           (head - 0.5 * (greenfield_wall_height + (double)pit_depth));
       // cout << volume << " " << greenfield_wall_height << " " <<
-      // greenfield.elevation << " " << pit_depth << " " << pit.elevation << " "
+      // greenfield->elevation << " " << pit_depth << " " << pit->elevation << " "
       // << head << " " << head_ratio << "\n";
       if (head_ratio > (1 + max_head_variability)) {
         break;
@@ -137,18 +132,18 @@ bool determine_pit_elevation_and_volume(RoughReservoir &upper,
       return true;
     }
 
-    pit.elevation += pit_height_resolution;
+    pit->elevation += pit_height_resolution;
   }
   return false;
 }
 
-Pair *check_good_pair(RoughReservoir upper, RoughReservoir lower,
+Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
                       double energy_capacity, int storage_time, Pair *pair,
                       int max_FOM) {
-  int head = upper.elevation - lower.elevation;
+  int head = upper->elevation - lower->elevation;
   double required_volume = find_required_volume(energy_capacity, head);
-  if ((max(upper.volumes) < required_volume) ||
-      (max(lower.volumes) < required_volume))
+  if ((max(upper->volumes) < required_volume) ||
+      (max(lower->volumes) < required_volume))
     return NULL;
 
   if (search_config.search_type == SearchType::PIT &&
@@ -161,52 +156,52 @@ Pair *check_good_pair(RoughReservoir upper, RoughReservoir lower,
   double upper_water_rock_estimate = INF;
   double lower_water_rock_estimate = INF;
 
-  if (!upper.brownfield) {
+  if (!upper->brownfield) {
     upper_dam_wall_height =
-        linear_interpolate(required_volume, upper.volumes, dam_wall_heights);
+        linear_interpolate(required_volume, upper->volumes, dam_wall_heights);
     upper_water_rock_estimate =
         required_volume / linear_interpolate(upper_dam_wall_height,
                                              dam_wall_heights,
-                                             upper.dam_volumes);
+                                             upper->dam_volumes);
   } else {
     if (search_config.search_type == SearchType::PIT)
       upper_dam_wall_height =
           linear_interpolate(required_volume +
                                  pit_volume(pit_details,
                                             pit_details.reservoir.elevation,
-                                            upper.elevation),
+                                            upper->elevation),
                              get_volumes(pit_details),
                              int_to_double_vector(get_altitudes(pit_details))) -
-          upper.elevation;
+          upper->elevation;
     else
       upper_dam_wall_height = dam_wall_heights[0];
     upper_water_rock_estimate = INF;
   }
-  if (!lower.brownfield && !lower.ocean) {
+  if (!lower->brownfield && !lower->ocean) {
     lower_dam_wall_height =
-        linear_interpolate(required_volume, lower.volumes, dam_wall_heights);
+        linear_interpolate(required_volume, lower->volumes, dam_wall_heights);
     lower_water_rock_estimate =
         required_volume / linear_interpolate(lower_dam_wall_height,
                                              dam_wall_heights,
-                                             lower.dam_volumes);
+                                             lower->dam_volumes);
   } else {
     if (search_config.search_type==SearchType::PIT)
       lower_dam_wall_height =
           linear_interpolate(required_volume +
                                  pit_volume(pit_details,
                                             pit_details.reservoir.elevation,
-                                            lower.elevation),
+                                            lower->elevation),
                              get_volumes(pit_details),
                              int_to_double_vector(get_altitudes(pit_details))) -
-          lower.elevation;
+          lower->elevation;
     else
       lower_dam_wall_height = dam_wall_heights[0];
     lower_water_rock_estimate = INF;
   }
 
-  if ((!upper.brownfield && upper_dam_wall_height > upper.max_dam_height) ||
-      (!lower.brownfield && !lower.ocean &&
-       lower_dam_wall_height > lower.max_dam_height))
+  if ((!upper->brownfield && upper_dam_wall_height > upper->max_dam_height) ||
+      (!lower->brownfield && !lower->ocean &&
+       lower_dam_wall_height > lower->max_dam_height))
     return NULL;
 
   if ((upper_water_rock_estimate * lower_water_rock_estimate) <
@@ -214,53 +209,53 @@ Pair *check_good_pair(RoughReservoir upper, RoughReservoir lower,
           (upper_water_rock_estimate + lower_water_rock_estimate))
     return NULL;
 
-  ArrayCoordinate upper_coordinates = upper.pour_point;
-  ArrayCoordinate lower_coordinates = lower.pour_point;
+  ArrayCoordinate upper_coordinates = upper->pour_point;
+  ArrayCoordinate lower_coordinates = lower->pour_point;
 
   double least_distance = find_least_distance_sqd(
-      upper.shape_bound, lower.shape_bound, upper_dam_wall_height,
+      upper, lower, upper_dam_wall_height,
       lower_dam_wall_height, upper_coordinates, lower_coordinates);
 
   if (SQ(head * 0.001) < least_distance * SQ(min_slope))
     return NULL;
 
-  Reservoir upper_reservoir = Reservoir_init(upper.pour_point, upper.elevation);
-  Reservoir lower_reservoir = Reservoir_init(lower.pour_point, lower.elevation);
+  Reservoir upper_reservoir = Reservoir_init(upper->pour_point, upper->elevation);
+  Reservoir lower_reservoir = Reservoir_init(lower->pour_point, lower->elevation);
 
-  upper_reservoir.identifier = upper.identifier;
+  upper_reservoir.identifier = upper->identifier;
   upper_reservoir.volume = required_volume;
-  // if(upper.brownfield)
-  // 	upper_reservoir.volume = upper.volumes[0];
-  if (!upper.brownfield) {
+  // if(upper->brownfield)
+  // 	upper_reservoir.volume = upper->volumes[0];
+  if (!upper->brownfield) {
     upper_reservoir.dam_volume = linear_interpolate(
-        upper_dam_wall_height, dam_wall_heights, upper.dam_volumes);
+        upper_dam_wall_height, dam_wall_heights, upper->dam_volumes);
     upper_reservoir.area = linear_interpolate(upper_dam_wall_height,
-                                              dam_wall_heights, upper.areas);
+                                              dam_wall_heights, upper->areas);
   }
   upper_reservoir.water_rock = upper_water_rock_estimate;
   upper_reservoir.dam_height = upper_dam_wall_height;
-  upper_reservoir.max_dam_height = upper.max_dam_height;
-  upper_reservoir.brownfield = upper.brownfield;
-  upper_reservoir.pit = upper.pit;
+  upper_reservoir.max_dam_height = upper->max_dam_height;
+  upper_reservoir.brownfield = upper->brownfield;
+  upper_reservoir.pit = upper->pit;
 
-  lower_reservoir.identifier = lower.identifier;
+  lower_reservoir.identifier = lower->identifier;
   lower_reservoir.volume = required_volume;
-  // if(lower.brownfield)
-  // 	lower_reservoir.volume = lower.volumes[0];
-  if (!lower.brownfield) {
+  // if(lower->brownfield)
+  // 	lower_reservoir.volume = lower->volumes[0];
+  if (!lower->brownfield) {
     lower_reservoir.dam_volume = linear_interpolate(
-        lower_dam_wall_height, dam_wall_heights, lower.dam_volumes);
+        lower_dam_wall_height, dam_wall_heights, lower->dam_volumes);
     lower_reservoir.area = linear_interpolate(lower_dam_wall_height,
-                                              dam_wall_heights, lower.areas);
+                                              dam_wall_heights, lower->areas);
   }
   lower_reservoir.water_rock = lower_water_rock_estimate;
   lower_reservoir.dam_height = lower_dam_wall_height;
-  lower_reservoir.max_dam_height = lower.max_dam_height;
-  lower_reservoir.brownfield = lower.brownfield;
-  lower_reservoir.pit = lower.pit;
-  lower_reservoir.ocean = lower.ocean;
+  lower_reservoir.max_dam_height = lower->max_dam_height;
+  lower_reservoir.brownfield = lower->brownfield;
+  lower_reservoir.pit = lower->pit;
+  lower_reservoir.ocean = lower->ocean;
 
-  pair->identifier = upper.identifier + " & " + lower.identifier;
+  pair->identifier = upper->identifier + " & " + lower->identifier;
   pair->upper = upper_reservoir;
   pair->lower = lower_reservoir;
   pair->head = head;
@@ -281,8 +276,8 @@ Pair *check_good_pair(RoughReservoir upper, RoughReservoir lower,
   return pair;
 }
 
-void pairing(vector<RoughReservoir> &upper_reservoirs,
-             vector<RoughReservoir> &lower_reservoirs, FILE *csv_file,
+void pairing(vector<unique_ptr<RoughReservoir>> &upper_reservoirs,
+             vector<unique_ptr<RoughReservoir>> &lower_reservoirs, FILE *csv_file,
              FILE *csv_data_file) {
   vector<set<Pair>> temp_pairs;
   for (uint itest = 0; itest < tests.size(); itest++) {
@@ -291,13 +286,11 @@ void pairing(vector<RoughReservoir> &upper_reservoirs,
     temp_pairs.push_back(a);
   }
 
-  RoughReservoir *upper_reservoir;
-  RoughReservoir *lower_reservoir;
   for (uint iupper = 0; iupper < upper_reservoirs.size(); iupper++) {
-    upper_reservoir = &upper_reservoirs[iupper];
-    double coslat = COS(upper_reservoir->latitude);
+    RoughReservoir* upper_reservoir = upper_reservoirs[iupper].get();
+    double coslat = COS(RADIANS(upper_reservoir->latitude));
     for (uint ilower = 0; ilower < lower_reservoirs.size(); ilower++) {
-      lower_reservoir = &lower_reservoirs[ilower];
+      RoughReservoir* lower_reservoir = lower_reservoirs[ilower].get();
 
       int head = upper_reservoir->elevation - lower_reservoir->elevation;
       if (head < min_head || head > max_head)
@@ -307,8 +300,27 @@ void pairing(vector<RoughReservoir> &upper_reservoirs,
       double distance_sqd = find_distance_sqd(
           upper_reservoir->pour_point, lower_reservoir->pour_point, coslat);
 
+      if(upper_reservoir->brownfield){
+        RoughBfieldReservoir* br = static_cast<RoughBfieldReservoir*>(upper_reservoir);
+        for(ArrayCoordinate ac: br->shape_bound)
+          distance_sqd =
+              MIN(find_distance_sqd(ac, lower_reservoir->pour_point, coslat), distance_sqd);
+      }
+      if(lower_reservoir->brownfield || lower_reservoir->ocean){
+        RoughBfieldReservoir* lr = static_cast<RoughBfieldReservoir*>(lower_reservoir);
+        for(ArrayCoordinate ac: lr->shape_bound){
+          distance_sqd =
+              MIN(find_distance_sqd(ac, upper_reservoir->pour_point, coslat), distance_sqd);
+          if(distance_sqd<0)
+            cout << distance_sqd << " " << ac.row << " " << ac.col << " "
+                 << upper_reservoir->pour_point.row << " " << upper_reservoir->pour_point.col << " "
+                 << coslat << endl;
+        }
+      }
+
       if (SQ(head * 0.001) <= distance_sqd * SQ(min_pp_slope))
         continue;
+
 
       for (uint itest = 0; itest < tests.size(); itest++) {
         Pair temp_pair;
@@ -316,7 +328,7 @@ void pairing(vector<RoughReservoir> &upper_reservoirs,
             (category_cutoffs[0].storage_cost * tests[itest].storage_time +
              category_cutoffs[0].power_cost) *
             (1 + tolerance_on_FOM);
-        if (check_good_pair(*upper_reservoir, *lower_reservoir,
+        if (check_good_pair(upper_reservoir, lower_reservoir,
                             tests[itest].energy_capacity,
                             tests[itest].storage_time, &temp_pair, max_FOM)) {
           temp_pairs[itest].insert(temp_pair);
@@ -345,9 +357,10 @@ int main(int nargs, char **argv) {
   parse_variables(convert_string("storage_location"));
   parse_variables(convert_string(file_storage_location + "variables"));
 
-  vector<RoughReservoir> upper_reservoirs;
+  vector<unique_ptr<RoughReservoir>> upper_reservoirs;
   if (search_config.search_type.existing()) {
-    search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
+    if(search_config.search_type != SearchType::BULK_EXISTING)
+      search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
     upper_reservoirs = read_rough_reservoir_data(
         convert_string(file_storage_location + "processing_files/reservoirs/" +
                        search_config.filename() + "_reservoirs_data.csv"));
@@ -359,7 +372,7 @@ int main(int nargs, char **argv) {
                        str(search_config.grid_square) + "_reservoirs_data.csv"));
 
   search_config.logger.debug("Read in "+to_string(upper_reservoirs.size())+" uppers");
-  vector<RoughReservoir> lower_reservoirs;
+  vector<unique_ptr<RoughReservoir>> lower_reservoirs;
 
   GridSquare neighbors[9] = {
       (GridSquare){search_config.grid_square.lat, search_config.grid_square.lon},
@@ -374,11 +387,11 @@ int main(int nargs, char **argv) {
 
   for (int i = 0; i < 9; i++) {
     try {
-      vector<RoughReservoir> temp = read_rough_reservoir_data(convert_string(
+      vector<unique_ptr<RoughReservoir>> temp = read_rough_reservoir_data(convert_string(
           file_storage_location + "processing_files/reservoirs/" +
           search_config.search_type.lowers_prefix() + str(neighbors[i]) + "_reservoirs_data.csv"));
       for (uint j = 0; j < temp.size(); j++)
-        lower_reservoirs.push_back(temp[j]);
+        lower_reservoirs.push_back(std::move(temp[j]));
     } catch (int e) {
       search_config.logger.debug("Could not import reservoirs from " +
                                  file_storage_location +

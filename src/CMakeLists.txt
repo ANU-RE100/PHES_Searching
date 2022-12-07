@@ -6,7 +6,9 @@ set(UTIL_SOURCES
     coordinates.cpp
     phes_base.cpp
     variable_parser.cpp
-    constructor_helpers.cpp)
+    constructor_helpers.cpp
+    model2D.cpp
+    search_config.cpp)
 
 include_directories(${MPI_CXX_INCLUDE_PATH} ${JSON_INCLUDE_PATH})
 

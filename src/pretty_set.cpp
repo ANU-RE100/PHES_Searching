@@ -2,10 +2,6 @@
 #include "search_config.hpp"
 #include "constructor_helpers.hpp"
 
-SearchConfig search_config;
-
-vector<vector<Pair>> pairs;
-
 bool check_pair(Pair& pair, Model<bool>* seen, BigModel& big_model){
   vector<vector<vector<GeographicCoordinate>>> empty_countries;
   vector<string> empty_country_names;
@@ -25,6 +21,7 @@ bool check_pair(Pair& pair, Model<bool>* seen, BigModel& big_model){
 int main(int nargs, char **argv)
 {
   search_config = SearchConfig(nargs, argv);
+  vector<vector<Pair>> pairs;
 
 	cout << "Pretty set started for " << search_config.filename() << endl;
 
@@ -47,7 +44,7 @@ int main(int nargs, char **argv)
 
 	if(search_config.search_type.single())
 		search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
-	
+
 	BigModel big_model = BigModel_init(search_config.grid_square);
 
 	mkdir(convert_string(file_storage_location+"processing_files/pretty_set_pairs"),0777);

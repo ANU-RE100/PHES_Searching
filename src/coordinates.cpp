@@ -50,6 +50,10 @@ bool check_within(ArrayCoordinate c, int shape[2])
         return false;
 }
 
+bool check_within(GeographicCoordinate gc, GridSquare gs){
+  return (int)FLOOR(gc.lat) == gs.lat && (int)FLOOR(gc.lon) == gs.lon;
+}
+
 bool check_strictly_within(ArrayCoordinate c, int shape[2])
 {
 	if(c.row>0 && c.col>0 && c.row<shape[0]-1 && c.col<shape[1]-1){
@@ -78,11 +82,6 @@ string str(GridSquare square)
 	sprintf(buf, "%c%02d_%c%03d", c1, lat, c2, lon);
 	string to_return(buf);
 	return to_return;
-}
-
-bool flows_to(ArrayCoordinate c1, ArrayCoordinate c2, Model<char>* flow_directions) {
-	return ( ( c1.row + directions[flow_directions->get(c1.row,c1.col)].row == c2.row ) &&
-		 ( c1.col + directions[flow_directions->get(c1.row,c1.col)].col == c2.col ) );
 }
 
 // area of single cell in ha
@@ -116,6 +115,8 @@ double find_distance_sqd(ArrayCoordinate c1, ArrayCoordinate c2)
 
 double find_distance_sqd(ArrayCoordinate c1, ArrayCoordinate c2, double coslat)
 {
+  if(c1.origin.lat==c2.origin.lat && c1.origin.lon==c2.origin.lon)
+    return (SQ(c2.row-c1.row)*coslat + SQ(c2.col-c1.col))*SQ(resolution*0.001);
 	GeographicCoordinate p1 = convert_coordinates(c1);
 	GeographicCoordinate p2 = convert_coordinates(c2);
 	return find_distance_sqd(p1, p2, coslat);
@@ -150,9 +151,9 @@ ArrayCoordinate convert_coordinates(GeographicCoordinate c, GeographicCoordinate
 	return ArrayCoordinate_init(convert_to_int((c.lat-origin.lat)/lat_res-0.5), convert_to_int((c.lon-origin.lon)/lon_res-0.5), origin);
 }
 
-GeographicCoordinate convert_coordinates(ArrayCoordinate c)
+GeographicCoordinate convert_coordinates(ArrayCoordinate c, double offset)
 {
-	return GeographicCoordinate_init(c.origin.lat-(c.row+0.5)/3600.0, c.origin.lon+(c.col+0.5)/3600.0);
+	return GeographicCoordinate_init(c.origin.lat-(c.row+offset)/3600.0, c.origin.lon+(c.col+offset)/3600.0);
 }
 
 

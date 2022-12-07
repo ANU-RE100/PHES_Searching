@@ -1,7 +1,5 @@
 #include "phes_base.h"
 
-SearchConfig search_config;
-
 int main(int nargs, char **argv)
 {
   if(nargs < 3){
@@ -34,12 +32,12 @@ int main(int nargs, char **argv)
 	double area_at_elevation[1001] = {0};
 	double volume_at_elevation[1001] = {0};
 	double cumulative_area_at_elevation[1001] = {0};
-	
+
 	for(int row = 0; row<extent->nrows(); row++)
 		for(int col = 0; col<extent->ncols(); col++)
 			if(extent->get(row, col)){
 				int elevation_above_pp = MAX(DEM->get(row,col) - min_elevation, 0);
-				area_at_elevation[elevation_above_pp+1] += find_area(ArrayCoordinate_init(row, col, DEM->get_origin())); 
+				area_at_elevation[elevation_above_pp+1] += find_area(ArrayCoordinate_init(row, col, DEM->get_origin()));
 			}
 
 	for (int ih=1; ih<200;ih++) {
@@ -48,6 +46,6 @@ int main(int nargs, char **argv)
  		printf("%d %d %f   ", ih, min_elevation+ih, volume_at_elevation[ih]);
 	}
 
-	
+
 	printf(convert_string("Volume finding finished for "+str(square_coordinate)+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
 }

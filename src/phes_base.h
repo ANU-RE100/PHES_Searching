@@ -16,8 +16,6 @@ using namespace std;
 
 void parse_variables(char *filename);
 
-extern SearchConfig search_config;
-
 const double EPS = 1.0e-6;
 const double INF = 1.0e18;
 const double J_GWh_conversion = 3.6e12;
@@ -205,8 +203,9 @@ string str(Test test);
 string energy_capacity_to_string(double energy_capacity);
 string format_for_filename(string s);
 GeographicCoordinate get_origin(double latitude, double longitude, int border);
-RoughReservoir get_existing_rough_reservoir(string name);
 ExistingReservoir get_existing_reservoir(string name);
+vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square);
+RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r);
 ExistingPit get_pit_details(string pitname);
 
 #endif
