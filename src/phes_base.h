@@ -65,7 +65,7 @@ extern vector<double> dam_wall_heights; //  Wall heights to test and export
 // Turkey nest screening
 extern double min_reservoir_area;    	// Minimum reservoir area (m^3)
 extern int TN_elevation_tolerance;		// Allowable tolerance of the DEM elevation along the rough turkey nest dam wall (m)
-extern int TN_scan_radius;				    // Radius around reservoir that is scanned for turkey nest sites (cells) 
+extern int max_TN_volume;              // Maximum volume of the turkey nest reservoir model (GL)
 
 // Pairing
 extern int min_head; // Minimum head (m) to be considered a potential pair

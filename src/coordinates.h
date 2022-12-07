@@ -17,6 +17,7 @@ struct ArrayCoordinateWithHeight {
   short row, col;
   double h;
   bool operator<(const ArrayCoordinateWithHeight &o) const { return h > o.h; }
+  bool operator==(const ArrayCoordinateWithHeight &o) const { return (row == o.row) && (col == o.col); }
 };
 
 GeographicCoordinate GeographicCoordinate_init(double latitude,
