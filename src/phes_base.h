@@ -190,9 +190,9 @@ struct BigModel {
 
 int convert_to_int(double f);
 double max(vector<double> a);
+double min(vector<double> a);
 double convert_to_dam_volume(int height, double length);
 double convert_to_dam_volume(int height, double length);
-double convert_to_dam_height(double volume, double length);
 double linear_interpolate(double value, vector<double> x_values,
                           vector<double> y_values);
 string str(int i);

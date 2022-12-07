@@ -18,6 +18,15 @@ double max(vector<double> a)
 	return amax;
 }
 
+double min(vector<double> a)
+{
+	double amin = 1.0e20;
+	for (uint ih=0; ih<a.size(); ih++)
+		amin = MIN(amin, a[ih]);
+	
+	return amin;
+}
+
 double convert_to_dam_volume(int height, double length)
 {
 	return (((height+freeboard)*(cwidth+dambatter*(height+freeboard)))/1000000)*length;
@@ -26,11 +35,6 @@ double convert_to_dam_volume(int height, double length)
 double convert_to_dam_volume(double height, double length)
 {
 	return (((height+freeboard)*(cwidth+dambatter*(height+freeboard)))/1000000)*length;
-}
-
-double convert_to_dam_height(double volume, double length) {
-	// Quadratic formula
-	return (-cwidth*length + pow(cwidth*length*cwidth*length + 4*dambatter*length*volume, 0.5))/(2*dambatter*length);
 }
 
 double linear_interpolate(double value, vector<double> x_values, vector<double> y_values)

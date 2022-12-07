@@ -459,8 +459,8 @@ RoughGreenfieldReservoir update_TN_volumes(vector<ArrayCoordinateWithHeight> dam
     reservoir_elevation_sqdiffs.push_back(pow(dam_elevation - reservoir_points[point_index].h, 2));
   }
 
-  reservoir.dam_volumes[dam_wall_index] = dam_lengths_at_height*dambatter*accumulate(reservoir_elevation_sqdiffs.begin(), reservoir_elevation_sqdiffs.end(), 0.0) / reservoir_elevation_sqdiffs.size();
-  original_volume[dam_wall_index] = reservoir.areas[dam_wall_index]*accumulate(dam_elevation_diffs.begin(), dam_elevation_diffs.end(), 0.0) / dam_elevation_diffs.size();
+  reservoir.dam_volumes[dam_wall_index] = (dam_lengths_at_height*dambatter*accumulate(reservoir_elevation_sqdiffs.begin(), reservoir_elevation_sqdiffs.end(), 0.0) / reservoir_elevation_sqdiffs.size()) / 1000000;
+  original_volume[dam_wall_index] = (reservoir.areas[dam_wall_index]*accumulate(dam_elevation_diffs.begin(), dam_elevation_diffs.end(), 0.0) / dam_elevation_diffs.size() / 1000000);
   reservoir.volumes[dam_wall_index] = original_volume[dam_wall_index] + reservoir.dam_volumes[dam_wall_index] / 2;  
   reservoir.water_rocks[dam_wall_index] = reservoir.volumes[dam_wall_index] / reservoir.dam_volumes[dam_wall_index];  
   
@@ -523,7 +523,9 @@ static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Mo
   }
   
   // Optimise the site based upon a minimum water-to-rock ratio
+  // || min(reservoir.volumes) < max_TN_volume
   while (!q.empty()) {
+    
     q_update_status = true;
     ArrayCoordinateWithHeight p = q.front();
     ArrayCoordinate p_no_height = ArrayCoordinate_init(p.row,p.col,pour_point.origin);
@@ -672,12 +674,13 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_poin
         i++;
 
         RoughGreenfieldReservoir reservoir = model_turkey_nest(pour_point, DEM_filled, filter);
-        reservoir = model_greenfield_reservoir(pour_point, flow_directions, DEM_filled, filter, model, i); // DELETE THIS
         reservoir.ocean = false;
         reservoir.turkey = true;
 
+        printf("%d %d\n", row, col);
+
         if (max(reservoir.volumes) >= min_reservoir_volume &&
-            max(reservoir.water_rocks) > min_reservoir_water_rock &&
+            max(reservoir.water_rocks) > 0.5 &&
             reservoir.max_dam_height >= min_max_dam_height) {
           reservoir.watershed_area = find_area(pour_point) * flow_accumulation->get(row, col);
 
