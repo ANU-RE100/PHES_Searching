@@ -32,6 +32,10 @@ int main(int nargs, char **argv)
 	
 	pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pairs/"+search_config.filename()+"_rough_pairs_data.csv"));
 
+	mkdir(convert_string(file_storage_location+"processing_files/pretty_set_pairs"),0777);
+	FILE *csv_data_file = fopen(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+search_config.filename()+"_rough_pretty_set_pairs_data.csv"), "w");
+	write_rough_pair_data_header(csv_data_file);
+
 	uint total_pairs = 0;
 	for(uint i = 0; i<pairs.size(); i++)
 		total_pairs += pairs[i].size();
@@ -46,10 +50,6 @@ int main(int nargs, char **argv)
 		search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
 
 	BigModel big_model = BigModel_init(search_config.grid_square);
-
-	mkdir(convert_string(file_storage_location+"processing_files/pretty_set_pairs"),0777);
-	FILE *csv_data_file = fopen(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+search_config.filename()+"_rough_pretty_set_pairs_data.csv"), "w");
-	write_rough_pair_data_header(csv_data_file);
 
 	for(uint i = 0; i<tests.size(); i++){
 		sort(pairs[i].begin(), pairs[i].end());
