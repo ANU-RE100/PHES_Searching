@@ -187,6 +187,11 @@ bool file_exists (char* name) {
     return infile.good();
 }
 
+bool file_exists (string name) {
+	ifstream infile(name.c_str());
+    return infile.good();
+}
+
 string format_for_filename(string s){
 	replace(s.begin(), s.end(), ' ' , '_');
 	s.erase(remove(s.begin(), s.end(), '"'), s.end());

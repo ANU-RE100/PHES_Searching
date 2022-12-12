@@ -29,9 +29,9 @@ void polygon_to_raster(vector<GeographicCoordinate> &polygon, Model<bool>* raste
 void read_shp_filter(string filename, Model<bool>* filter){
 	char *shp_filename = new char[filename.length() + 1];
 	strcpy(shp_filename, filename.c_str());
-    if(!file_exists(shp_filename)){
+  if(!file_exists(shp_filename)){
 		search_config.logger.error("No file: "+filename);
-		throw(1);
+    throw(1);
 	}
 	SHPHandle SHP = SHPOpen(convert_string(filename), "rb" );
 	if(SHP != NULL ){
@@ -66,7 +66,7 @@ void read_shp_filter(string filename, Model<bool>* filter){
 	        	relevant_polygons.push_back(temp_poly);
 	        SHPDestroyObject( shape );
 	    }
-	    search_config.logger.debug(to_string((int)relevant_polygons.size()) + "Polygons imported from " + filename);
+	    search_config.logger.debug(to_string((int)relevant_polygons.size()) + " polygons imported from " + filename);
 	    for(uint i = 0; i<relevant_polygons.size(); i++){
             polygon_to_raster(relevant_polygons[i], filter);
 	    }

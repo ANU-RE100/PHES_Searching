@@ -165,6 +165,7 @@ extern vector<CategoryCutoff> category_cutoffs;
 #define FLOOR floor
 
 bool file_exists(char *name);
+bool file_exists(string name);
 
 
 #include "coordinates.h"

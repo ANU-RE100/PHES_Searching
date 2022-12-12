@@ -25,14 +25,14 @@ void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_t
 	}
 }
 
-string find_world_urban_filename(GeographicCoordinate point){
+string find_world_utm_filename(GeographicCoordinate point){
 	char clat = 'A'+floor((point.lat+96)/8);
 	if(clat>=73)clat++;
 	if(clat>=79)clat++;
 	int nlon = floor((point.lon+180)/6+1);
 	char strlon[3];
 	snprintf(strlon, 3, "%02d", nlon);
-	return "input/WORLD_URBAN/"+string(strlon)+string(1, clat)+"_hbase_human_built_up_and_settlement_extent_geographic_30m.tif";
+	return string(strlon)+string(1, clat);
 }
 
 Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
@@ -44,7 +44,9 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 			search_config.logger.debug("Using world urban data as filter");
 			vector<string> done;
 			for(GeographicCoordinate corner: DEM->get_corners()){
-				string urban_filename = find_world_urban_filename(corner);
+				string urban_filename = "input/filters/hbase_human_built_up_and_settlement_extent/"+find_world_utm_filename(corner)+"_hbase_human_built_up_and_settlement_extent_utm_30m.tif";
+        if (!file_exists(file_storage_location+urban_filename))
+           urban_filename = "input/WORLD_URBAN/"+find_world_utm_filename(corner)+"_hbase_human_built_up_and_settlement_extent_geographic_30m.tif";
 				if(find(done.begin(), done.end(), urban_filename)==done.end()){
 					read_tif_filter(file_storage_location+urban_filename, filter, 201);
 					done.push_back(urban_filename);
@@ -52,7 +54,7 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 			}
 		}else if(filename=="use_tiled_filter"){
 			search_config.logger.debug("Using tiled filter");
-			GridSquare sc = {(int)((filter->get_coordinate(filter->nrows(), filter->ncols()).lat+filter->get_origin().lat)/2.0)-1,(int)((filter->get_coordinate(filter->nrows(), filter->ncols()).lon+filter->get_origin().lon)/2.0)};
+			GridSquare sc = {(int)FLOOR((filter->get_coordinate(filter->nrows(), filter->ncols()).lat+filter->get_origin().lat)/2.0),(int)FLOOR((filter->get_coordinate(filter->nrows(), filter->ncols()).lon+filter->get_origin().lon)/2.0)};
 			GridSquare neighbors[9] = {
 				(GridSquare){sc.lat  ,sc.lon  },
 				(GridSquare){sc.lat+1,sc.lon-1},
@@ -64,12 +66,16 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 				(GridSquare){sc.lat-1,sc.lon-1},
 				(GridSquare){sc.lat  ,sc.lon-1}};
 			for(int i = 0; i<9; i++){
-				try{
-					read_shp_filter(file_storage_location+"input/shapefile_tiles/"+str(neighbors[i])+"_shapefile_tile.shp", filter);
-				}catch(int e){
-					if(i==0)
-						exit(1);
-				}
+        string shp_filename = file_storage_location+"input/shapefile_tiles/"+str(neighbors[i])+"_shapefile_tile.shp";
+        if(file_exists(shp_filename))
+          read_shp_filter(shp_filename, filter);
+        else{
+          search_config.logger.debug("Couldn't find file " + shp_filename);
+          search_config.logger.debug(to_string(i));
+          if(i==0)
+            throw(1);
+
+        }
 			}
 		}else{
 			read_shp_filter(file_storage_location+filename, filter);
