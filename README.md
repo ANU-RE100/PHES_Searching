@@ -27,6 +27,13 @@ or a convenient script has been set up to perform this with the command
 ./build.sh
 ```
 
+Alternately, there is a docker file for use on other systems, this can be run with
+
+```
+docker build . -f docker/Dockerfile -t phes
+docker run -v {path_to_storage_location} -it --rm phes
+```
+
 ## Usage
 
 Place all input files in `PHES_Searching/input/`
