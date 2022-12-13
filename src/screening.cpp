@@ -321,11 +321,19 @@ static Model<bool>* find_pour_points(Model<bool>* streams, Model<char>* flow_dir
 		for (int col = border; col <  border+pour_points->ncols()-2*border; col++)
 			if (streams->get(row,col)) {
 				ArrayCoordinate downstream = ArrayCoordinate_init(row+directions[flow_directions->get(row,col)].row,col+directions[flow_directions->get(row,col)].col, GeographicCoordinate_init(0,0));
-				if ( flow_directions->check_within(downstream.row, downstream.col) &&
-					DEM_filled->get(row,col)-DEM_filled->get(row,col)%contour_height>DEM_filled->get(downstream.row,downstream.col)) {
-						pour_points->set(row,col,true);
-						pour_point_count++;
-					}
+        if ( flow_directions->check_within(downstream.row, downstream.col)){
+          if(DEM_filled->get(row,col) >= 0){
+            if(DEM_filled->get(row,col)-DEM_filled->get(row,col)%contour_height>DEM_filled->get(downstream.row,downstream.col)) {
+              pour_points->set(row,col,true);
+              pour_point_count++;
+            }
+          } else {
+            if(DEM_filled->get(row,col)+DEM_filled->get(row,col)%contour_height>DEM_filled->get(downstream.row,downstream.col)) {
+              pour_points->set(row,col,true);
+              pour_point_count++;
+            }
+          }
+        }
 			}
 	search_config.logger.debug("Number of dam sites = "+  to_string(pour_point_count));
 	return pour_points;
@@ -531,7 +539,9 @@ int main(int nargs, char **argv) {
   unsigned long start_usec = walltime_usec();
   unsigned long t_usec = start_usec;
 
+  mkdir(convert_string(file_storage_location + "output"), 0777);
   mkdir(convert_string(file_storage_location + "output/reservoirs"), 0777);
+  mkdir(convert_string(file_storage_location + "processing_files"), 0777);
   mkdir(convert_string(file_storage_location + "processing_files/reservoirs"), 0777);
 
   if (search_config.search_type.not_existing()) {
