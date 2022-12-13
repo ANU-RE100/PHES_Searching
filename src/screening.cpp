@@ -6,435 +6,401 @@
 
 bool debug_output = false;
 
-void read_tif_filter(string filename, Model<bool> *filter, unsigned char value_to_filter) {
-  try {
-    Model<unsigned char> *tif_filter = new Model<unsigned char>(filename, GDT_Byte);
-    GeographicCoordinate point;
-    for (int row = 0; row < filter->nrows(); row++) {
-      for (int col = 0; col < filter->ncols(); col++) {
-        point = filter->get_coordinate(row, col);
-        if (tif_filter->check_within(point) && tif_filter->get(point) == value_to_filter)
-          filter->set(row, col, true);
-      }
-    }
-    delete tif_filter;
-  } catch (exception &e) {
+void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_to_filter){
+	try{
+		Model<unsigned char>* tif_filter = new Model<unsigned char>(filename, GDT_Byte);
+		GeographicCoordinate point;
+		for(int row = 0; row<filter->nrows(); row++){
+			for(int col = 0; col<filter->ncols(); col++){
+				point = filter->get_coordinate(row, col);
+				if(tif_filter->check_within(point) && tif_filter->get(point)==value_to_filter)
+					filter->set(row,col,true);
+			}
+		}
+		delete tif_filter;
+	}catch(exception& e){
     search_config.logger.debug("Problem with " + filename);
-  } catch (int e) {
+	}catch(int e){
     search_config.logger.debug("Problem with " + filename);
-  }
+	}
 }
 
-string find_world_urban_filename(GeographicCoordinate point) {
-  char clat = 'A' + floor((point.lat + 96) / 8);
-  if (clat >= 73)
-    clat++;
-  if (clat >= 79)
-    clat++;
-  int nlon = floor((point.lon + 180) / 6 + 1);
-  char strlon[3];
-  snprintf(strlon, 3, "%02d", nlon);
-  return "input/WORLD_URBAN/" + string(strlon) + string(1, clat) +
-         "_hbase_human_built_up_and_settlement_extent_geographic_30m.tif";
+string find_world_urban_filename(GeographicCoordinate point){
+	char clat = 'A'+floor((point.lat+96)/8);
+	if(clat>=73)clat++;
+	if(clat>=79)clat++;
+	int nlon = floor((point.lon+180)/6+1);
+	char strlon[3];
+	snprintf(strlon, 3, "%02d", nlon);
+	return "input/WORLD_URBAN/"+string(strlon)+string(1, clat)+"_hbase_human_built_up_and_settlement_extent_geographic_30m.tif";
 }
 
-Model<bool> *read_filter(Model<short> *DEM, vector<string> filenames) {
-  Model<bool> *filter = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
-  filter->set_geodata(DEM->get_geodata());
-  for (string filename : filenames) {
-    if (filename == "use_world_urban") {
-      search_config.logger.debug("Using world urban data as filter");
-      vector<string> done;
-      for (GeographicCoordinate corner : DEM->get_corners()) {
-        string urban_filename = find_world_urban_filename(corner);
-        if (find(done.begin(), done.end(), urban_filename) == done.end()) {
-          read_tif_filter(file_storage_location + urban_filename, filter, 201);
-          done.push_back(urban_filename);
-        }
-      }
-    } else if (filename == "use_tiled_filter") {
-      search_config.logger.debug("Using tiled filter");
-      GridSquare sc = {(int)((filter->get_coordinate(filter->nrows(), filter->ncols()).lat +
-                              filter->get_origin().lat) /
-                             2.0) -
-                           1,
-                       (int)((filter->get_coordinate(filter->nrows(), filter->ncols()).lon +
-                              filter->get_origin().lon) /
-                             2.0)};
-      GridSquare neighbors[9] = {
-          (GridSquare){sc.lat, sc.lon},     (GridSquare){sc.lat + 1, sc.lon - 1},
-          (GridSquare){sc.lat + 1, sc.lon}, (GridSquare){sc.lat + 1, sc.lon + 1},
-          (GridSquare){sc.lat, sc.lon + 1}, (GridSquare){sc.lat - 1, sc.lon + 1},
-          (GridSquare){sc.lat - 1, sc.lon}, (GridSquare){sc.lat - 1, sc.lon - 1},
-          (GridSquare){sc.lat, sc.lon - 1}};
-      for (int i = 0; i < 9; i++) {
-        try {
-          read_shp_filter(file_storage_location + "input/shapefile_tiles/" + str(neighbors[i]) +
-                              "_shapefile_tile.shp",
-                          filter);
-        } catch (int e) {
-          if (i == 0)
-            exit(1);
-        }
-      }
-    } else {
-      read_shp_filter(file_storage_location + filename, filter);
-    }
-  }
-  for (int row = 0; row < DEM->nrows(); row++)
-    for (int col = 0; col < DEM->ncols(); col++)
-      if (DEM->get(row, col) < -1000)
-        filter->set(row, col, true);
-  return filter;
+Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
+{
+	Model<bool>* filter = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
+	filter->set_geodata(DEM->get_geodata());
+	for(string filename:filenames){
+		if(filename=="use_world_urban"){
+			search_config.logger.debug("Using world urban data as filter");
+			vector<string> done;
+			for(GeographicCoordinate corner: DEM->get_corners()){
+				string urban_filename = find_world_urban_filename(corner);
+				if(find(done.begin(), done.end(), urban_filename)==done.end()){
+					read_tif_filter(file_storage_location+urban_filename, filter, 201);
+					done.push_back(urban_filename);
+				}
+			}
+		}else if(filename=="use_tiled_filter"){
+			search_config.logger.debug("Using tiled filter");
+			GridSquare sc = {(int)((filter->get_coordinate(filter->nrows(), filter->ncols()).lat+filter->get_origin().lat)/2.0)-1,(int)((filter->get_coordinate(filter->nrows(), filter->ncols()).lon+filter->get_origin().lon)/2.0)};
+			GridSquare neighbors[9] = {
+				(GridSquare){sc.lat  ,sc.lon  },
+				(GridSquare){sc.lat+1,sc.lon-1},
+				(GridSquare){sc.lat+1,sc.lon  },
+				(GridSquare){sc.lat+1,sc.lon+1},
+				(GridSquare){sc.lat  ,sc.lon+1},
+				(GridSquare){sc.lat-1,sc.lon+1},
+				(GridSquare){sc.lat-1,sc.lon  },
+				(GridSquare){sc.lat-1,sc.lon-1},
+				(GridSquare){sc.lat  ,sc.lon-1}};
+			for(int i = 0; i<9; i++){
+				try{
+					read_shp_filter(file_storage_location+"input/shapefile_tiles/"+str(neighbors[i])+"_shapefile_tile.shp", filter);
+				}catch(int e){
+					if(i==0)
+						exit(1);
+				}
+			}
+		}else{
+			read_shp_filter(file_storage_location+filename, filter);
+		}
+	}
+	for(int row = 0; row<DEM->nrows(); row++)
+		for(int col = 0; col<DEM->ncols(); col++)
+			if(DEM->get(row,col)<-1000)
+				filter->set(row,col,true);
+	return filter;
 }
 
-Model<double> *fill(Model<short> *DEM) {
-  Model<double> *DEM_filled_no_flat = new Model<double>(DEM->nrows(), DEM->ncols(), MODEL_UNSET);
-  DEM_filled_no_flat->set_geodata(DEM->get_geodata());
-  Model<bool> *seen = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 
-  queue<ArrayCoordinateWithHeight> q;
-  priority_queue<ArrayCoordinateWithHeight> pq;
-  for (int row = 0; row < DEM->nrows(); row++)
-    for (int col = 0; col < DEM->ncols(); col++)
-      DEM_filled_no_flat->set(row, col, (double)DEM->get(row, col));
+Model<double>* fill(Model<short>* DEM)
+{
+	Model<double>* DEM_filled_no_flat = new Model<double>(DEM->nrows(), DEM->ncols(), MODEL_UNSET);
+	DEM_filled_no_flat->set_geodata(DEM->get_geodata());
+	Model<bool>* seen = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 
-  for (int row = 0; row < DEM->nrows() - 1; row++) {
-    pq.push(ArrayCoordinateWithHeight_init(row + 1, DEM->ncols() - 1,
-                                           (double)DEM->get(row + 1, DEM->ncols() - 1)));
-    seen->set(row + 1, DEM->ncols() - 1, true);
-    pq.push(ArrayCoordinateWithHeight_init(row, 0, (double)DEM->get(row, 0)));
-    seen->set(row, 0, true);
-  }
+	queue<ArrayCoordinateWithHeight> q;
+	priority_queue<ArrayCoordinateWithHeight> pq;
+	for (int row=0; row<DEM->nrows(); row++)
+		for (int col=0; col<DEM->ncols();col++)
+			DEM_filled_no_flat->set(row,col,(double)DEM->get(row,col));
 
-  for (int col = 0; col < DEM->ncols() - 1; col++) {
-    pq.push(ArrayCoordinateWithHeight_init(DEM->nrows() - 1, col,
-                                           (double)DEM->get(DEM->ncols() - 1, col)));
-    seen->set(DEM->nrows() - 1, col, true);
-    pq.push(ArrayCoordinateWithHeight_init(0, col + 1, (double)DEM->get(0, col + 1)));
-    seen->set(0, col + 1, true);
-  }
+	for (int row=0; row<DEM->nrows()-1;row++) {
+		pq.push(ArrayCoordinateWithHeight_init(row+1, DEM->ncols()-1, (double)DEM->get(row+1,DEM->ncols()-1)));
+		seen->set(row+1,DEM->ncols()-1,true);
+		pq.push(ArrayCoordinateWithHeight_init(row, 0, (double)DEM->get(row,0)));
+		seen->set(row,0,true);
+	}
 
-  ArrayCoordinateWithHeight c;
-  ArrayCoordinateWithHeight neighbor;
-  while (!q.empty() || !pq.empty()) {
+	for (int col=0; col<DEM->ncols()-1;col++) {
+		pq.push(ArrayCoordinateWithHeight_init(DEM->nrows()-1, col, (double)DEM->get(DEM->ncols()-1,col)));
+		seen->set(DEM->nrows()-1,col,true);
+		pq.push(ArrayCoordinateWithHeight_init(0, col+1, (double)DEM->get(0,col+1)));
+		seen->set(0,col+1,true);
+	}
 
-    if (q.empty()) {
-      c = pq.top();
-      pq.pop();
-    } else {
-      c = q.front();
-      q.pop();
-    }
+	ArrayCoordinateWithHeight c;
+	ArrayCoordinateWithHeight neighbor;
+	while ( !q.empty() || !pq.empty()) {
 
-    for (uint d = 0; d < directions.size(); d++) {
-      neighbor =
-          ArrayCoordinateWithHeight_init(c.row + directions[d].row, c.col + directions[d].col, 0);
-      if (!DEM->check_within(c.row + directions[d].row, c.col + directions[d].col) ||
-          seen->get(neighbor.row, neighbor.col))
-        continue;
-      neighbor.h = DEM_filled_no_flat->get(neighbor.row, neighbor.col);
+		if (q.empty()){
+			c = pq.top();
+			pq.pop();
+		}else{
+			c = q.front();
+			q.pop();
+		}
 
-      seen->set(neighbor.row, neighbor.col, true);
+		for (uint d=0; d<directions.size(); d++) {
+			neighbor = ArrayCoordinateWithHeight_init(c.row+directions[d].row,c.col+directions[d].col,0);
+			if (!DEM->check_within(c.row+directions[d].row, c.col+directions[d].col) || seen->get(neighbor.row,neighbor.col))
+				continue;
+			neighbor.h = DEM_filled_no_flat->get(neighbor.row,neighbor.col);
 
-      if (neighbor.h <= c.h) {
-        DEM_filled_no_flat->set(neighbor.row, neighbor.col,
-                                DEM_filled_no_flat->get(c.row, c.col) + EPS);
-        neighbor.h = DEM_filled_no_flat->get(neighbor.row, neighbor.col);
-        q.push(neighbor);
-      } else {
-        pq.push(neighbor);
-      }
-    }
-  }
-  delete seen;
-  return DEM_filled_no_flat;
+			seen->set(neighbor.row,neighbor.col,true);
+
+			if (neighbor.h<=c.h) {
+				DEM_filled_no_flat->set(neighbor.row,neighbor.col,DEM_filled_no_flat->get(c.row,c.col) + EPS);
+				neighbor.h = DEM_filled_no_flat->get(neighbor.row,neighbor.col);
+				q.push(neighbor);
+			}
+			else {
+				pq.push(neighbor);
+			}
+		}
+	}
+	delete seen;
+	return DEM_filled_no_flat;
 }
 
-Model<bool> *find_ocean(Model<short> *DEM) {
-  Model<bool> *ocean = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
-  ocean->set_geodata(DEM->get_geodata());
+Model<bool>* find_ocean(Model<short>* DEM)
+{
+	Model<bool>* ocean = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
+	ocean->set_geodata(DEM->get_geodata());
 
-  Model<bool> *seen = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
+	Model<bool>* seen = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 
-  queue<ArrayCoordinateWithHeight> q;
-  priority_queue<ArrayCoordinateWithHeight> pq;
+	queue<ArrayCoordinateWithHeight> q;
+	priority_queue<ArrayCoordinateWithHeight> pq;
 
-  for (int row = 0; row < DEM->nrows() - 1; row++) {
-    pq.push(ArrayCoordinateWithHeight_init(row + 1, DEM->ncols() - 1,
-                                           (double)DEM->get(row + 1, DEM->ncols() - 1)));
-    seen->set(row + 1, DEM->ncols() - 1, true);
-    if (DEM->get(row + 1, DEM->ncols() - 1) == 0)
-      ocean->set(row + 1, DEM->ncols() - 1, true);
-    pq.push(ArrayCoordinateWithHeight_init(row, 0, (double)DEM->get(row, 0)));
-    seen->set(row, 0, true);
-    if (DEM->get(row, 0) == 0)
-      ocean->set(row, 0, true);
-  }
+	for (int row=0; row<DEM->nrows()-1;row++) {
+		pq.push(ArrayCoordinateWithHeight_init(row+1, DEM->ncols()-1, (double)DEM->get(row+1,DEM->ncols()-1)));
+		seen->set(row+1,DEM->ncols()-1,true);
+		if(DEM->get(row+1,DEM->ncols()-1)==0)
+			ocean->set(row+1,DEM->ncols()-1,true);
+		pq.push(ArrayCoordinateWithHeight_init(row, 0, (double)DEM->get(row,0)));
+		seen->set(row,0,true);
+		if(DEM->get(row,0)==0)
+			ocean->set(row,0,true);
+	}
 
-  for (int col = 0; col < DEM->ncols() - 1; col++) {
-    pq.push(ArrayCoordinateWithHeight_init(DEM->nrows() - 1, col,
-                                           (double)DEM->get(DEM->ncols() - 1, col)));
-    seen->set(DEM->nrows() - 1, col, true);
-    if (DEM->get(DEM->ncols() - 1, col) == 0)
-      ocean->set(DEM->ncols() - 1, col, true);
-    pq.push(ArrayCoordinateWithHeight_init(0, col + 1, (double)DEM->get(0, col + 1)));
-    seen->set(0, col + 1, true);
-    if (DEM->get(0, col + 1) == 0)
-      ocean->set(0, col + 1, true);
-  }
+	for (int col=0; col<DEM->ncols()-1;col++) {
+		pq.push(ArrayCoordinateWithHeight_init(DEM->nrows()-1, col, (double)DEM->get(DEM->ncols()-1,col)));
+		seen->set(DEM->nrows()-1,col,true);
+		if(DEM->get(DEM->ncols()-1,col)==0)
+			ocean->set(DEM->ncols()-1,col,true);
+		pq.push(ArrayCoordinateWithHeight_init(0, col+1, (double)DEM->get(0,col+1)));
+		seen->set(0,col+1,true);
+		if(DEM->get(0,col+1)==0)
+			ocean->set(0,col+1,true);
+	}
 
-  ArrayCoordinateWithHeight c;
-  ArrayCoordinateWithHeight neighbor;
-  while (!q.empty() || !pq.empty()) {
-    if (q.empty()) {
-      c = pq.top();
-      pq.pop();
-    } else {
-      c = q.front();
-      q.pop();
-    }
+	ArrayCoordinateWithHeight c;
+	ArrayCoordinateWithHeight neighbor;
+	while ( !q.empty() || !pq.empty()) {
+		if (q.empty()){
+			c = pq.top();
+			pq.pop();
+		}else{
+			c = q.front();
+			q.pop();
+		}
 
-    for (uint d = 0; d < directions.size(); d++) {
-      neighbor =
-          ArrayCoordinateWithHeight_init(c.row + directions[d].row, c.col + directions[d].col, 0);
-      if (!DEM->check_within(c.row + directions[d].row, c.col + directions[d].col) ||
-          seen->get(neighbor.row, neighbor.col))
-        continue;
-      neighbor.h = DEM->get(neighbor.row, neighbor.col);
+		for (uint d=0; d<directions.size(); d++) {
+			neighbor = ArrayCoordinateWithHeight_init(c.row+directions[d].row,c.col+directions[d].col,0);
+			if (!DEM->check_within(c.row+directions[d].row, c.col+directions[d].col) || seen->get(neighbor.row,neighbor.col))
+				continue;
+			neighbor.h = DEM->get(neighbor.row,neighbor.col);
 
-      seen->set(neighbor.row, neighbor.col, true);
+			seen->set(neighbor.row,neighbor.col,true);
 
-      if (neighbor.h <= EPS && neighbor.h >= -EPS && ocean->get(c.row, c.col) == true) {
-        ocean->set(neighbor.row, neighbor.col, true);
-        q.push(neighbor);
-      } else {
-        pq.push(neighbor);
-      }
-    }
-  }
-  delete seen;
-  return ocean;
+			if (neighbor.h<=EPS && neighbor.h>=-EPS && ocean->get(c.row,c.col)==true) {
+				ocean->set(neighbor.row,neighbor.col,true);
+				q.push(neighbor);
+			}
+			else {
+				pq.push(neighbor);
+			}
+		}
+	}
+	delete seen;
+	return ocean;
 }
 
 // Find the lowest neighbor of a point given the cos of the latitude (for speed optimization)
-int find_lowest_neighbor(int row, int col, Model<double> *DEM_filled_no_flat, double coslat) {
-  int result = 0;
-  double min_drop = 0;
-  double min_dist = 100000;
-  for (uint d = 0; d < directions.size(); d++) {
-    int row_neighbor = row + directions[d].row;
-    int col_neighbor = col + directions[d].col;
-    if (DEM_filled_no_flat->check_within(row_neighbor, col_neighbor)) {
-      double drop =
-          DEM_filled_no_flat->get(row_neighbor, col_neighbor) - DEM_filled_no_flat->get(row, col);
-      if (drop >= 0)
-        continue;
-      double dist =
-          find_distance(DEM_filled_no_flat->get_coordinate(row, col),
-                        DEM_filled_no_flat->get_coordinate(row_neighbor, col_neighbor), coslat);
-      if (drop * min_dist < min_drop * dist) {
-        min_drop = drop;
-        min_dist = dist;
-        result = d;
-      }
-    }
-  }
-  if (min_drop == 0)
-    search_config.logger.debug("Alert: Minimum drop of 0 at " + to_string(row) + " " +
-                               to_string(col));
-  return result;
+int find_lowest_neighbor(int row, int col, Model<double>* DEM_filled_no_flat, double coslat)
+{
+	int result = 0;
+	double min_drop = 0;
+	double min_dist = 100000;
+	for (uint d=0; d<directions.size(); d++) {
+		int row_neighbor = row+directions[d].row;
+		int col_neighbor = col+directions[d].col;
+		if (DEM_filled_no_flat->check_within(row_neighbor, col_neighbor)) {
+			double drop = DEM_filled_no_flat->get(row_neighbor,col_neighbor)-DEM_filled_no_flat->get(row,col);
+			if(drop>=0)
+				continue;
+			double dist = find_distance(DEM_filled_no_flat->get_coordinate(row, col), DEM_filled_no_flat->get_coordinate(row_neighbor, col_neighbor), coslat);
+			if (drop*min_dist < min_drop*dist) {
+				min_drop = drop;
+				min_dist = dist;
+				result = d;
+			}
+		}
+	}
+	if(min_drop==0)
+		search_config.logger.debug("Alert: Minimum drop of 0 at " + to_string(row) + " " + to_string(col));
+	return result;
 }
 
 // Find the direction of flow for each square in a filled DEM
-static Model<char> *flow_direction(Model<double> *DEM_filled_no_flat) {
-  Model<char> *flow_dirn =
-      new Model<char>(DEM_filled_no_flat->nrows(), DEM_filled_no_flat->ncols(), MODEL_UNSET);
-  flow_dirn->set_geodata(DEM_filled_no_flat->get_geodata());
-  double coslat = COS(RADIANS(flow_dirn->get_origin().lat -
-                              (0.5 + border / (double)(flow_dirn->nrows() - 2 * border))));
-  for (int row = 1; row < flow_dirn->nrows() - 1; row++)
-    for (int col = 1; col < flow_dirn->ncols() - 1; col++)
-      flow_dirn->set(row, col, find_lowest_neighbor(row, col, DEM_filled_no_flat, coslat));
+static Model<char>* flow_direction(Model<double>* DEM_filled_no_flat)
+{
+	Model<char>* flow_dirn = new Model<char>(DEM_filled_no_flat->nrows(), DEM_filled_no_flat->ncols(), MODEL_UNSET);
+	flow_dirn->set_geodata(DEM_filled_no_flat->get_geodata());
+	double coslat = COS(RADIANS(flow_dirn->get_origin().lat-(0.5+border/(double)(flow_dirn->nrows()-2*border))));
+	for (int row=1; row<flow_dirn->nrows()-1;row++)
+		for (int col=1; col<flow_dirn->ncols()-1; col++)
+			flow_dirn->set(row,col,find_lowest_neighbor(row, col, DEM_filled_no_flat, coslat));
 
-  for (int row = 0; row < flow_dirn->nrows() - 1; row++) {
-    flow_dirn->set(row, 0, 4);
-    flow_dirn->set(flow_dirn->nrows() - row - 1, flow_dirn->ncols() - 1, 0);
-  }
-  for (int col = 0; col < flow_dirn->ncols() - 1; col++) {
-    flow_dirn->set(0, col + 1, 6);
-    flow_dirn->set(flow_dirn->nrows() - 1, flow_dirn->ncols() - col - 2, 2);
-  }
-  flow_dirn->set(0, 0, 5);
-  flow_dirn->set(0, flow_dirn->ncols() - 1, 7);
-  flow_dirn->set(flow_dirn->nrows() - 1, flow_dirn->ncols() - 1, 1);
-  flow_dirn->set(flow_dirn->nrows() - 1, 0, 3);
-  return flow_dirn;
+	for (int row=0; row<flow_dirn->nrows()-1;row++) {
+		flow_dirn->set(row,0,4);
+		flow_dirn->set(flow_dirn->nrows()-row-1,flow_dirn->ncols()-1,0);
+	}
+	for (int col=0; col<flow_dirn->ncols()-1; col++) {
+ 		flow_dirn->set(0,col+1,6);
+		flow_dirn->set(flow_dirn->nrows()-1,flow_dirn->ncols()-col-2,2);
+	}
+	flow_dirn->set(0,0,5);
+	flow_dirn->set(0,flow_dirn->ncols()-1,7);
+	flow_dirn->set(flow_dirn->nrows()-1,flow_dirn->ncols()-1,1);
+	flow_dirn->set(flow_dirn->nrows()-1,0,3);
+	return flow_dirn;
 }
 
 // Calculate flow accumulation given a DEM and the flow directions
-static Model<int> *find_flow_accumulation(Model<char> *flow_directions,
-                                          Model<double> *DEM_filled_no_flat) {
-  Model<int> *flow_accumulation =
-      new Model<int>(DEM_filled_no_flat->nrows(), DEM_filled_no_flat->ncols(), MODEL_SET_ZERO);
-  flow_accumulation->set_geodata(DEM_filled_no_flat->get_geodata());
+static Model<int>* find_flow_accumulation(Model<char>* flow_directions, Model<double>* DEM_filled_no_flat)
+{
+	Model<int>* flow_accumulation = new Model<int>(DEM_filled_no_flat->nrows(), DEM_filled_no_flat->ncols(), MODEL_SET_ZERO);
+	flow_accumulation->set_geodata(DEM_filled_no_flat->get_geodata());
 
-  ArrayCoordinateWithHeight *to_check =
-      new ArrayCoordinateWithHeight[flow_accumulation->nrows() * flow_accumulation->ncols()];
+	ArrayCoordinateWithHeight* to_check = new ArrayCoordinateWithHeight[flow_accumulation->nrows()*flow_accumulation->ncols()];
 
-  for (int row = 0; row < flow_accumulation->nrows(); row++)
-    for (int col = 0; col < flow_accumulation->ncols(); col++) {
-      to_check[DEM_filled_no_flat->ncols() * row + col].col = col;
-      to_check[DEM_filled_no_flat->ncols() * row + col].row = row;
-      to_check[DEM_filled_no_flat->ncols() * row + col].h = DEM_filled_no_flat->get(row, col);
-    }
+	for (int row=0; row<flow_accumulation->nrows(); row++)
+		for (int col=0; col<flow_accumulation->ncols();col++) {
+			to_check[DEM_filled_no_flat->ncols()*row+col].col = col;
+			to_check[DEM_filled_no_flat->ncols()*row+col].row = row;
+			to_check[DEM_filled_no_flat->ncols()*row+col].h = DEM_filled_no_flat->get(row,col);
+		}
 
-  // start at the highest point and distribute flow downstream
-  sort(to_check, to_check + flow_accumulation->nrows() * flow_accumulation->ncols());
+	// start at the highest point and distribute flow downstream
+	sort(to_check, to_check+flow_accumulation->nrows()*flow_accumulation->ncols());
 
-  for (int i = 0; i < DEM_filled_no_flat->nrows() * DEM_filled_no_flat->ncols(); i++) {
-    ArrayCoordinateWithHeight p = to_check[i];
-    ArrayCoordinateWithHeight downstream = ArrayCoordinateWithHeight_init(
-        p.row + directions[flow_directions->get(p.row, p.col)].row,
-        p.col + directions[flow_directions->get(p.row, p.col)].col, 0);
-    if (flow_accumulation->check_within(downstream.row, downstream.col)) {
-      // printf("%4d %4d %3d %3d %2d %2d %1d\n",
-      // downstream.row,downstream.col,flow_accumulation->get(p.row,p.col),
-      // flow_accumulation->get(p.row,p.col)+1, directions[flow_directions->get(p.row,p.col)].row,
-      // directions[flow_directions->get(p.row,p.col)].col, flow_directions->get(p.row,p.col));
-      flow_accumulation->set(downstream.row, downstream.col,
-                             flow_accumulation->get(p.row, p.col) +
-                                 flow_accumulation->get(downstream.row, downstream.col) + 1);
-    }
-  }
-  delete[] to_check;
-  return flow_accumulation;
+	for (int i=0; i<DEM_filled_no_flat->nrows()*DEM_filled_no_flat->ncols();i++) {
+		ArrayCoordinateWithHeight p = to_check[i];
+		ArrayCoordinateWithHeight downstream = ArrayCoordinateWithHeight_init(p.row+directions[flow_directions->get(p.row,p.col)].row, p.col+directions[flow_directions->get(p.row,p.col)].col,0);
+		if (flow_accumulation->check_within( downstream.row, downstream.col) ){
+			//printf("%4d %4d %3d %3d %2d %2d %1d\n", downstream.row,downstream.col,flow_accumulation->get(p.row,p.col), flow_accumulation->get(p.row,p.col)+1, directions[flow_directions->get(p.row,p.col)].row, directions[flow_directions->get(p.row,p.col)].col, flow_directions->get(p.row,p.col));
+			flow_accumulation->set(downstream.row,downstream.col, flow_accumulation->get(p.row,p.col)+flow_accumulation->get(downstream.row,downstream.col)+1);
+		}
+	}
+	delete[] to_check;
+	return flow_accumulation;
 }
 
 // Find streams given the flow accumulation
-static Model<bool> *find_streams(Model<int> *flow_accumulation) {
-  Model<bool> *streams =
-      new Model<bool>(flow_accumulation->nrows(), flow_accumulation->ncols(), MODEL_SET_ZERO);
-  streams->set_geodata(flow_accumulation->get_geodata());
-  int stream_site_count = 0;
-  for (int row = 0; row < flow_accumulation->nrows(); row++)
-    for (int col = 0; col < flow_accumulation->ncols(); col++)
-      if (flow_accumulation->get(row, col) >= stream_threshold) {
-        streams->set(row, col, true);
-        stream_site_count++;
-      }
-  search_config.logger.debug("Number of stream sites = " + to_string(stream_site_count));
-  return streams;
+static Model<bool>* find_streams(Model<int>* flow_accumulation)
+{
+	Model<bool>* streams = new Model<bool>(flow_accumulation->nrows(), flow_accumulation->ncols(), MODEL_SET_ZERO);
+	streams->set_geodata(flow_accumulation->get_geodata());
+	int stream_site_count=0;
+	for (int row=0; row<flow_accumulation->nrows(); row++)
+		for (int col=0; col<flow_accumulation->ncols();col++)
+			if(flow_accumulation->get(row,col) >= stream_threshold){
+				streams->set(row,col,true);
+				stream_site_count++;
+			}
+	search_config.logger.debug("Number of stream sites = "+  to_string(stream_site_count));
+	return streams;
 }
 
+
 // Find dam sites to check given the streams, flow directions and DEM
-static Model<bool> *find_pour_points(Model<bool> *streams, Model<char> *flow_directions,
-                                     Model<short> *DEM_filled) {
-  Model<bool> *pour_points = new Model<bool>(streams->nrows(), streams->ncols(), MODEL_SET_ZERO);
-  pour_points->set_geodata(streams->get_geodata());
-  int pour_point_count = 0;
-  for (int row = border; row < border + pour_points->nrows() - 2 * border; row++)
-    for (int col = border; col < border + pour_points->ncols() - 2 * border; col++)
-      if (streams->get(row, col)) {
-        ArrayCoordinate downstream = ArrayCoordinate_init(
-            row + directions[flow_directions->get(row, col)].row,
-            col + directions[flow_directions->get(row, col)].col, GeographicCoordinate_init(0, 0));
-        if (flow_directions->check_within(downstream.row, downstream.col) &&
-            DEM_filled->get(row, col) - DEM_filled->get(row, col) % contour_height >
-                DEM_filled->get(downstream.row, downstream.col)) {
-          pour_points->set(row, col, true);
-          pour_point_count++;
-        }
-      }
-  search_config.logger.debug("Number of dam sites = " + to_string(pour_point_count));
-  return pour_points;
+static Model<bool>* find_pour_points(Model<bool>* streams, Model<char>* flow_directions, Model<short>* DEM_filled)
+{
+	Model<bool>* pour_points = new Model<bool>(streams->nrows(), streams->ncols(), MODEL_SET_ZERO);
+	pour_points->set_geodata(streams->get_geodata());
+	int pour_point_count=0;
+	for (int row = border; row < border+pour_points->nrows()-2*border; row++)
+		for (int col = border; col <  border+pour_points->ncols()-2*border; col++)
+			if (streams->get(row,col)) {
+				ArrayCoordinate downstream = ArrayCoordinate_init(row+directions[flow_directions->get(row,col)].row,col+directions[flow_directions->get(row,col)].col, GeographicCoordinate_init(0,0));
+				if ( flow_directions->check_within(downstream.row, downstream.col) &&
+					DEM_filled->get(row,col)-DEM_filled->get(row,col)%contour_height>DEM_filled->get(downstream.row,downstream.col)) {
+						pour_points->set(row,col,true);
+						pour_point_count++;
+					}
+			}
+	search_config.logger.debug("Number of dam sites = "+  to_string(pour_point_count));
+	return pour_points;
 }
 
 // Find details of possible reservoirs at pour_point
-static RoughGreenfieldReservoir
-model_greenfield_reservoir(ArrayCoordinate pour_point, Model<char> *flow_directions,
-                           Model<short> *DEM_filled, Model<bool> *filter,
-                           Model<int> *modelling_array, int iterator) {
+static RoughGreenfieldReservoir model_greenfield_reservoir(ArrayCoordinate pour_point, Model<char>* flow_directions, Model<short>* DEM_filled, Model<bool>* filter,
+				  Model<int>* modelling_array, int iterator)
+{
 
-  RoughGreenfieldReservoir reservoir =
-      RoughReservoir(pour_point, (int)(DEM_filled->get(pour_point.row, pour_point.col)));
+	RoughGreenfieldReservoir reservoir = RoughReservoir(pour_point, (int)(DEM_filled->get(pour_point.row,pour_point.col)));
 
-  double area_at_elevation[max_wall_height + 1] = {0};
-  double cumulative_area_at_elevation[max_wall_height + 1] = {0};
-  double volume_at_elevation[max_wall_height + 1] = {0};
-  double dam_length_at_elevation[max_wall_height + 1] = {0};
+	double area_at_elevation[max_wall_height+1] = {0};
+	double cumulative_area_at_elevation[max_wall_height+1] = {0};
+	double volume_at_elevation[max_wall_height+1] = {0};
+	double dam_length_at_elevation[max_wall_height+1] = {0};
 
-  queue<ArrayCoordinate> q;
-  q.push(pour_point);
-  while (!q.empty()) {
-    ArrayCoordinate p = q.front();
-    q.pop();
+	queue<ArrayCoordinate> q;
+	q.push(pour_point);
+	while (!q.empty()) {
+		ArrayCoordinate p = q.front();
+		q.pop();
 
-    int elevation = (int)(DEM_filled->get(p.row, p.col));
-    int elevation_above_pp = MAX(elevation - reservoir.elevation, 0);
+		int elevation = (int)(DEM_filled->get(p.row,p.col));
+		int elevation_above_pp = MAX(elevation - reservoir.elevation, 0);
 
-    update_reservoir_boundary(reservoir.shape_bound, p, elevation_above_pp);
+		update_reservoir_boundary(reservoir.shape_bound, p, elevation_above_pp);
 
-    if (filter->get(p.row, p.col))
-      reservoir.max_dam_height = MIN(reservoir.max_dam_height, elevation_above_pp);
+		if (filter->get(p.row,p.col))
+			reservoir.max_dam_height = MIN(reservoir.max_dam_height,elevation_above_pp);
 
-    area_at_elevation[elevation_above_pp + 1] += find_area(p);
-    modelling_array->set(p.row, p.col, iterator);
+		area_at_elevation[elevation_above_pp+1] += find_area(p);
+		modelling_array->set(p.row,p.col,iterator);
 
-    for (uint d = 0; d < directions.size(); d++) {
-      ArrayCoordinate neighbor = {p.row + directions[d].row, p.col + directions[d].col, p.origin};
-      if (flow_directions->check_within(neighbor.row, neighbor.col) &&
-          flow_directions->flows_to(neighbor, p) &&
-          ((int)(DEM_filled->get(neighbor.row, neighbor.col) -
-                 DEM_filled->get(pour_point.row, pour_point.col)) < max_wall_height)) {
-        q.push(neighbor);
-      }
-    }
-  }
+		for (uint d=0; d<directions.size(); d++) {
+			ArrayCoordinate neighbor = {p.row+directions[d].row, p.col+directions[d].col, p.origin};
+			if (flow_directions->check_within(neighbor.row, neighbor.col) &&
+			    flow_directions->flows_to(neighbor, p) &&
+			    ((int)(DEM_filled->get(neighbor.row,neighbor.col)-DEM_filled->get(pour_point.row,pour_point.col)) < max_wall_height) ) {
+				q.push(neighbor);
+			}
+		}
+	}
 
-  for (int ih = 1; ih < max_wall_height + 1; ih++) {
-    cumulative_area_at_elevation[ih] = cumulative_area_at_elevation[ih - 1] + area_at_elevation[ih];
-    volume_at_elevation[ih] = volume_at_elevation[ih - 1] +
-                              0.01 * cumulative_area_at_elevation[ih];  // area in ha, vol in GL
-  }
+	for (int ih=1; ih<max_wall_height+1;ih++) {
+		cumulative_area_at_elevation[ih] = cumulative_area_at_elevation[ih-1] + area_at_elevation[ih];
+		volume_at_elevation[ih] = volume_at_elevation[ih-1] + 0.01*cumulative_area_at_elevation[ih]; // area in ha, vol in GL
+	}
 
-  q.push(pour_point);
-  while (!q.empty()) {
-    ArrayCoordinate p = q.front();
-    q.pop();
-    int elevation = (int)(DEM_filled->get(p.row, p.col));
-    int elevation_above_pp = MAX(elevation - reservoir.elevation, 0);
-    for (uint d = 0; d < directions.size(); d++) {
-      ArrayCoordinate neighbor = {p.row + directions[d].row, p.col + directions[d].col, p.origin};
-      if (flow_directions->check_within(neighbor.row, neighbor.col)) {
-        if (flow_directions->flows_to(neighbor, p) &&
-            ((int)(DEM_filled->get(neighbor.row, neighbor.col) -
-                   DEM_filled->get(pour_point.row, pour_point.col)) < max_wall_height)) {
-          q.push(neighbor);
-        }
-        if ((directions[d].row * directions[d].col == 0)  // coordinate orthogonal directions
-            && (modelling_array->get(neighbor.row, neighbor.col) < iterator)) {
-          dam_length_at_elevation[MIN(
-              MAX(elevation_above_pp,
-                  (int)(DEM_filled->get(neighbor.row, neighbor.col) - reservoir.elevation)),
-              max_wall_height)] +=
-              find_orthogonal_nn_distance(p, neighbor);  // WE HAVE PROBLEM IF VALUE IS NEGATIVE???
-        }
-      }
-    }
-  }
+	q.push(pour_point);
+	while (!q.empty()) {
+		ArrayCoordinate p = q.front();
+		q.pop();
+		int elevation = (int)(DEM_filled->get(p.row,p.col));
+		int elevation_above_pp = MAX(elevation - reservoir.elevation,0);
+		for (uint d=0; d<directions.size(); d++) {
+			ArrayCoordinate neighbor = {p.row+directions[d].row, p.col+directions[d].col, p.origin};
+			if (flow_directions->check_within(neighbor.row, neighbor.col)){
+				if(flow_directions->flows_to(neighbor, p) &&
+			    ((int)(DEM_filled->get(neighbor.row,neighbor.col)-DEM_filled->get(pour_point.row,pour_point.col)) < max_wall_height) ) {
+					q.push(neighbor);
+				}
+				if ((directions[d].row * directions[d].col == 0) // coordinate orthogonal directions
+				    && (modelling_array->get(neighbor.row,neighbor.col) < iterator ) ){
+					dam_length_at_elevation[MIN(MAX(elevation_above_pp, (int)(DEM_filled->get(neighbor.row,neighbor.col)-reservoir.elevation)),max_wall_height)] +=find_orthogonal_nn_distance(p, neighbor);	//WE HAVE PROBLEM IF VALUE IS NEGATIVE???
+				}
+			}
+		}
+	}
 
-  for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
-    int height = dam_wall_heights[ih];
-    reservoir.areas.push_back(cumulative_area_at_elevation[height]);
-    reservoir.dam_volumes.push_back(0);
-    for (int jh = 0; jh < height; jh++)
-      reservoir.dam_volumes[ih] += convert_to_dam_volume(height - jh, dam_length_at_elevation[jh]);
-    reservoir.volumes.push_back(volume_at_elevation[height] + 0.5 * reservoir.dam_volumes[ih]);
-    reservoir.water_rocks.push_back(reservoir.volumes[ih] / reservoir.dam_volumes[ih]);
-  }
+	for (uint ih =0 ; ih< dam_wall_heights.size(); ih++) {
+		int height = dam_wall_heights[ih];
+		reservoir.areas.push_back(cumulative_area_at_elevation[height]);
+		reservoir.dam_volumes.push_back(0);
+		for (int jh=0; jh < height; jh++)
+			reservoir.dam_volumes[ih] += convert_to_dam_volume(height-jh, dam_length_at_elevation[jh]);
+		reservoir.volumes.push_back(volume_at_elevation[height] + 0.5*reservoir.dam_volumes[ih]);
+		reservoir.water_rocks.push_back(reservoir.volumes[ih]/reservoir.dam_volumes[ih]);
+	}
 
-  return reservoir;
+	return reservoir;
 }
 
 RoughGreenfieldReservoir update_TN_volumes(vector<ArrayCoordinateWithHeight> dam_points, vector<ArrayCoordinateWithHeight> reservoir_points, RoughGreenfieldReservoir reservoir, uint dam_wall_index) {
@@ -446,13 +412,16 @@ RoughGreenfieldReservoir update_TN_volumes(vector<ArrayCoordinateWithHeight> dam
   vector<double> dam_elevation_sqdiffs;
   vector<double> reservoir_elevation_diffs; 
 
+  // Calculate the length of the dam wall for the specified dam wall height
   dam_lengths_at_height = turkey_dam_length(dam_points, dam_wall_index);
   
+  // Determine the dam elevation based upon the minimum elevation point along the dam wall
   for (uint point_index = 0; point_index < dam_points.size(); point_index++)
     dam_ground_elevations.push_back(dam_points[point_index].h); 
 
   dam_elevation = *min_element(dam_ground_elevations.begin(), dam_ground_elevations.end()) + dam_wall_heights[dam_wall_index];
   
+  // Define the vectors used for the calculation of dam valume and reservoir volume
   for (uint point_index = 0; point_index < dam_points.size(); point_index++)
     if (dam_points[point_index].h < dam_elevation)
       dam_elevation_sqdiffs.push_back((dam_elevation - dam_points[point_index].h + freeboard) * (cwidth + dambatter * (dam_elevation - dam_points[point_index].h + freeboard)));
@@ -462,9 +431,9 @@ RoughGreenfieldReservoir update_TN_volumes(vector<ArrayCoordinateWithHeight> dam
     reservoir_elevation_diffs.push_back(dam_elevation - reservoir_points[point_index].h);
   }
 
+  // Calculate the dam volume and reservoir volume for the specified dam wall height
   reservoir.dam_volumes[dam_wall_index] = (dam_lengths_at_height*accumulate(dam_elevation_sqdiffs.begin(), dam_elevation_sqdiffs.end(), 0.0) / dam_elevation_sqdiffs.size()) / 1000000;
   original_volume = (10000*reservoir.areas[dam_wall_index]*accumulate(reservoir_elevation_diffs.begin(), reservoir_elevation_diffs.end(), 0.0) / reservoir_elevation_diffs.size() / 1000000);
-  //printf("OV: %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %d\n", original_volume, reservoir.volumes[dam_wall_index], reservoir.dam_volumes[dam_wall_index], dam_elevation, reservoir.areas[dam_wall_index], accumulate(dam_elevation_sqdiffs.begin(), dam_elevation_sqdiffs.end(), 0.0), accumulate(reservoir_elevation_diffs.begin(), reservoir_elevation_diffs.end(), 0.0), reservoir.water_rocks[dam_wall_index], dam_lengths_at_height/30.87, int(dam_points.size()));
   reservoir.volumes[dam_wall_index] = original_volume + reservoir.dam_volumes[dam_wall_index] / 2;  
   reservoir.water_rocks[dam_wall_index] = reservoir.volumes[dam_wall_index] / reservoir.dam_volumes[dam_wall_index];    
 
@@ -522,7 +491,7 @@ static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Mo
     reservoir = update_TN_volumes(dam_points[ih], reservoir_points[ih], reservoir, ih);        
   }  
     
-  // Expand the site in a way that increases the water-to-rock ratio
+  // Expand the site in a way that increases the water-to-rock ratio or expands it across flat land
   for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
   
     while (!q[ih].empty() && reservoir.volumes[ih] <= max_TN_volume && reservoir.volumes[ih] > -3.0) {
@@ -534,9 +503,7 @@ static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Mo
       test_dam_points[ih] = dam_points[ih];
       test_reservoir_points[ih] = reservoir_points[ih];
       test_reservoir = reservoir;
-      test_q[ih] = q[ih];
-
-    
+      test_q[ih] = q[ih];    
       out_of_bounds = false;
       test_reservoir_points[ih].push_back(p);
       test_reservoir.areas[ih] += find_area(p_no_height);
@@ -562,6 +529,7 @@ static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Mo
         }
       }
 
+      // If any of the neighbor points exist in an ineligible region, do not expand reservoir to point p
       if (out_of_bounds)
         continue;
 
@@ -585,18 +553,21 @@ static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Mo
   return reservoir;
 }
 
-static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_points,
-                            Model<char> *flow_directions, Model<short> *DEM_filled,
-                            Model<int> *flow_accumulation, Model<bool> *filter) {
+static int
+model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_points,
+                 Model<char> *flow_directions, Model<short> *DEM_filled,
+                 Model<int> *flow_accumulation, Model<bool> *filter) {
   FILE *csv_file;
   if (search_config.search_type == SearchType::OCEAN)
-    csv_file = fopen(convert_string(file_storage_location + "output/reservoirs/ocean_" +
-                                    search_config.filename() + "_reservoirs.csv"),
+    csv_file = fopen(convert_string(file_storage_location +
+                                    "output/reservoirs/ocean_" +
+                                    str(square_coordinate) + "_reservoirs.csv"),
                      "w");
   else
-    csv_file = fopen(convert_string(file_storage_location + "output/reservoirs/" +
-                                    search_config.filename() + "_reservoirs.csv"),
-                     "w");
+    csv_file =
+        fopen(convert_string(file_storage_location + "output/reservoirs/" +
+                             str(square_coordinate) + "_reservoirs.csv"),
+              "w");
   if (!csv_file) {
     cout << "Failed to open reservoir CSV file" << endl;
     exit(1);
@@ -606,13 +577,15 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_poin
   FILE *csv_data_file;
   if (search_config.search_type == SearchType::OCEAN)
     csv_data_file =
-        fopen(convert_string(file_storage_location + "processing_files/reservoirs/ocean_" +
-                             search_config.filename() + "_reservoirs_data.csv"),
+        fopen(convert_string(file_storage_location +
+                             "processing_files/reservoirs/ocean_" +
+                             str(square_coordinate) + "_reservoirs_data.csv"),
               "w");
   else
-    csv_data_file = fopen(convert_string(file_storage_location + "processing_files/reservoirs/" +
-                                         search_config.filename() + "_reservoirs_data.csv"),
-                          "w");
+    csv_data_file = fopen(
+        convert_string(file_storage_location + "processing_files/reservoirs/" +
+                       str(square_coordinate) + "_reservoirs_data.csv"),
+        "w");
   if (!csv_file) {
     fprintf(stderr, "failed to open reservoir CSV data file\n");
     exit(1);
@@ -621,11 +594,11 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_poin
 
   int i = 0;
   int count = 0;
-  Model<int> *model = new Model<int>(pour_points->nrows(), pour_points->ncols(), MODEL_SET_ZERO);
+  Model<int> *model = new Model<int>(pour_points->nrows(), pour_points->ncols(),
+                                     MODEL_SET_ZERO);
 
   if (search_config.search_type == SearchType::OCEAN) {
-    unique_ptr<ArrayCoordinate> pp(
-        new ArrayCoordinate{-1, -1, get_origin(square_coordinate, border)});
+    unique_ptr<ArrayCoordinate> pp(new ArrayCoordinate{-1, -1, get_origin(square_coordinate, border)});
     for (int row = border + 1; row < border + DEM_filled->nrows() - 2 * border - 1; row++)
       for (int col = border + 1; col < border + DEM_filled->ncols() - 2 * border - 1; col++) {
         if (filter->get(row, col))
@@ -637,7 +610,7 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_poin
           pp->col = col;
         }
       }
-    if (pp->row > 0) {
+    if (pp->row>0) {
       RoughBfieldReservoir reservoir = RoughReservoir(*pp, 0);
       reservoir.identifier = str(square_coordinate) + "_OCEAN";
       reservoir.ocean = true;
@@ -677,8 +650,6 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_poin
         reservoir.ocean = false;
         reservoir.turkey = true;
 
-        printf("%d %d\n", row, col);
-
         if (max(reservoir.volumes) >= min_reservoir_volume &&
             max(reservoir.water_rocks) > min_reservoir_water_rock &&
             reservoir.max_dam_height >= min_max_dam_height) {
@@ -702,7 +673,6 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_poin
         RoughGreenfieldReservoir reservoir =
             model_greenfield_reservoir(pour_point, flow_directions, DEM_filled, filter, model, i);
         reservoir.ocean = false;
-
         if (max(reservoir.volumes) >= min_reservoir_volume &&
             max(reservoir.water_rocks) > min_reservoir_water_rock &&
             reservoir.max_dam_height >= min_max_dam_height) {
@@ -716,11 +686,10 @@ static int model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_poin
         }
       }
   }
-
   fclose(csv_file);
   fclose(csv_data_file);
   return count;
-}
+  }
 
 Model<bool> *turkey_nest_pour_points(Model<short int> *DEM, GridSquare square_coordinate) {
   if (search_config.logger.output_debug())
@@ -743,9 +712,8 @@ Model<bool> *turkey_nest_pour_points(Model<short int> *DEM, GridSquare square_co
                               (0.5 + border / (double)(DEM->nrows() - 2 * border))));
   double min_centroid_point_distance = 1.0e20;
 
-  // Algorithm finds a connected area of relatively flat cells (i.e. each cell has a slope that is smaller than the user defined tolerance)
-  // If that connected area is greater than the user-defined minimum reservoir area, the cells are marked "true" in the TN_scanning_region model
-  // TN_scanning_region is used in place of the *streams input for the find_pour_points function
+  // Find a connected area of relatively flat cells (i.e. each cell has a slope that is smaller than the user defined tolerance)
+  // Then, determine the point within the flat region that is closest to the centroid. Define it to be the turkey nest pour point
   for (int row = 0; row < DEM->nrows(); row++){
     for (int col = 0; col < DEM->ncols(); col++) {
       if (DEM->get_slope(row, col) <= TN_elevation_tolerance && !seen->get(row, col)) {  
@@ -930,6 +898,7 @@ int main(int nargs, char **argv) {
     } else if (search_config.search_type == SearchType::TURKEY) {
 
       // Screen for turkey nest pour points in grid square
+      // The turkey nest "pour point" is the point from which the turkey nest model is started when developing the reservoir model
       pour_points = turkey_nest_pour_points(DEM_filled, search_config.grid_square);
 
       if (search_config.logger.output_debug()) {
