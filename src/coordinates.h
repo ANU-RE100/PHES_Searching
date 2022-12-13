@@ -2,6 +2,7 @@
 #define COORDINATES_H
 
 #include <string>
+#include <bits/stdc++.h>
 
 using namespace std;
 
@@ -17,6 +18,7 @@ struct ArrayCoordinateWithHeight {
   short row, col;
   double h;
   bool operator<(const ArrayCoordinateWithHeight &o) const { return h > o.h; }
+  bool operator==(const ArrayCoordinateWithHeight &o) const { return (row == o.row) && (col == o.col); }
 };
 
 GeographicCoordinate GeographicCoordinate_init(double latitude,
@@ -50,5 +52,6 @@ ArrayCoordinate convert_coordinates(GeographicCoordinate c,
                                     GeographicCoordinate origin, double lat_res,
                                     double lon_res);
 double find_orthogonal_nn_distance(ArrayCoordinate c1, ArrayCoordinate c2);
+double turkey_dam_length(vector<ArrayCoordinateWithHeight> dam_points_at_height, uint dam_wall_index);
 
 #endif

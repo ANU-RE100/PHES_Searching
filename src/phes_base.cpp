@@ -18,6 +18,15 @@ double max(vector<double> a)
 	return amax;
 }
 
+double min(vector<double> a)
+{
+	double amin = 1.0e20;
+	for (uint ih=0; ih<a.size(); ih++)
+		amin = MIN(amin, a[ih]);
+	
+	return amin;
+}
+
 double convert_to_dam_volume(int height, double length)
 {
 	return (((height+freeboard)*(cwidth+dambatter*(height+freeboard)))/1000000)*length;

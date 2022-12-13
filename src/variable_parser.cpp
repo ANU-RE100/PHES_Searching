@@ -32,7 +32,7 @@ vector<double> dam_wall_heights; 	//  Wall heights to test and export
 // Turkey nest screening
 double min_reservoir_area;    	// Minimum reservoir area (m^3)
 int TN_elevation_tolerance;		// Allowable tolerance of the DEM elevation along the rough turkey nest dam wall (m)
-int TN_scan_radius;				// Radius around reservoir that is scanned for turkey nest sites (cells) 
+int max_TN_volume;				// Maximum volume of the turkey nest reservoir model (GL)
 
 // Pairing
 int min_head;						// Minimum head (m) to be considered a potential pair
@@ -238,8 +238,8 @@ void parse_variables(char* filename){
 				min_reservoir_area = stod(value);
 			if (variable == "TN_elevation_tolerance")
 				TN_elevation_tolerance = stoi(value);
-			if(variable=="TN_scan_radius")
-				TN_scan_radius = stoi(value);
+			if(variable=="max_TN_volume")
+				max_TN_volume = stoi(value);
 		}
 	}
 }
