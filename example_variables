@@ -22,7 +22,7 @@ min_max_dam_height = 5.0;		// Minimum maximum dam height (m) (Before overlapping
 
 // Turkey nest screening
 min_reservoir_area = 5;                      // Minimum reservoir area (Ha)
-TN_elevation_tolerance = 2;		         // Allowable tolerance of the DEM slope within the turkey nest screening area (degrees)
+TN_elevation_tolerance = 1;		         // Allowable tolerance of the DEM slope within the turkey nest screening area (degrees)
 max_TN_volume = 200;                          // Maximum volume of the turkey nest reservoir model (GL)
 
 // filter = use_world_urban;						// Use world urban data from tiffs stored in fileformat input/WORLD_URBAN/55H_hbase_human_built_up_and_settlement_extent_geographic_30m

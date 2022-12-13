@@ -2,6 +2,7 @@
 #define COORDINATES_H
 
 #include <string>
+#include <bits/stdc++.h>
 
 using namespace std;
 
@@ -51,5 +52,6 @@ ArrayCoordinate convert_coordinates(GeographicCoordinate c,
                                     GeographicCoordinate origin, double lat_res,
                                     double lon_res);
 double find_orthogonal_nn_distance(ArrayCoordinate c1, ArrayCoordinate c2);
+double turkey_dam_length(vector<ArrayCoordinateWithHeight> dam_points_at_height, uint dam_wall_index);
 
 #endif

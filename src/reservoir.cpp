@@ -32,6 +32,28 @@ void update_reservoir_boundary(
   }
 }
 
+void update_reservoir_boundary(
+    vector<array<ArrayCoordinate, directions.size()> > &dam_shape_bounds,
+    vector<vector<ArrayCoordinateWithHeight> > dam_points) {
+  
+  ArrayCoordinate bound_point;
+  
+  for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
+    for (uint i = 0; i < directions.size(); i++) {
+      for (uint point_index = 0; point_index < dam_points[ih].size(); point_index++) {
+        bound_point = ArrayCoordinate_init(dam_points[ih][point_index].row, dam_points[ih][point_index].col, get_origin(search_config.grid_square,border));
+
+        if ((directions[i].row * bound_point.row + directions[i].col * bound_point.col) >
+          (directions[i].row * dam_shape_bounds[ih][i].row +
+          directions[i].col * dam_shape_bounds[ih][i].col)) {
+          dam_shape_bounds[ih][i].row = bound_point.row;
+          dam_shape_bounds[ih][i].col = bound_point.col;
+        }
+      }    
+    }
+  }
+}
+
 ExistingReservoir ExistingReservoir_init(string identifier, double latitude,
                                          double longitude, int elevation,
                                          double volume) {
