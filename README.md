@@ -7,7 +7,7 @@ Building this code depends on shapelib, gdal and boost and uses a CMake build sy
 On Ubuntu, these dependencies can be installed using:
 
 ```bash
-sudo apt-get install -y libgdal-dev libshp-dev libboost-all-dev gdal-bin cmake
+sudo apt-get install -y libgdal-dev libshp-dev libboost-all-dev gdal-bin cmake g++
 ```
 
 Then, compile using CMake. For example
