@@ -14,8 +14,9 @@ bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* c
     coordinates->reservoir = polygon_string;
 
     GeographicCoordinate origin = get_origin(r.latitude, r.longitude, border);
+    reservoir->shape_bound.clear();
     for(GeographicCoordinate p : r.polygon)
-        update_reservoir_boundary(reservoir->shape_bound, convert_coordinates(p, origin));
+      reservoir->shape_bound.push_back(convert_coordinates(p, origin));
 
     //KML
     for(uint i = 0; i< countries.size();i++){
@@ -60,14 +61,12 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
   ArrayCoordinate upper_closest_point = pair->upper.pour_point;
   ArrayCoordinate lower_closest_point = pair->lower.pour_point;
   double mindist = find_distance(upper_closest_point, lower_closest_point);
-  for (uint iupper = 0; iupper < directions.size(); iupper++)
-    for (uint ilower = 0; ilower < directions.size(); ilower++)
-      if (find_distance(pair->upper.shape_bound[iupper],
-                        pair->lower.shape_bound[ilower]) < mindist) {
-        upper_closest_point = pair->upper.shape_bound[iupper];
-        lower_closest_point = pair->lower.shape_bound[ilower];
-        mindist = find_distance(pair->upper.shape_bound[iupper],
-                                pair->lower.shape_bound[ilower]);
+  for (ArrayCoordinate u_bound : pair->upper.shape_bound)
+    for (ArrayCoordinate l_bound : pair->lower.shape_bound)
+      if (find_distance(u_bound, l_bound) < mindist) {
+        upper_closest_point = u_bound;
+        lower_closest_point = l_bound;
+        mindist = find_distance(u_bound, l_bound);
       }
 
   pair->distance = mindist;
@@ -124,10 +123,10 @@ int main(int nargs, char **argv)
 		total_pairs += pairs[i].size();
 
 	if (total_pairs == 0) {
-        for(uint i = 0; i<tests.size(); i++){ 
-            write_summary_csv(total_csv_file_classes, str(search_config.grid_square), str(tests[i]), 
+        for(uint i = 0; i<tests.size(); i++){
+            write_summary_csv(total_csv_file_classes, str(search_config.grid_square), str(tests[i]),
                                 0, 0, 0);
-            write_summary_csv(total_csv_file_FOM, str(search_config.grid_square), str(tests[i]), 
+            write_summary_csv(total_csv_file_FOM, str(search_config.grid_square), str(tests[i]),
                                 0, 0, 0);
         }
         write_summary_csv(total_csv_file_classes, str(search_config.grid_square), "TOTAL", 0, -1, 0);
@@ -155,9 +154,9 @@ int main(int nargs, char **argv)
 
     int total_count = 0;
     int total_capacity = 0;
-    for(uint i = 0; i<tests.size(); i++){ 
+    for(uint i = 0; i<tests.size(); i++){
       int count = 0;
-      int non_overlapping_count = 0;    
+      int non_overlapping_count = 0;
       if (pairs[i].size() != 0) {
         FILE *csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+search_config.filename()+"/"+search_config.filename()+"_"+str(tests[i])+".csv"), "w");
         write_pair_csv_header(csv_file_classes, false);
@@ -201,9 +200,9 @@ int main(int nargs, char **argv)
         fclose(csv_file_classes);
         fclose(csv_file_FOM);
       }
-      write_summary_csv(total_csv_file_classes, str(search_config.grid_square), str(tests[i]), 
+      write_summary_csv(total_csv_file_classes, str(search_config.grid_square), str(tests[i]),
                         non_overlapping_count, count, count*tests[i].energy_capacity);
-      write_summary_csv(total_csv_file_FOM, str(search_config.grid_square), str(tests[i]), 
+      write_summary_csv(total_csv_file_FOM, str(search_config.grid_square), str(tests[i]),
                         non_overlapping_count, count, count*tests[i].energy_capacity);
     }
     write_summary_csv(total_csv_file_classes, str(search_config.grid_square), "TOTAL", total_count, -1, total_capacity);

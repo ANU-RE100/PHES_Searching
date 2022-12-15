@@ -358,12 +358,18 @@ int main(int nargs, char **argv) {
   parse_variables(convert_string(file_storage_location + "variables"));
 
   vector<unique_ptr<RoughReservoir>> upper_reservoirs;
+  vector<unique_ptr<RoughReservoir>> lower_reservoirs;
   if (search_config.search_type.existing()) {
-    if(search_config.search_type != SearchType::BULK_EXISTING)
+    if(search_config.search_type != SearchType::BULK_EXISTING){
       search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
-    upper_reservoirs = read_rough_reservoir_data(
-        convert_string(file_storage_location + "processing_files/reservoirs/" +
-                       search_config.filename() + "_reservoirs_data.csv"));
+      upper_reservoirs = read_rough_reservoir_data(
+          convert_string(file_storage_location + "processing_files/reservoirs/" +
+                         search_config.filename() + "_reservoirs_data.csv"));
+    }else{
+      upper_reservoirs = read_rough_reservoir_data(
+          convert_string(file_storage_location + "processing_files/reservoirs/" +
+                         str(search_config.grid_square) + "_reservoirs_data.csv"));
+    }
     if (search_config.search_type == SearchType::PIT)
       pit_details = get_pit_details(search_config.name);
   } else
@@ -371,8 +377,6 @@ int main(int nargs, char **argv) {
         convert_string(file_storage_location + "processing_files/reservoirs/" +
                        str(search_config.grid_square) + "_reservoirs_data.csv"));
 
-  search_config.logger.debug("Read in "+to_string(upper_reservoirs.size())+" uppers");
-  vector<unique_ptr<RoughReservoir>> lower_reservoirs;
 
   GridSquare neighbors[9] = {
       (GridSquare){search_config.grid_square.lat, search_config.grid_square.lon},
@@ -385,21 +389,27 @@ int main(int nargs, char **argv) {
       (GridSquare){search_config.grid_square.lat - 1, search_config.grid_square.lon - 1},
       (GridSquare){search_config.grid_square.lat, search_config.grid_square.lon - 1}};
 
+  set<string> lower_ids;
   for (int i = 0; i < 9; i++) {
     try {
       vector<unique_ptr<RoughReservoir>> temp = read_rough_reservoir_data(convert_string(
           file_storage_location + "processing_files/reservoirs/" +
           search_config.search_type.lowers_prefix() + str(neighbors[i]) + "_reservoirs_data.csv"));
-      for (uint j = 0; j < temp.size(); j++)
+      for (uint j = 0; j < temp.size(); j++) {
+        if (search_config.search_type == SearchType::BULK_EXISTING &&
+            lower_ids.contains(temp[j]->identifier))
+          continue;
+        lower_ids.insert(temp[j]->identifier);
         lower_reservoirs.push_back(std::move(temp[j]));
+      }
     } catch (int e) {
-      search_config.logger.debug("Could not import reservoirs from " +
-                                 file_storage_location +
+      search_config.logger.debug("Could not import reservoirs from " + file_storage_location +
                                  "processing_files/reservoirs/" +
-                                 search_config.search_type.lowers_prefix() +
-                                 str(neighbors[i]) + "_reservoirs_data.csv");
+                                 search_config.search_type.lowers_prefix() + str(neighbors[i]) +
+                                 "_reservoirs_data.csv");
     }
   }
+  search_config.logger.debug("Read in "+to_string(upper_reservoirs.size())+" uppers");
   search_config.logger.debug("Read in " + to_string(lower_reservoirs.size()) + " lowers");
 
   mkdir(convert_string(file_storage_location + "output/pairs"), 0777);

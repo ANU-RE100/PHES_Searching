@@ -306,9 +306,9 @@ vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square) {
         search_config.logger.debug("Could not find reservoir with id " + names[i]);
       }
       ExistingReservoir reservoir = reservoirs[idx];
-      GeographicCoordinate gc = GeographicCoordinate_init(reservoir.latitude, reservoir.longitude);
-      if(!check_within(gc, grid_square))
-        continue;
+      //GeographicCoordinate gc = GeographicCoordinate_init(reservoir.latitude, reservoir.longitude);
+      //if(!check_within(gc, grid_square))
+        //continue;
       vector<GeographicCoordinate> temp_poly;
       for (int j = 0; j < shape->nVertices; j++) {
         // if(shape->panPartStart[iPart] == j )
@@ -317,7 +317,14 @@ vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square) {
             GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
         reservoir.polygon.push_back(temp_point);
       }
+      bool overlaps_grid_cell = false;
+      for(GeographicCoordinate gc : reservoir.polygon)
+        if(check_within(gc, grid_square)){
+          overlaps_grid_cell = true;
+          break;
+        }
       SHPDestroyObject(shape);
+      if(overlaps_grid_cell)
         to_return.push_back(reservoir);
     }
   } else {

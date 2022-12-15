@@ -20,7 +20,7 @@ void update_reservoir_boundary(
 }
 
 void update_reservoir_boundary(
-    array<ArrayCoordinate, directions.size()> &dam_shape_bounds,
+    vector<ArrayCoordinate> &dam_shape_bounds,
     ArrayCoordinate point) {
   for (uint i = 0; i < directions.size(); i++) {
     if ((directions[i].row * point.row + directions[i].col * point.col) >
@@ -66,8 +66,7 @@ Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation) {
   reservoir.latitude = geo_coordinate.lat;
   reservoir.longitude = geo_coordinate.lon;
   reservoir.pour_point = pour_point;
-  for (uint idir = 0; idir < directions.size(); idir++) {
-    reservoir.shape_bound[idir] = pour_point;
-  }
+  for (uint idir = 0; idir < directions.size(); idir++)
+    reservoir.shape_bound.push_back(pour_point);
   return reservoir;
 }

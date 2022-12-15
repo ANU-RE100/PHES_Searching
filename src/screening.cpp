@@ -4,7 +4,7 @@
 #include "reservoir.h"
 #include "search_config.hpp"
 
-bool debug_output = false;
+bool debug_output = true;
 
 void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_to_filter){
 	try{

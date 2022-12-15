@@ -82,28 +82,31 @@ struct ExistingPit {
   vector<AltitudeVolumePair> volumes;
 };
 
-struct Reservoir {
-  string identifier;
-  bool brownfield;
-  bool pit;
-  bool ocean;
-  double latitude;
-  double longitude;
-  int elevation;
-  ArrayCoordinate pour_point;
-  double volume;
-  double dam_volume;
-  double dam_length;
-  double area;
-  double water_rock;
-  double watershed_area;
-  double average_water_depth;
-  double dam_height;
-  double max_dam_height;
-  string country;
-  array<ArrayCoordinate, directions.size()> shape_bound;
-  bool operator<(const Reservoir &o) const { return elevation > o.elevation; }
+class Reservoir {
+  public:
+    string identifier;
+    bool brownfield;
+    bool pit;
+    bool ocean;
+    bool turkey = false;
+    double latitude;
+    double longitude;
+    int elevation;
+    ArrayCoordinate pour_point;
+    double volume;
+    double dam_volume;
+    double dam_length;
+    double area;
+    double water_rock;
+    double watershed_area;
+    double average_water_depth;
+    double dam_height;
+    double max_dam_height;
+    string country;
+    vector<ArrayCoordinate> shape_bound;
+    bool operator<(const Reservoir &o) const { return elevation > o.elevation; }
 };
+
 
 struct Pair {
   Reservoir upper;
@@ -127,7 +130,7 @@ struct Pair {
 
 void update_reservoir_boundary(vector<array<ArrayCoordinate, directions.size()>> &dam_shape_bounds,
                                ArrayCoordinate point, int elevation_above_pp);
-void update_reservoir_boundary(array<ArrayCoordinate, directions.size()> &dam_shape_bounds,
+void update_reservoir_boundary(vector<ArrayCoordinate> &dam_shape_bounds,
                                ArrayCoordinate point);
 Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation);
 ExistingReservoir ExistingReservoir_init(string identifier, double latitude, double longitude,

@@ -46,6 +46,8 @@ class SearchType {
       switch (value) {
       case OCEAN:
         return "ocean_";
+      case BULK_EXISTING:
+        return "existing_";
       default:
         return "";
       }
