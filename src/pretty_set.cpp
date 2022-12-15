@@ -15,6 +15,9 @@ bool check_pair(Pair& pair, Model<bool>* seen, BigModel& big_model){
 		seen->set(used_points[i].row,used_points[i].col,true);
 	}
 
+	if(pair.lower.turkey || pair.upper.turkey) //DEBUG
+		printf("success\n");
+
 	return true;
 }
 

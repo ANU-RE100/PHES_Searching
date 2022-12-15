@@ -264,6 +264,9 @@ vector<unique_ptr<RoughReservoir>> read_rough_reservoir_data(char *filename) {
       reservoir->ocean =
           stoi(line[6 + 3 * dam_wall_heights.size() +
                     (dam_wall_heights.size() * directions.size()) * 2 + 1]) > 0;
+      reservoir->turkey =
+          stoi(line[6 + 3 * dam_wall_heights.size() + 
+                    (dam_wall_heights.size() * directions.size()) * 2 + 2]) > 0;
     }
 
     if(!compressed_format || (!reservoir->ocean && !reservoir->brownfield)){

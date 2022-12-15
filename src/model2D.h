@@ -27,6 +27,7 @@ struct GeographicCoordinate {
 struct ArrayCoordinate {
   int row, col;
   GeographicCoordinate origin;
+  bool operator==(const ArrayCoordinate &o) const { return (row == o.row) && (col == o.col); }
 };
 
 #include "phes_base.h"

@@ -131,6 +131,7 @@ void update_reservoir_boundary(vector<array<ArrayCoordinate, directions.size()>>
 void update_reservoir_boundary(array<ArrayCoordinate, directions.size()> &dam_shape_bounds,
                                ArrayCoordinate point);
 void update_reservoir_boundary(vector<array<ArrayCoordinate, directions.size()> > &dam_shape_bounds, vector<vector<ArrayCoordinateWithHeight> > dam_points);
+void update_reservoir_boundary(array<ArrayCoordinate, directions.size()> &dam_shape_bounds, vector<ArrayCoordinateWithHeight> dam_points);
 Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation);
 ExistingReservoir ExistingReservoir_init(string identifier, double latitude, double longitude,
                                          int elevation, double volume);

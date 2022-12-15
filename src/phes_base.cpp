@@ -362,3 +362,77 @@ ExistingPit get_pit_details(string pitname){
 			pit = p;
 	return pit;
 }
+
+RoughGreenfieldReservoir update_TN_volumes(vector<ArrayCoordinateWithHeight> dam_points, vector<ArrayCoordinateWithHeight> reservoir_points, RoughGreenfieldReservoir reservoir, uint dam_wall_index) {
+  double dam_elevation = 0;
+  double original_volume = 0;
+  double dam_lengths_at_height = 0;
+  vector<double> dam_ground_elevations;
+  vector<double> reservoir_ground_elevations;
+  vector<double> dam_elevation_sqdiffs;
+  vector<double> reservoir_elevation_diffs; 
+
+  // Calculate the length of the dam wall for the specified dam wall height
+  dam_lengths_at_height = turkey_dam_length(dam_points, dam_wall_index);
+  
+  // Determine the dam elevation based upon the minimum elevation point along the dam wall
+  for (uint point_index = 0; point_index < dam_points.size(); point_index++)
+    dam_ground_elevations.push_back(dam_points[point_index].h); 
+
+  dam_elevation = *min_element(dam_ground_elevations.begin(), dam_ground_elevations.end()) + dam_wall_heights[dam_wall_index];
+  
+  // Define the vectors used for the calculation of dam valume and reservoir volume
+  for (uint point_index = 0; point_index < dam_points.size(); point_index++)
+    if (dam_points[point_index].h < dam_elevation)
+      dam_elevation_sqdiffs.push_back(max(0.0, (dam_elevation - dam_points[point_index].h + freeboard) * (cwidth + dambatter * (dam_elevation - dam_points[point_index].h + freeboard))));
+    
+  for (uint point_index = 0; point_index < reservoir_points.size(); point_index++) {
+    reservoir_ground_elevations.push_back(reservoir_points[point_index].h);
+    reservoir_elevation_diffs.push_back(max(0.0, dam_elevation - reservoir_points[point_index].h));
+  }
+
+  // Calculate the dam volume and reservoir volume for the specified dam wall height
+  reservoir.dam_volumes[dam_wall_index] = (dam_lengths_at_height*accumulate(dam_elevation_sqdiffs.begin(), dam_elevation_sqdiffs.end(), 0.0) / dam_elevation_sqdiffs.size()) / 1000000;
+  original_volume = (10000*reservoir.areas[dam_wall_index]*accumulate(reservoir_elevation_diffs.begin(), reservoir_elevation_diffs.end(), 0.0) / reservoir_elevation_diffs.size() / 1000000);
+  reservoir.volumes[dam_wall_index] = original_volume + reservoir.dam_volumes[dam_wall_index] / 2;  
+  reservoir.water_rocks[dam_wall_index] = reservoir.volumes[dam_wall_index] / reservoir.dam_volumes[dam_wall_index];    
+
+  return reservoir;
+}
+
+Reservoir* update_TN_volumes(vector<ArrayCoordinateWithHeight> dam_points, vector<ArrayCoordinateWithHeight> reservoir_points, Reservoir *reservoir) {
+  double dam_elevation = 0;
+  double original_volume = 0;
+  double dam_lengths_at_height = 0;
+  vector<double> dam_ground_elevations;
+  vector<double> reservoir_ground_elevations;
+  vector<double> dam_elevation_sqdiffs;
+  vector<double> reservoir_elevation_diffs; 
+
+  // Calculate the length of the dam wall for the specified dam wall height
+  dam_lengths_at_height = turkey_dam_length(dam_points, reservoir->dam_height);
+  
+  // Determine the dam elevation based upon the minimum elevation point along the dam wall
+  for (uint point_index = 0; point_index < dam_points.size(); point_index++)
+    dam_ground_elevations.push_back(dam_points[point_index].h); 
+
+  dam_elevation = *min_element(dam_ground_elevations.begin(), dam_ground_elevations.end()) + reservoir->dam_height;
+  
+  // Define the vectors used for the calculation of dam valume and reservoir volume
+  for (uint point_index = 0; point_index < dam_points.size(); point_index++)
+    if (dam_points[point_index].h < dam_elevation)
+      dam_elevation_sqdiffs.push_back(max(0.0, (dam_elevation - dam_points[point_index].h + freeboard) * (cwidth + dambatter * (dam_elevation - dam_points[point_index].h + freeboard))));
+    
+  for (uint point_index = 0; point_index < reservoir_points.size(); point_index++) {
+    reservoir_ground_elevations.push_back(reservoir_points[point_index].h);
+    reservoir_elevation_diffs.push_back(max(0.0, dam_elevation - reservoir_points[point_index].h));
+  }
+
+  // Calculate the dam volume and reservoir volume for the specified dam wall height
+  reservoir->dam_volume = (dam_lengths_at_height*accumulate(dam_elevation_sqdiffs.begin(), dam_elevation_sqdiffs.end(), 0.0) / dam_elevation_sqdiffs.size()) / 1000000;
+  original_volume = (10000*reservoir->area*accumulate(reservoir_elevation_diffs.begin(), reservoir_elevation_diffs.end(), 0.0) / reservoir_elevation_diffs.size() / 1000000);
+  reservoir->volume = original_volume + reservoir->dam_volume / 2;  
+  reservoir->water_rock = reservoir->volume / reservoir->dam_volume;    
+
+  return reservoir;
+}
