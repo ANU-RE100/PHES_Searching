@@ -192,11 +192,6 @@ bool file_exists (string name) {
     return infile.good();
 }
 
-string format_for_filename(string s){
-	replace(s.begin(), s.end(), ' ' , '_');
-	s.erase(remove(s.begin(), s.end(), '"'), s.end());
-	return s;
-}
 
 GeographicCoordinate get_origin(double latitude, double longitude, int border){
 	return GeographicCoordinate_init(FLOOR(latitude)+1+(border/3600.0),FLOOR(longitude)-(border/3600.0));
@@ -237,7 +232,6 @@ ExistingReservoir get_existing_reservoir(string name) {
   SHPHandle SHP = SHPOpen(convert_string(filename), "rb");
   if (SHP != NULL) {
     int nEntities;
-    vector<vector<GeographicCoordinate>> relevant_polygons;
     SHPGetInfo(SHP, &nEntities, NULL, NULL, NULL);
 
     SHPObject *shape;
@@ -245,8 +239,8 @@ ExistingReservoir get_existing_reservoir(string name) {
     if (shape == NULL) {
       fprintf(stderr, "Unable to read shape %d, terminating object reading.\n",
               i);
+      throw(1);
     }
-    vector<GeographicCoordinate> temp_poly;
     for (int j = 0; j < shape->nVertices; j++) {
       // if(shape->panPartStart[iPart] == j )
       //  break;

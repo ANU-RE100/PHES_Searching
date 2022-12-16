@@ -202,7 +202,6 @@ BigModel BigModel_init(GridSquare sc);
 void set_FOM(Pair *pair);
 string str(Test test);
 string energy_capacity_to_string(double energy_capacity);
-string format_for_filename(string s);
 GeographicCoordinate get_origin(double latitude, double longitude, int border);
 ExistingReservoir get_existing_reservoir(string name);
 vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square);
