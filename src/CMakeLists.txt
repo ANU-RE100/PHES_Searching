@@ -8,7 +8,8 @@ set(UTIL_SOURCES
     variable_parser.cpp
     constructor_helpers.cpp
     model2D.cpp
-    search_config.cpp)
+    search_config.cpp
+    fsolve.cpp)
 
 include_directories(${MPI_CXX_INCLUDE_PATH} ${JSON_INCLUDE_PATH})
 
