@@ -359,17 +359,11 @@ int main(int nargs, char **argv) {
 
   vector<unique_ptr<RoughReservoir>> upper_reservoirs;
   vector<unique_ptr<RoughReservoir>> lower_reservoirs;
-  if (search_config.search_type.existing()) {
-    if(search_config.search_type != SearchType::BULK_EXISTING){
+  if (search_config.search_type.single()) {
       search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
       upper_reservoirs = read_rough_reservoir_data(
           convert_string(file_storage_location + "processing_files/reservoirs/" +
                          search_config.filename() + "_reservoirs_data.csv"));
-    }else{
-      upper_reservoirs = read_rough_reservoir_data(
-          convert_string(file_storage_location + "processing_files/reservoirs/" +
-                         str(search_config.grid_square) + "_reservoirs_data.csv"));
-    }
     if (search_config.search_type == SearchType::PIT)
       pit_details = get_pit_details(search_config.name);
   } else
