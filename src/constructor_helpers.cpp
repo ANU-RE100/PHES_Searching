@@ -64,6 +64,7 @@ vector<vector<vector<GeographicCoordinate>>> read_countries(string filename, vec
     return relevant_polygons;
 }
 
+
 /*
  * Returns a tuple with the two cells adjacent to an edge defined by two points
  */
@@ -73,15 +74,15 @@ ArrayCoordinate *get_adjacent_cells(ArrayCoordinate point1, ArrayCoordinate poin
 
   ArrayCoordinate *points = (ArrayCoordinate *)malloc(2 * sizeof(ArrayCoordinate));
 
-  if (average_row - (int)average_row > 0.9 || average_row - (int)average_row < 0.1) {
-    points[0] = ArrayCoordinate_init((int)(average_row + EPS), (int)(average_col - 0.5 + EPS),
+  if (abs(average_row-round(average_row))<0.25){
+    points[0] = ArrayCoordinate_init(round(average_row), round(average_col - 0.5),
                                      point1.origin);
-    points[1] = ArrayCoordinate_init((int)(average_row - 1 + EPS), (int)(average_col - 0.5 + EPS),
+    points[1] = ArrayCoordinate_init(round(average_row - 1), round(average_col - 0.5),
                                      point1.origin);
   } else {
-    points[0] = ArrayCoordinate_init((int)(average_row - 0.5 + EPS), (int)(average_col + EPS),
+    points[0] = ArrayCoordinate_init(round(average_row - 0.5), round(average_col),
                                      point1.origin);
-    points[1] = ArrayCoordinate_init((int)(average_row - 0.5 + EPS), (int)(average_col - 1 + EPS),
+    points[1] = ArrayCoordinate_init(round(average_row - 0.5), round(average_col - 1),
                                      point1.origin);
   }
   return points;
@@ -124,18 +125,7 @@ bool is_dam_wall(ArrayCoordinate point1, ArrayCoordinate point2, Model<short>* D
     if (point2.row<0 || point2.col<0 || point2.row>DEM->nrows() || point2.col>DEM->ncols())
         return false;
 
-    double average_row = (point1.row+point2.row)/2.0;
-    double average_col = (point1.col+point2.col)/2.0;
-
     ArrayCoordinate* to_check = get_adjacent_cells(point1, point2);
-
-    if(average_row-(int)average_row>0.9 || average_row-(int)average_row<0.1){
-        to_check[0] = ArrayCoordinate_init((int)(average_row+EPS),(int)(average_col-0.5+EPS), point1.origin);
-    	to_check[1] = ArrayCoordinate_init((int)(average_row-1+EPS),(int)(average_col-0.5+EPS), point1.origin);
-    }else{
-    	to_check[0] = ArrayCoordinate_init((int)(average_row-0.5+EPS),(int)(average_col+EPS), point1.origin);
-    	to_check[1] = ArrayCoordinate_init((int)(average_row-0.5+EPS),(int)(average_col-1+EPS), point1.origin);
-    }
 
     if(!DEM->check_within(to_check[0].row, to_check[0].col) || !DEM->check_within(to_check[1].row, to_check[1].col))
         return false;
