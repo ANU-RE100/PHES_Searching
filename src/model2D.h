@@ -128,6 +128,19 @@ public:
 
     return to_return;
   }
+  bool check_enclosed(int row, int col) {
+    int neighbor_counter = 0;
+
+    for (uint d = 0; d < directions.size(); d++) {
+      if (get(row + directions[d].row, col + directions[d].col))
+        neighbor_counter++;
+    }
+
+    if (neighbor_counter >= 7)
+      return true;
+    else
+      return false;
+  }
 
   bool flows_to(ArrayCoordinate c1, ArrayCoordinate c2);
 private:

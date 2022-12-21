@@ -76,9 +76,11 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
   pair->water_rock =
       1 / ((1 / pair->upper.water_rock) + (1 / pair->lower.water_rock));
   set_FOM(pair);
-  if (pair->FOM > max_FOM || pair->category == 'Z') {
+  printf("TN 1\n");
+  /* if (pair->FOM > max_FOM || pair->category == 'Z') {
     return false;
-  }
+  } */
+  printf("TN 2 %.2f %d\n", pair->FOM, max_FOM);
 
   if (*non_overlap) {
     for (uint i = 0; i < used_points.size(); i++) {

@@ -173,6 +173,9 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
             for(int id = 0; id<3; id++){
                 int d = dir_to_do[last_dir][id];
                 ArrayCoordinate next = ArrayCoordinate_init(last.row+dir_def[d][0],last.col+dir_def[d][1], pour_point.origin);
+
+                //printf("Set: %d %d %d Last: %d %d %d, Next: %d %d %d\n", id, last_dir, is_edge(last, next, model, offset, threshold), last.row, last.col, model->get(last.row + offset.row, last.col + offset.col), next.row, next.col, model->get(next.row + offset.row, next.col + offset.col));
+
                 if(is_edge(last, next, model, offset, threshold)){
                     temp_to_return.push_back(next);
                     last = next;
@@ -264,7 +267,7 @@ double TN_nonlinear_system(double dam_height[],
   double volume_original = 0;
   double volume_earthwork = 0;
   double reservoir_diffs_sum = 0;
-  double dam_diffs2_sum = 0;
+  double dam_sqdiffs_sum = 0;
   double dam_length_at_height = 0;
 
   // Calculate the length of the dam wall for the specified dam wall height
@@ -283,10 +286,57 @@ double TN_nonlinear_system(double dam_height[],
   volume_original = 10000 * reservoir_area * reservoir_diffs_sum / reservoir_height_diffs.size();
 
   // Volume of dam i.e. required earthwork
-  dam_diffs2_sum = accumulate(dam_height_sqdiffs.begin(), dam_height_sqdiffs.end(), 0.0);
-  volume_earthwork = dam_length_at_height * dam_diffs2_sum / dam_height_sqdiffs.size();
+  dam_sqdiffs_sum = accumulate(dam_height_sqdiffs.begin(), dam_height_sqdiffs.end(), 0.0);
+  volume_earthwork = dam_length_at_height * dam_sqdiffs_sum / dam_height_sqdiffs.size();
 
   return volume_earthwork / 2 + volume_original - (req_volume * 1000000); // Convert GL to m3
+}
+
+double update_TN_dam_height(vector<ArrayCoordinateWithHeight> dam_points, vector<ArrayCoordinateWithHeight> reservoir_points, double req_volume, double area){
+  vector<double> dam_elevations;
+  double optimal_dam_height;
+
+  // Set up the inputs for the floating point solver to find the optimal dam height
+  for (uint point_index = 0; point_index < dam_points.size(); point_index++) {
+    dam_elevations.push_back(dam_points[point_index].h);
+  }
+
+  double* fx;
+  int info;
+  int lwa;
+  int n = 1;
+  double tol = 0.00001;
+  double* wa;
+  double optimal_elevation;
+  double* dam_height;
+
+  lwa = (n * (3 * n + 13)) / 2;
+  wa = new double[lwa];
+  dam_height = new double[n];
+  fx = new double[n];
+
+  vector<double>::iterator max_dam_elevation = max_element(dam_elevations.begin(), dam_elevations.end());
+  vector<double>::iterator min_dam_elevation = min_element(dam_elevations.begin(), dam_elevations.end());
+
+  dam_height[0] = *max_dam_elevation; // Initial guess at maximum dam ground elevation
+
+  // Declare a std::function wrapper for the lambda wrapper for the TN_nonlinear_system function
+  function<void(int, double *, double *)> nonlinear_function{
+    [&](int n1, double x1[], double fx1[]) {
+    fx1[0] = TN_nonlinear_system(x1, reservoir_points, dam_points, req_volume, area);
+    return;
+    }
+  };
+
+  nonlinear_function(n, dam_height, fx);
+
+  // Run the floating point solver to find the roots of the non-linear equations
+  info = fsolve(nonlinear_function, n, dam_height, fx, tol, wa, lwa);
+
+  optimal_elevation = dam_height[0];
+  optimal_dam_height = optimal_elevation - *min_dam_elevation;
+
+  return optimal_dam_height;
 }
 
 ////////////////DEBUG//////////////////////
@@ -314,20 +364,10 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
                      BigModel big_model, Model<char> *full_cur_model,
                      vector<vector<vector<GeographicCoordinate>>> &countries,
                      vector<string> &country_names) {
-  
-  ///////////////////////////////////////////
-  /* int count1 = 0;
-  for (int row = 0; row < full_cur_model->nrows(); row++) {
-    for (int col = 0; col < full_cur_model->ncols(); col++) {
-      if (full_cur_model->get(row, col) == 1)
-        count1++;
-    }
-  }  
-  printf("Count1: %d\n", count1); */
-  ///////////////////////////////////////////
 
   Model<short> *DEM = big_model.DEM;
   Model<char> *flow_directions = big_model.flow_directions[0];
+  ArrayCoordinate dam_start = reservoir->pour_point;
 
   for (int i = 0; i < 9; i++)
     if (big_model.neighbors[i].lat == convert_to_int(FLOOR(reservoir->latitude + EPS)) &&
@@ -346,11 +386,8 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
   reservoir->area = 0;
   vector<ArrayCoordinate> temp_used_points;
 
-  //printf("success 4\n");
-
   // GREENFIELD RESERVOIR
   if (!reservoir->turkey) {
-    //printf("success 5\n");
     char last_dir = 'd';
     while ((req_volume > 0 &&
             (reservoir->volume * (1 + 0.5 / reservoir->water_rock) <
@@ -422,12 +459,12 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
       }
     } 
 
-    //printf("success 6\n");
   } else { // TURKEY NEST RESERVOIR
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////  
-    //printf("success 0\n");
     
+    cout << reservoir->identifier << "\n"; //DEBUG
+
     queue<ArrayCoordinate> q;
     queue<ArrayCoordinate> empty;
     ArrayCoordinate c = reservoir->pour_point;
@@ -435,7 +472,6 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
     ArrayCoordinate dam_neighbor;
     ArrayCoordinateWithHeight dam_neighbor_with_height;
     vector<ArrayCoordinateWithHeight> dam_neighbors;
-    ArrayCoordinateWithHeight c_with_height = ArrayCoordinateWithHeight_init(c.row,c.col,DEM->get(c.row,c.col));
     ArrayCoordinateWithHeight neighbor_with_height;
     vector<ArrayCoordinateWithHeight> dam_points;
     vector<double> dam_elevations;
@@ -444,44 +480,74 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
     bool continue_test = false;
     bool growing_adjustment = false;
 
+    //printf("Success 5, %.2f %.2f\n", reservoir->pour_point.origin.lat, reservoir->pour_point.origin.lon);
+
+    GeographicCoordinate offset_origin = GeographicCoordinate_init(reservoir->pour_point.origin.lat, reservoir->pour_point.origin.lon);
+    
+    offset = convert_coordinates(
+      convert_coordinates(ArrayCoordinate_init(0, 0, offset_origin)),
+      DEM->get_origin());
+
+    //printf("Origins: %.2f %.2f, %.2f %.2f, %.2f %.2f\n", DEM->get_origin().lat, DEM->get_origin().lon,offset_origin.lat, offset_origin.lon, offset.origin.lat, offset.origin.lon);
+
+    //printf("Success 4: %d %d, %d %d, %d\n", c.row, c.col, offset.row, offset.col, DEM->get(c.row + offset.row,c.col + offset.col));
+    
+    ArrayCoordinateWithHeight c_with_height = ArrayCoordinateWithHeight_init(c.row,c.col,DEM->get(c.row + offset.row,c.col + offset.col));
+    ArrayCoordinate full_big_ac = {c.row + offset.row, c.col + offset.col, DEM->get_origin()};
+    ArrayCoordinateWithHeight full_big_acwh = ArrayCoordinateWithHeight_init(full_big_ac.row, full_big_ac.col, DEM->get(full_big_ac.row, full_big_ac.col));
+
     reservoir->area = 0;
     reservoir->volume = 0;
     reservoir->dam_volume = 0;
     reservoir->water_rock = DBL_MIN; 
     reservoir->area += find_area(c);
+
     reservoir_points.push_back(c_with_height); 
 
     q.push(c);
-    reservoir_points.push_back(c_with_height);
     temp_used_points.clear();
-    temp_used_points.push_back(c);
+    temp_used_points.push_back(full_big_ac);
     
     if (full_cur_model != NULL)
-      full_cur_model->set(c.row, c.col, 1);
+      full_cur_model->set(full_big_ac.row, full_big_ac.col, 1);
+    
+    //printf("Success 3 %d %d %d %d\n", c.row, c.col, full_big_ac.row, full_big_ac.col);
+
+    //Model<char>* test = new Model<char>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO); //DEBUG
+    //test->set_geodata(DEM->get_geodata());
+
+    //printf("Success 2\n");
 
     // Model the rough reservoir
     while (!q.empty() && reservoir->area < 500) {
       c = q.front();
-      c_with_height = ArrayCoordinateWithHeight_init(c.row,c.col,DEM->get(c.row,c.col));
+      c_with_height = ArrayCoordinateWithHeight_init(c.row,c.col,DEM->get(c.row + offset.row,c.col + offset.col));
       q.pop();
-
-      /* printf("RES %d: ", int(reservoir_points.size()));
-      print_v(reservoir_points);
-      printf("DAM %d: ", int(dam_points.size()));
-      print_v(dam_points); */
 
       for (uint d = 0; d < directions.size(); d++) {
         //if (directions[d].row * directions[d].col == 0) {
-          neighbor = ArrayCoordinate_init(c.row + directions[d].row, c.col + directions[d].col, DEM->get_origin());
-          neighbor_with_height = ArrayCoordinateWithHeight_init(neighbor.row,neighbor.col,DEM->get(neighbor.row,neighbor.col));
+          neighbor = ArrayCoordinate_init(c.row + directions[d].row, c.col + directions[d].col, offset_origin);
+          neighbor_with_height = ArrayCoordinateWithHeight_init(neighbor.row,neighbor.col,DEM->get(neighbor.row + offset.col,neighbor.col + offset.col));
+
+          full_big_ac = {neighbor.row + offset.row, neighbor.col + offset.col, DEM->get_origin()};
+          full_big_acwh = ArrayCoordinateWithHeight_init(full_big_ac.row, full_big_ac.col, DEM->get(full_big_ac.row, full_big_ac.col));
           
+          if (seen != NULL && seen->get(full_big_ac.row, full_big_ac.col)){
+            if (non_overlap != NULL){
+              *non_overlap = false;
+            } else {
+              return false;
+            }
+          }
+          if (DEM->get(full_big_ac.row, full_big_ac.col) < -2000)
+            return false;
+
           // && filter->get(neighbor.row, neighbor.col) == false
-          if (DEM->check_within(c.row + directions[d].row, c.col + directions[d].col) && !seen->get(neighbor.row, neighbor.col) && DEM->get_slope(neighbor.row, neighbor.col) <= TN_elevation_tolerance && std::count(temp_used_points.begin(), temp_used_points.end(), neighbor) == 0) {
-            temp_used_points.push_back(neighbor);
+          if (DEM->check_within(full_big_ac.row, full_big_ac.col) && !seen->get(full_big_ac.row, full_big_ac.col) && (DEM->get_slope(full_big_ac.row, full_big_ac.col) <= TN_elevation_tolerance || DEM->check_enclosed(full_big_ac.row, full_big_ac.col)) && std::count(temp_used_points.begin(), temp_used_points.end(), full_big_ac) == 0) {
+            temp_used_points.push_back(full_big_ac);
 
             for (uint point_index = 0; point_index < dam_points.size(); point_index++)
               if (dam_points[point_index] == c_with_height) {
-                //printf("success 3\n");
                 dam_points.erase(dam_points.begin() + point_index);
                 break;
               }
@@ -490,10 +556,9 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
             reservoir_points.push_back(neighbor_with_height);
  
             reservoir->area += find_area(neighbor);
-            //reservoir = update_TN_volumes(dam_points, reservoir_points, reservoir);
             
             if (full_cur_model != NULL)
-                full_cur_model->set(neighbor.row, neighbor.col, 1);
+                full_cur_model->set(full_big_ac.row, full_big_ac.col, 1);
 
             q.push(neighbor);
           }  
@@ -505,12 +570,47 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
       dam_points.push_back(c_with_height);
     }
 
+    //printf("Success 1\n");
+
+    reservoir->dam_height = update_TN_dam_height(dam_points, reservoir_points, req_volume, reservoir->area);
+
     reservoir = update_TN_volumes(dam_points, reservoir_points, reservoir);
-    //printf("V: %.2f %.2f\n", req_volume, reservoir->volume);
+
+    if (reservoir->volume * (1 + 0.5 / reservoir->water_rock) < (1 - volume_accuracy) * req_volume || reservoir->dam_height < 1)
+      return false;
+    
+    /* if (reservoir->dam_height < 0.01) {
+      printf("Fail: ");
+      print_v(dam_points);
+    } //DEBUG */
+
+    printf("V: %.2f %.2f %.2f\n", req_volume, reservoir->volume, reservoir->dam_height);
 
     //printf("success 1 %d %d\n", int(reservoir_points.size()), int(dam_points.size()));
 
     update_reservoir_boundary(reservoir->shape_bound, dam_points);
+   
+    //full_cur_model->write("debug/full_cur_model/" + str(search_config.grid_square) + "_full_cur_model.tif", GDT_Byte);
+    //printf("Sizes: %d %d\n", int(reservoir_points.size()), int(dam_points.size()));
+
+
+    //////////DEBUG/////////////////
+    /* printf("success\n");
+    for (uint i = 0; i < dam_points.size(); i++) {
+      test->set(dam_points[i].row, dam_points[i].col, 1);
+    }
+
+    int count = 0;
+    for (int row = 0; row < test->nrows(); row++)
+      for (int col = 0; col < test->nrows(); col++)
+        if (test->get(row,col) == 1)
+          count++;
+    printf("DOUNT: %d\n", count);
+
+    mkdir(convert_string(file_storage_location+"debug/full_cur_model"),0777);
+    test->write(file_storage_location+"debug/full_cur_model/"+str(search_config.grid_square)+"_test.tif",GDT_Byte);
+    full_cur_model->write(file_storage_location+"debug/full_cur_model/"+str(search_config.grid_square)+"_full_cur_model.tif",GDT_Byte);
+     *////////////////////////////////
 
     // Modify the boundaries of the reservoir to increase the water-to-rock ratio
     /* swap(q, empty);
@@ -597,50 +697,6 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
             growing_adjustment = true;                 
           }
           
-          // Update the dam wall height
-          // Set up the inputs for the floating point solver to find the optimal dam height
-          dam_elevations.clear();
-          for (uint point_index = 0; point_index < dam_points.size(); point_index++) {
-            dam_elevations.push_back(dam_points[point_index].h);
-          }
-
-          double* fx;
-          int info;
-          int lwa;
-          int n = 1;
-          double tol = 0.00001;
-          double* wa;
-          double optimal_elevation;
-          double* dam_height;
-
-          lwa = (n * (3 * n + 13)) / 2;
-          wa = new double[lwa];
-          dam_height = new double[n];
-          fx = new double[n];
-
-          vector<double>::iterator max_dam_elevation = max_element(dam_elevations.begin(), dam_elevations.end());
-          vector<double>::iterator min_dam_elevation = min_element(dam_elevations.begin(), dam_elevations.end());
-
-          dam_height[0] = *max_dam_elevation; // Initial guess at maximum dam ground elevation
-
-          // Declare a std::function wrapper for the lambda wrapper for the TN_nonlinear_system function
-          function<void(int, double *, double *)> nonlinear_function{
-              [&](int n1, double x1[], double fx1[]) {
-                fx1[0] =
-                    TN_nonlinear_system(x1, reservoir_points, dam_points, req_volume, test_reservoir->area);
-                return;
-              }};
-
-          nonlinear_function(n, dam_height, fx);
-
-          // Run the floating point solver to find the roots of the non-linear equations
-          info = fsolve(nonlinear_function, n, dam_height, fx, tol, wa, lwa);
-
-          //printf("success 8\n");
-
-          optimal_elevation = dam_height[0];
-          test_reservoir->dam_height = optimal_elevation - *min_dam_elevation;
-
           // Calculate the water-rock ratio of the test reservoir
           test_reservoir = update_TN_volumes(dam_points, reservoir_points, test_reservoir);
 
@@ -676,12 +732,16 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
       }
     }
 
+    // Update the dam wall height
+    reservoir->dam_height = update_TN_dam_height(dam_points, reservoir_points, req_volume, reservoir->area);
+
     update_reservoir_boundary(reservoir->shape_bound, dam_points); */
 
     //printf("Point: %d %d %d %.2f\n", int(reservoir_points.size()) + int(dam_points.size()), int(reservoir_points.size()), int(dam_points.size()), reservoir->volume);
+  dam_start = ArrayCoordinate_init(dam_points[0].row, dam_points[0].col, offset_origin);
   }
 
-  if (reservoir->dam_height < minimum_dam_height || reservoir->volume * (1 + 0.5 / reservoir->water_rock) < (1 - volume_accuracy) * req_volume) {
+  if (reservoir->dam_height < minimum_dam_height) {
     return false;
   }
 
@@ -694,9 +754,11 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
     return true;
 
   vector<ArrayCoordinate> reservoir_polygon;
-  reservoir_polygon = convert_to_polygon(full_cur_model, offset, reservoir->pour_point, 1);
+  //reservoir_polygon = convert_to_polygon(full_cur_model, offset, reservoir->pour_point, 1);
+  reservoir_polygon = convert_to_polygon(full_cur_model, offset, dam_start, 1);
 
-  //printf("success 13\n");
+  if (reservoir->turkey)
+    printf("success 13\n");
 
   
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -710,7 +772,6 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
   vector<vector<ArrayCoordinate>> dam_polygon;
   bool last = false;
   vector<bool> polygon_bool;
-  //printf("success 9\n");
   for (uint i = 0; i < reservoir_polygon.size(); i++) {
     ArrayCoordinate point1 = reservoir_polygon[i];
     ArrayCoordinate point2 =
@@ -749,7 +810,6 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
       last = false;
     }
   }
-  //printf("success 10\n");
 
   //full_cur_model->write("out2.tif", GDT_Byte);
   if (polygon_bool[0] && polygon_bool[dam_polygon.size() - 1] &&
@@ -759,7 +819,7 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
     }
     dam_polygon.pop_back();
   }
-  //printf("success 11\n");
+  
   for (uint i = 0; i < dam_polygon.size(); i++) {
     ArrayCoordinate *adjacent = get_adjacent_cells(dam_polygon[i][0], dam_polygon[i][1]);
     ArrayCoordinate to_check = adjacent[1];

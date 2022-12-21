@@ -35,5 +35,5 @@ def printRaster(DEM_filepath, output_filename, model_type, write_bool):
     return
 
 if __name__ == '__main__':
-    printRaster("debug/DEM_filled/s18_e144_DEM_filled.tif", "test.csv", float, True)
+    printRaster("debug/full_cur_model/s18_e144_full_cur_model.tif", "res.csv", float, True)
 

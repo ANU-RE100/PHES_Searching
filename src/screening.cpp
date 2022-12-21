@@ -403,13 +403,12 @@ static RoughGreenfieldReservoir model_greenfield_reservoir(ArrayCoordinate pour_
 	return reservoir;
 }
 
-static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Model<short> *DEM_filled, Model<bool> *filter){
+static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Model<short> *DEM_filled, Model<bool> *filter, Model<bool>* seen){
 
   RoughGreenfieldReservoir reservoir = RoughReservoir(pour_point, (int)(DEM_filled->get(pour_point.row, pour_point.col)));
   
   double area_at_elevation[max_wall_height+1] = {0};
 
-  Model<bool> *seen = new Model<bool>(DEM_filled->nrows(), DEM_filled->ncols(), MODEL_SET_ZERO);
   queue<ArrayCoordinate> q;
   ArrayCoordinate c = pour_point;
   ArrayCoordinate neighbor;
@@ -427,14 +426,9 @@ static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Mo
     area_at_elevation[ih] += find_area(c);
   }
 
-  reservoir_points.push_back(c_with_height); 
-
   q.push(c);
   reservoir_points.push_back(c_with_height);
   seen->set(c.row,c.col,true);
-
-  //printf("PP: %d %d\n", c.row, c.col);
-  //printf("PP slope: %.2f\n", DEM_filled->get_slope(c.row, c.col));
 
   while (!q.empty() && area_at_elevation[0] < 500) {
     c = q.front();
@@ -445,9 +439,8 @@ static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Mo
       //if (directions[d].row * directions[d].col == 0) {
         neighbor = ArrayCoordinate_init(c.row + directions[d].row, c.col + directions[d].col, DEM_filled->get_origin());
         neighbor_with_height = ArrayCoordinateWithHeight_init(neighbor.row,neighbor.col,DEM_filled->get(neighbor.row,neighbor.col));
-        //printf("%.2f ", DEM_filled->get_slope(neighbor.row, neighbor.col));
 
-        if (DEM_filled->check_within(c.row + directions[d].row, c.col + directions[d].col) && !seen->get(neighbor.row, neighbor.col) && DEM_filled->get_slope(neighbor.row, neighbor.col) <= TN_elevation_tolerance && filter->get(neighbor.row, neighbor.col) == false) {
+        if (DEM_filled->check_within(c.row + directions[d].row, c.col + directions[d].col) && !seen->get(neighbor.row, neighbor.col) && (DEM_filled->get_slope(neighbor.row, neighbor.col) <= TN_elevation_tolerance || DEM_filled->check_enclosed(neighbor.row, neighbor.col)) && filter->get(neighbor.row, neighbor.col) == false) {
           seen->set(neighbor.row, neighbor.col, true);
 
           for (uint point_index = 0; point_index < dam_points.size(); point_index++)
@@ -478,8 +471,6 @@ static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Mo
     update_reservoir_boundary(reservoir.shape_bound[ih], dam_points);
   }
     
-  delete seen;
-
   return reservoir;
 }
 
@@ -568,6 +559,7 @@ model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_points,
       write_rough_reservoir_data(csv_data_file, &reservoir);
     }
   } else if (search_config.search_type == SearchType::TURKEY) {
+    Model<bool> *seen = new Model<bool>(DEM_filled->nrows(), DEM_filled->ncols(), MODEL_SET_ZERO);
 
     for (int row = border; row < border + DEM_filled->nrows() - 2 * border; row++)
       for (int col = border; col < border + DEM_filled->ncols() - 2 * border; col++) {
@@ -576,14 +568,10 @@ model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_points,
         ArrayCoordinate pour_point = {row, col, get_origin(square_coordinate, border)};
         i++;
 
-        //printf("%d %d %d\n", i, pour_point.row, pour_point.col);
-
-        RoughGreenfieldReservoir reservoir = model_turkey_nest(pour_point, DEM_filled, filter);
+        RoughGreenfieldReservoir reservoir = model_turkey_nest(pour_point, DEM_filled, filter, *&seen);
         reservoir.ocean = false;
         reservoir.turkey = true;
 
-        //printf("%d %d %d %.2f %.2f\n", i, pour_point.row, pour_point.col, max(reservoir.areas), max(reservoir.water_rocks)); //DEBUG
-        //printf("success, %d \n", int(reservoir.shape_bound[5].size()));
         if (max(reservoir.volumes) >= min_reservoir_volume &&
             max(reservoir.water_rocks) > min_reservoir_water_rock &&
             reservoir.max_dam_height >= min_max_dam_height) {
@@ -596,6 +584,8 @@ model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_points,
           count++;
         }
       }
+
+  delete seen;
 
   } else {
     for (int row = border; row < border + DEM_filled->nrows() - 2 * border; row++)
@@ -686,7 +676,6 @@ Model<bool> *turkey_nest_pour_points(Model<short int> *DEM, GridSquare square_co
         centroid.col /= flat_region_coordinates.size();
 
         // Find the cell within the flat region that is closest to the centroid
-        //printf("FC: %d ", int(flat_region_coordinates.size()));
         for (uint coord_index = 0; coord_index < flat_region_coordinates.size(); coord_index++) {
           min_centroid_point_distance = MIN(min_centroid_point_distance, find_distance(flat_region_coordinates[coord_index],centroid,coslat));
           turkey_nest_centre = flat_region_coordinates[coord_index];          
