@@ -2,7 +2,7 @@
 """
 To run:
 
-python3 group_kmls.py --kml_file_path kml_file_path [--output_path output_folder_path] [--file_size output_file_size_MB]
+python3 group_kmls.py --task_file_path task_file_path [--output_path output_folder_path]
 """
 import os
 from pathlib import Path
@@ -30,6 +30,7 @@ def main(path_to_tasks_file, output_path="."):
         output_kml = ET.Element("kml")
         document = ET.SubElement(output_kml, "Document", id="Layers")
         add_styling = True
+        new_folder = None
         for line in lines:
             task = line.split(" ")
             ns = "n" if int(task[-1]) >= 0 else "s"
@@ -40,19 +41,17 @@ def main(path_to_tasks_file, output_path="."):
             # TODO(check if size is in csv and not 0)
 
             kml_file_name = tasks_file_path.parent/"final_output_classes"/folder_name/(folder_name+"_"+size+".kml")
-            print(kml_file_name)
             if os.path.isfile(kml_file_name):
-                print("found it!")
                 tree = ET.parse(kml_file_name)
                 root = tree.getroot()
 
-                if add_styling:
-                    add_styling = False
+                if new_folder is None:
                     # Add styling
                     for i in range(4):
                         document.insert(i, root[0][i])
                     # Add name
-                    ET.SubElement(document, "name").text = "name"
+                    ET.SubElement(document, "name").text = size
+                    new_folder = ET.SubElement(document, "Folder")
 
                 i = 5
 
@@ -60,13 +59,12 @@ def main(path_to_tasks_file, output_path="."):
                     if folder.tag.split("}")[1] == "Folder":
                         for placemark in folder:
                             if placemark.tag.split("}")[1] == "Placemark":
-                                document.insert(i, placemark)
+                                new_folder.insert(i, placemark)
                                 i += 1
 
         output_tree = ET.ElementTree(output_kml)
         
         grouped_file_path = output_folder/(size+"_summary.kml")
-        print(grouped_file_path)
         output_tree.write(grouped_file_path, encoding='utf8', method='xml')
 
 if __name__ == "__main__":
