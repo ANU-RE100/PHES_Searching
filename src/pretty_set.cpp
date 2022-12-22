@@ -16,7 +16,7 @@ bool check_pair(Pair& pair, Model<bool>* seen, BigModel& big_model){
 	}
 
 	if(pair.lower.turkey || pair.upper.turkey) //DEBUG
-		printf("success\n");
+		printf("Volumes: %.2f %.2f\n", pair.upper.volume, pair.lower.volume);
 
 	return true;
 }

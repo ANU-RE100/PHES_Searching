@@ -76,11 +76,10 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
   pair->water_rock =
       1 / ((1 / pair->upper.water_rock) + (1 / pair->lower.water_rock));
   set_FOM(pair);
-  printf("TN 1\n");
   /* if (pair->FOM > max_FOM || pair->category == 'Z') {
     return false;
   } */
-  printf("TN 2 %.2f %d\n", pair->FOM, max_FOM);
+  printf("Volumes: %.2f %.2f\n", pair->upper.volume, pair->lower.volume);
 
   if (*non_overlap) {
     for (uint i = 0; i < used_points.size(); i++) {
@@ -160,6 +159,8 @@ int main(int nargs, char **argv)
             bool non_overlap;
             int max_FOM = category_cutoffs[0].storage_cost*tests[i].storage_time+category_cutoffs[0].power_cost;
             if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, max_FOM, big_model, full_cur_model, countries, country_names)){
+                printf("Pretty pairs: %.2f %.2f\n", pairs[i][j].upper.volume, pairs[i][j].lower.volume); //DEBUG
+                
                 write_pair_csv(csv_file_classes, &pairs[i][j], false);
                 write_pair_csv(csv_file_FOM, &pairs[i][j], true);
                 keep_lower = !lowers.contains(pairs[i][j].lower.identifier);

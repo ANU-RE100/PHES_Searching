@@ -289,6 +289,8 @@ double TN_nonlinear_system(double dam_height[],
   dam_sqdiffs_sum = accumulate(dam_height_sqdiffs.begin(), dam_height_sqdiffs.end(), 0.0);
   volume_earthwork = dam_length_at_height * dam_sqdiffs_sum / dam_height_sqdiffs.size();
 
+  printf("Opt Vols: %.2f %.2f %.2f %.2f %.2f Difsums: %d %.2f %d %.2f\n", volume_earthwork/1000000, dam_length_at_height, dam_height[0], (volume_earthwork / 2 + volume_original - (req_volume * 1000000))/1000000, (volume_earthwork / 2 + volume_original)/1000000, int(reservoir_points.size()), reservoir_diffs_sum, int(dam_points.size()), dam_sqdiffs_sum);
+
   return volume_earthwork / 2 + volume_original - (req_volume * 1000000); // Convert GL to m3
 }
 
@@ -318,7 +320,7 @@ double update_TN_dam_height(vector<ArrayCoordinateWithHeight> dam_points, vector
   vector<double>::iterator max_dam_elevation = max_element(dam_elevations.begin(), dam_elevations.end());
   vector<double>::iterator min_dam_elevation = min_element(dam_elevations.begin(), dam_elevations.end());
 
-  dam_height[0] = *max_dam_elevation; // Initial guess at maximum dam ground elevation
+  dam_height[0] = *max_dam_elevation + 100.0; // Initial guess at maximum dam ground elevation
 
   // Declare a std::function wrapper for the lambda wrapper for the TN_nonlinear_system function
   function<void(int, double *, double *)> nonlinear_function{
@@ -327,6 +329,8 @@ double update_TN_dam_height(vector<ArrayCoordinateWithHeight> dam_points, vector
     return;
     }
   };
+
+  printf("Test: %d %d\n", int(reservoir_points.size()), int(dam_points.size()));
 
   nonlinear_function(n, dam_height, fx);
 
@@ -368,6 +372,7 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
   Model<short> *DEM = big_model.DEM;
   Model<char> *flow_directions = big_model.flow_directions[0];
   ArrayCoordinate dam_start = reservoir->pour_point;
+    vector<ArrayCoordinateWithHeight> dam_points;
 
   for (int i = 0; i < 9; i++)
     if (big_model.neighbors[i].lat == convert_to_int(FLOOR(reservoir->latitude + EPS)) &&
@@ -473,7 +478,6 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
     ArrayCoordinateWithHeight dam_neighbor_with_height;
     vector<ArrayCoordinateWithHeight> dam_neighbors;
     ArrayCoordinateWithHeight neighbor_with_height;
-    vector<ArrayCoordinateWithHeight> dam_points;
     vector<double> dam_elevations;
     vector<ArrayCoordinateWithHeight> reservoir_points; 
     Reservoir* test_reservoir;
@@ -570,11 +574,12 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
       dam_points.push_back(c_with_height);
     }
 
-    //printf("Success 1\n");
+    printf("TestOne: %d %d\n", int(reservoir_points.size()), int(dam_points.size()));
 
     reservoir->dam_height = update_TN_dam_height(dam_points, reservoir_points, req_volume, reservoir->area);
 
-    reservoir = update_TN_volumes(dam_points, reservoir_points, reservoir);
+    //reservoir = update_TN_volumes(dam_points, reservoir_points, &*reservoir);
+    update_TN_volumes(dam_points, reservoir_points, &*reservoir);
 
     if (reservoir->volume * (1 + 0.5 / reservoir->water_rock) < (1 - volume_accuracy) * req_volume || reservoir->dam_height < 1)
       return false;
@@ -584,7 +589,8 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
       print_v(dam_points);
     } //DEBUG */
 
-    printf("V: %.2f %.2f %.2f\n", req_volume, reservoir->volume, reservoir->dam_height);
+    //printf("V: %.2f %.2f %.2f\n", req_volume, reservoir->volume, reservoir->dam_height);
+    printf("Dam values1: %.2f %.2f %.2f\n", reservoir->dam_volume, reservoir->dam_length, reservoir->dam_height);
 
     //printf("success 1 %d %d\n", int(reservoir_points.size()), int(dam_points.size()));
 
@@ -756,10 +762,6 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
   vector<ArrayCoordinate> reservoir_polygon;
   //reservoir_polygon = convert_to_polygon(full_cur_model, offset, reservoir->pour_point, 1);
   reservoir_polygon = convert_to_polygon(full_cur_model, offset, dam_start, 1);
-
-  if (reservoir->turkey)
-    printf("success 13\n");
-
   
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////  
@@ -797,8 +799,22 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
         temp.push_back(point1);
         dam_polygon.push_back(temp);
       }
-      double height =
-          reservoir->elevation + reservoir->dam_height - average_height;
+      
+      double height = 0;
+      if (!reservoir->turkey)
+        height = reservoir->elevation + reservoir->dam_height - average_height;
+      else {
+        vector<double> dam_elevations;
+
+        // Set up the inputs for the floating point solver to find the optimal dam height
+        for (uint point_index = 0; point_index < dam_points.size(); point_index++) {
+          dam_elevations.push_back(dam_points[point_index].h);
+        }
+
+        vector<double>::iterator min_dam_elevation = min_element(dam_elevations.begin(), dam_elevations.end());
+        height = *min_dam_elevation + reservoir->dam_height - average_height;
+      }
+
       double length = find_distance(point1, point2) * 1000;
       reservoir->dam_volume += convert_to_dam_volume(height, length);
       reservoir->dam_length += length;
@@ -837,7 +853,9 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
     coordinates->dam.push_back(polygon_string);
   }
 
-  reservoir->volume += (reservoir->dam_volume) / 2;
+  if (!reservoir->turkey)
+    reservoir->volume += (reservoir->dam_volume) / 2;
+  
   reservoir->water_rock = reservoir->volume / reservoir->dam_volume;
   reservoir->average_water_depth = reservoir->volume / reservoir->area;
 
@@ -872,6 +890,9 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
       break;
     }
   }
+
+  if (reservoir->turkey)
+    printf("Dam values2: %.2f %.2f %.2f\n", reservoir->dam_volume, reservoir->dam_length, reservoir->dam_height);
 
   return true;
 }
