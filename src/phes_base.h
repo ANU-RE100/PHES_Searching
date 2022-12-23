@@ -213,5 +213,7 @@ ExistingReservoir get_existing_reservoir(string name);
 vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square);
 RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r);
 ExistingPit get_pit_details(string pitname);
+RoughGreenfieldReservoir update_TN_volumes(vector<ArrayCoordinateWithHeight> dam_points, vector<ArrayCoordinateWithHeight> reservoir_points, RoughGreenfieldReservoir reservoir, uint dam_wall_index);
+Reservoir* update_TN_volumes(vector<ArrayCoordinateWithHeight> dam_points, vector<ArrayCoordinateWithHeight> reservoir_points, Reservoir *reservoir);
 
 #endif

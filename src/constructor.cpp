@@ -149,7 +149,7 @@ int main(int nargs, char **argv)
 
         sort(pairs[i].begin(), pairs[i].end());
         int count = 0;
-	    set<string> lowers;
+	      set<string> lowers;
         set<string> uppers;
         bool keep_lower;
         bool keep_upper;
