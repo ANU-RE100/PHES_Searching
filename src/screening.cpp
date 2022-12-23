@@ -436,29 +436,27 @@ static RoughGreenfieldReservoir model_turkey_nest(ArrayCoordinate pour_point, Mo
     q.pop();
 
     for (uint d = 0; d < directions.size(); d++) {
-      //if (directions[d].row * directions[d].col == 0) {
-        neighbor = ArrayCoordinate_init(c.row + directions[d].row, c.col + directions[d].col, DEM_filled->get_origin());
-        neighbor_with_height = ArrayCoordinateWithHeight_init(neighbor.row,neighbor.col,DEM_filled->get(neighbor.row,neighbor.col));
+      neighbor = ArrayCoordinate_init(c.row + directions[d].row, c.col + directions[d].col, DEM_filled->get_origin());
+      neighbor_with_height = ArrayCoordinateWithHeight_init(neighbor.row,neighbor.col,DEM_filled->get(neighbor.row,neighbor.col));
 
-        if (DEM_filled->check_within(c.row + directions[d].row, c.col + directions[d].col) && !seen->get(neighbor.row, neighbor.col) && (DEM_filled->get_slope(neighbor.row, neighbor.col) <= TN_elevation_tolerance || DEM_filled->check_enclosed(neighbor.row, neighbor.col)) && filter->get(neighbor.row, neighbor.col) == false) {
-          seen->set(neighbor.row, neighbor.col, true);
+      if (DEM_filled->check_within(c.row + directions[d].row, c.col + directions[d].col) && !seen->get(neighbor.row, neighbor.col) && (DEM_filled->get_slope(neighbor.row, neighbor.col) <= TN_elevation_tolerance || DEM_filled->check_enclosed(neighbor.row, neighbor.col)) && filter->get(neighbor.row, neighbor.col) == false) {
+        seen->set(neighbor.row, neighbor.col, true);
 
-          for (uint point_index = 0; point_index < dam_points.size(); point_index++)
-            if (dam_points[point_index] == c_with_height) {
-              dam_points.erase(dam_points.begin() + point_index);
-              break;
-            }
-          
-          reservoir_points.push_back(neighbor_with_height);
-          dam_points.push_back(neighbor_with_height);
-
-          for (uint ih =0 ; ih< dam_wall_heights.size(); ih++) {
-            area_at_elevation[ih] += find_area(neighbor);
+        for (uint point_index = 0; point_index < dam_points.size(); point_index++)
+          if (dam_points[point_index] == c_with_height) {
+            dam_points.erase(dam_points.begin() + point_index);
+            break;
           }
+        
+        reservoir_points.push_back(neighbor_with_height);
+        dam_points.push_back(neighbor_with_height);
+
+        for (uint ih =0 ; ih< dam_wall_heights.size(); ih++) {
+          area_at_elevation[ih] += find_area(neighbor);
+        }
           
-          q.push(neighbor);
-        }  
-      //}              
+        q.push(neighbor);
+      }               
     }
   }
 
@@ -655,19 +653,17 @@ Model<bool> *turkey_nest_pour_points(Model<short int> *DEM, GridSquare square_co
           q.pop();
 
           for (uint d = 0; d < directions.size(); d++) {
-            //if (directions[d].row * directions[d].col == 0) {
-              neighbor = ArrayCoordinate_init(c.row + directions[d].row, c.col + directions[d].col, get_origin(square_coordinate,border));
-              if (DEM->check_within(c.row + directions[d].row, c.col + directions[d].col) && !seen->get(neighbor.row, neighbor.col) &&
-                  DEM->get_slope(neighbor.row, neighbor.col) <= TN_elevation_tolerance) {
-                    seen->set(neighbor.row, neighbor.col, true);
-                    flat_region_area+=find_area(neighbor);
-                    flat_region_coordinates.push_back(neighbor);
-                    q.push(neighbor);
+            neighbor = ArrayCoordinate_init(c.row + directions[d].row, c.col + directions[d].col, get_origin(square_coordinate,border));
+            if (DEM->check_within(c.row + directions[d].row, c.col + directions[d].col) && !seen->get(neighbor.row, neighbor.col) &&
+                DEM->get_slope(neighbor.row, neighbor.col) <= TN_elevation_tolerance) {
+              seen->set(neighbor.row, neighbor.col, true);
+              flat_region_area+=find_area(neighbor);
+              flat_region_coordinates.push_back(neighbor);
+              q.push(neighbor);
 
-                    centroid.row += neighbor.row;
-                    centroid.col += neighbor.col;
-              }
-            //}                
+              centroid.row += neighbor.row;
+              centroid.col += neighbor.col;
+            }               
           }
         } 
 
