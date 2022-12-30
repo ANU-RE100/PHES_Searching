@@ -15,6 +15,13 @@
 struct Geodata {
   double geotransform[6];
   char *geoprojection;
+
+  string projection_str(){
+    return to_string(geotransform[0]) + " " + to_string(geotransform[1]) + " " +
+        to_string(geotransform[3]) + " " + to_string(geotransform[5]) + " " +
+        string(geoprojection);
+
+  }
 };
 
 struct GeographicCoordinate {
@@ -164,16 +171,16 @@ template <typename T> void Model<T>::write(string filename, GDALDataType data_ty
   GDALDriver *Driver = GetGDALDriverManager()->GetDriverByName(pszFormat);
   if (Driver == NULL)
     exit(1);
-  GDALDataset *OutDS = Driver->Create(tif_filename, rows, cols, 1, data_type, NULL);
+  GDALDataset *OutDS = Driver->Create(tif_filename, cols, rows, 1, data_type, NULL);
   OutDS->SetGeoTransform(geodata.geotransform);
   OutDS->SetProjection(geodata.geoprojection);
   GDALRasterBand *Band = OutDS->GetRasterBand(1);
-  T temp_arr[rows];
+  T temp_arr[cols];
   for (int row = 0; row < rows; row++) {
     for (int col = 0; col < cols; col++) {
       temp_arr[col] = get(row, col);
     }
-    CPLErr err = Band->RasterIO(GF_Write, 0, row, rows, 1, temp_arr, rows, 1, data_type, 0, 0);
+    CPLErr err = Band->RasterIO(GF_Write, 0, row, cols, 1, temp_arr, cols, 1, data_type, 0, 0);
     if (err != CPLE_None)
       exit(1);
   }

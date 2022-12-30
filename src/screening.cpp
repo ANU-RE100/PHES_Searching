@@ -44,7 +44,7 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 			search_config.logger.debug("Using world urban data as filter");
 			vector<string> done;
 			for(GeographicCoordinate corner: DEM->get_corners()){
-				string urban_filename = "input/filters/hbase_human_built_up_and_settlement_extent/"+find_world_utm_filename(corner)+"_hbase_human_built_up_and_settlement_extent_utm_30m.tif";
+				string urban_filename = "input/filters/WORLD_URBAN/"+find_world_utm_filename(corner)+"_hbase_human_built_up_and_settlement_extent_geographic_30m.tif";
         if (!file_exists(file_storage_location+urban_filename))
            urban_filename = "input/WORLD_URBAN/"+find_world_utm_filename(corner)+"_hbase_human_built_up_and_settlement_extent_geographic_30m.tif";
 				if(find(done.begin(), done.end(), urban_filename)==done.end()){
