@@ -111,9 +111,9 @@ bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
           pit_volume(pit_details, pit->elevation, pit->elevation + pit_depth);
       double greenfield_wall_height =
           linear_interpolate(volume, greenfield->volumes, dam_wall_heights);
-      head = (int)ABS(((0.5 * (double)greenfield_wall_height +
+      head = convert_to_int(ABS(((0.5 * (double)greenfield_wall_height +
                         (double)greenfield->elevation) -
-                       (0.5 * (double)pit_depth + (double)pit->elevation)));
+                       (0.5 * (double)pit_depth + (double)pit->elevation))));
       if (head < min_head || head > max_head)
         continue;
       double head_ratio =

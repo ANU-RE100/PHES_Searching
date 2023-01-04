@@ -51,10 +51,8 @@ ExistingPit ExistingPit_init(ExistingReservoir reservoir) {
 }
 
 GridSquare get_square_coordinate(ExistingReservoir reservoir) {
-  bool northern_hem = reservoir.latitude > 0;
-  bool western_hem = reservoir.longitude > 0;
-  return GridSquare_init((int)FLOOR(reservoir.latitude) + (northern_hem ? EPS : - EPS),
-                         (int)FLOOR(reservoir.longitude) + (western_hem ? EPS : - EPS));
+  return GridSquare_init(convert_to_int(FLOOR(reservoir.latitude)),
+                         convert_to_int(FLOOR(reservoir.longitude)));
 }
 
 Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation) {

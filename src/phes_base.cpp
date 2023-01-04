@@ -175,7 +175,7 @@ string energy_capacity_to_string(double energy_capacity){
 	if(energy_capacity<10-EPS)
 		return dtos(energy_capacity,1);
 	else
-		return to_string((int)(energy_capacity+EPS));
+		return to_string(convert_to_int(energy_capacity));
 }
 
 string str(Test test){
