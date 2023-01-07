@@ -1,4 +1,3 @@
-
 """
 To run:
 
@@ -50,6 +49,12 @@ def get_site(task):
     existing = "existing_" if len(task) == 3 else ""
     # TODO(work for pits as well)
     return existing+ns+str(abs(int(task[-1]))).zfill(2)+"_"+ew+str(abs(int(task[-2]))).zfill(3)
+
+def remove_fullstop(site):
+    if "." in site:
+        l = site.find(".")
+        site = site[:l] + site[l+2:]
+    return site
 
 def main(path_to_tasks_file, path_to_final_output_classes, output_path="."):
     """
@@ -134,8 +139,8 @@ def main(path_to_tasks_file, path_to_final_output_classes, output_path="."):
                     for i in range(4):
                         document.insert(i, root[0][i])
                     # Add name
-                    ET.SubElement(document, "name").text = size
                     new_kml_folder = ET.SubElement(document, "Folder")
+                    ET.SubElement(new_kml_folder, "name").text = remove_fullstop(size)
 
                 i = 5
                 for folder in root[0]:
@@ -149,7 +154,7 @@ def main(path_to_tasks_file, path_to_final_output_classes, output_path="."):
                 if total_size > FILESIZE * 1000000:
                     output_tree = ET.ElementTree(output_kml)
                     grouped_file_path = kmls_folder/(size+"_summary_"+str(kml_file_no)+".kml")
-                    output_tree.write(grouped_file_path, encoding='utf8', method='xml')
+                    output_tree.write(grouped_file_path)
                     kml_file_no += 1
                     total_size = 0
                     new_kml_folder = None
@@ -165,7 +170,7 @@ def main(path_to_tasks_file, path_to_final_output_classes, output_path="."):
 
             output_tree = ET.ElementTree(output_kml)
             grouped_file_path = kmls_folder/(size+"_summary_"+str(kml_file_no)+".kml")
-            output_tree.write(grouped_file_path, encoding='utf8', method='xml')
+            output_tree.write(grouped_file_path)
 
 if __name__ == "__main__":
     import argparse
