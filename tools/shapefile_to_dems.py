@@ -25,11 +25,11 @@ def main(path_to_shp, path_to_PHES, output_path):
                 for j in range(-1, 2):
                     points.add(str(floor(lat)+i)+" "+str(floor(lon)+j))
 
-    output_file = output_folder/(shp_path.stem+"_dems.txt")
+    output_file = output_folder/(shp_path.stem+"_tasks.txt")
     with open(output_file,'w') as file:
         for point in points:
             if point in existing_dems:            
-                file.write(point+"\n")
+                file.write("bulk_existing "+point+"\n")
 
 if __name__ == "__main__":
     import argparse
