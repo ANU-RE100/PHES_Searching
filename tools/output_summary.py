@@ -10,7 +10,7 @@ import pandas as pd
 import xml.etree.cElementTree as ET
 ET.register_namespace("", "http://www.opengis.net/kml/2.2")
 
-FILESIZE = 1000 # In MB
+FILESIZE = 500 # In MB
 
 def byte_len(string):
     """
@@ -167,10 +167,10 @@ def main(path_to_tasks_file, path_to_final_output_classes, output_path="."):
                 writer.writerow(header)
                 for i in range(int(len(data))):
                     writer.writerow(data[i])
-
-            output_tree = ET.ElementTree(output_kml)
-            grouped_file_path = kmls_folder/(size+"_summary_"+str(kml_file_no)+".kml")
-            output_tree.write(grouped_file_path)
+            if total_size > 0:
+                output_tree = ET.ElementTree(output_kml)
+                grouped_file_path = kmls_folder/(size+"_summary_"+str(kml_file_no)+".kml")
+                output_tree.write(grouped_file_path)
 
 if __name__ == "__main__":
     import argparse
