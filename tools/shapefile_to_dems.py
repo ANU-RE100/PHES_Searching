@@ -3,7 +3,7 @@ import shapefile
 from math import floor
 from pathlib import Path
 
-def main(path_to_shp, path_to_PHES, output_path):
+def main(path_to_shp, path_to_PHES, output_path, output_file_name):
     shp_path = Path(path_to_shp)
     output_folder = shp_path.parent/output_path
     if not output_folder.exists():
@@ -25,7 +25,7 @@ def main(path_to_shp, path_to_PHES, output_path):
                 for j in range(-1, 2):
                     points.add(str(floor(lat)+i)+" "+str(floor(lon)+j))
 
-    output_file = output_folder/(shp_path.stem+"_tasks.txt")
+    output_file = output_folder/(output_file_name if output_file_name else shp_path.stem+"_tasks.txt")
     with open(output_file,'w') as file:
         for point in points:
             if point in existing_dems:            
@@ -41,6 +41,8 @@ if __name__ == "__main__":
                         help='the path to the root of the PHES reop (from working directory)')
     parser.add_argument('--output_path', metavar='output_folder_path', default=".",
                         help='the path to the output folder relative to the shp file')
+    parser.add_argument('--output_file_name', metavar='output_file_name',
+                        help='name of output tasks file, if none provided it will be named `shp_file_path`_tasks.txt')
 
     args = parser.parse_args()
-    main(path_to_shp=args.shp_file_path, path_to_PHES=args.PHES_path, output_path=args.output_path)
+    main(path_to_shp=args.shp_file_path, path_to_PHES=args.PHES_path, output_path=args.output_path, output_file_name=args.output_file_name)
