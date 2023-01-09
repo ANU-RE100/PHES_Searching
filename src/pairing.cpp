@@ -1,3 +1,4 @@
+#include "coordinates.h"
 #include "phes_base.h"
 #include "reservoir.h"
 #include "search_config.hpp"
@@ -41,18 +42,22 @@ vector<GeographicCoordinate> find_points_to_test(RoughReservoir* &reservoir,
 
 double find_least_distance_sqd(RoughReservoir* upper, RoughReservoir* &lower,
                                double upper_wall_height, double lower_wall_height,
-                               ArrayCoordinate upper_pour_point, ArrayCoordinate lower_pour_point) {
+                               ArrayCoordinate* upper_pour_point, ArrayCoordinate* lower_pour_point) {
   double mindist2 = INF;
   vector<GeographicCoordinate> upper_points =
-      find_points_to_test(upper, upper_wall_height, upper_pour_point);
+      find_points_to_test(upper, upper_wall_height, *upper_pour_point);
   vector<GeographicCoordinate> lower_points =
-      find_points_to_test(lower, lower_wall_height, lower_pour_point);
+      find_points_to_test(lower, lower_wall_height, *lower_pour_point);
 
   for (uint iu = 0; iu < upper_points.size(); iu++) {
     GeographicCoordinate p1 = upper_points[iu];
     for (uint il = 0; il < lower_points.size(); il++) {
       GeographicCoordinate p2 = lower_points[il];
-      mindist2 = MIN(mindist2, find_distance_sqd(p1, p2));
+      if (mindist2 > find_distance_sqd(p1, p2)){
+        mindist2 = find_distance_sqd(p1, p2);
+        *upper_pour_point = convert_coordinates(p1,upper_pour_point->origin);
+        *lower_pour_point = convert_coordinates(p2,lower_pour_point->origin);
+      }
     }
   }
 
@@ -214,10 +219,14 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
 
   double least_distance = find_least_distance_sqd(
       upper, lower, upper_dam_wall_height,
-      lower_dam_wall_height, upper_coordinates, lower_coordinates);
+      lower_dam_wall_height, &upper_coordinates, &lower_coordinates);
 
   if (SQ(head * 0.001) < least_distance * SQ(min_slope))
     return NULL;
+
+  if(search_config.search_type==SearchType::OCEAN){
+    lower->pour_point=lower_coordinates;
+  }
 
   Reservoir upper_reservoir = Reservoir_init(upper->pour_point, upper->elevation);
   Reservoir lower_reservoir = Reservoir_init(lower->pour_point, lower->elevation);
