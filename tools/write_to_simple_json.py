@@ -24,8 +24,7 @@ def add_reservoir_description(dict, energy, time):
         + " million people. "
     )
 
-
-def create_member(site, country, phes_type):
+def create_member(site, country, phes_type, name):
     member = {
         "type": "wms",
         "info": [
@@ -62,7 +61,7 @@ def create_member(site, country, phes_type):
     time = int(site.split("_")[1].split("h")[0])
     add_reservoir_description(member["info"][0], energy, time)
     member["name"] = (
-        country + " " + phes_type + " " + str(energy) + "GWh " + str(time) + "h"
+        (name or country + " " + phes_type) + " " + str(energy) + "GWh " + str(time) + "h"
     )
     member["id"] = country + "_" + phes_type + "_" + site
     member["layers"] = get_layer_name(site)
@@ -77,11 +76,15 @@ def create_member(site, country, phes_type):
     return member
 
 
-def main(path_to_simple_json, csvs_path, phes_type, country):
+def main(path_to_simple_json, csvs_path, phes_type, country, name):
     assert phes_type in ["Greenfield", "Bluefield", "Brownfield", "Ocean"], (
         'PHES_type must be "Greenfield", "Bluefield", "Brownfield" or "Ocean" but was'
         + phes_type
     )
+    if phes_type in ["Bluefield", "Brownfield"] and not country:
+        var = input("You have not specifed a country for a " + phes_type + " search. Would you like to continue? [y/n]\n")
+        if var.lower() != "y":
+            quit()
     with open(path_to_simple_json + "/simple.json", "r") as f:
         simple_json = json.load(f)
 
@@ -94,9 +97,7 @@ def main(path_to_simple_json, csvs_path, phes_type, country):
             group = {}
             group["id"] = phes_type
             group["type"] = "group"
-            group["name"] = (
-                "Global " if phes_type == "Greenfield" or phes_type == "Ocean" else ""
-            ) + phes_type
+            group["name"] = name or "Global " + phes_type if not country else phes_type
             group["description"] = DESCRIPTION
             group["members"] = []
             simple_json["catalog"].append(group)
@@ -110,7 +111,7 @@ def main(path_to_simple_json, csvs_path, phes_type, country):
                 new_group = {}
                 new_group["type"] = "group"
                 new_group["id"] = phes_type + "_" + country
-                new_group["name"] = country + " " + phes_type + " Sites"
+                new_group["name"] = (name or country + " " + phes_type) + " Sites"
                 new_group["description"] = DESCRIPTION
                 new_group["members"] = []
                 group["members"].append(new_group)
@@ -127,10 +128,9 @@ def main(path_to_simple_json, csvs_path, phes_type, country):
         members = []
         path_to_csvs = Path(csvs_path) / "csvs"
         for pth in path_to_csvs.iterdir():
-            members.append(create_member(pth.stem[:-8], country, phes_type))
+            members.append(create_member(pth.stem[:-8], country, phes_type, name))
         group["members"] = members
 
-        # TODO(change to simple)
     with open(path_to_simple_json + "/simple.json", "w") as outfile:
         json.dump(simple_json, outfile, indent=2)
 
@@ -162,10 +162,16 @@ if __name__ == "__main__":
         metavar="country",
         help="If specified, this will appear as a subsection to the PHES_type",
     )
+    parser.add_argument(
+        "--name",
+        metavar="name",
+        help="Name of data, if not specified will be `country PHES_type` (or `Global PHES_type` if country not specified)",
+    )
     args = parser.parse_args()
     main(
         path_to_simple_json=args.simple_json_path,
         csvs_path=args.csvs_path,
         phes_type=args.PHES_type,
         country=args.country,
+        name=args.name
     )

@@ -46,12 +46,13 @@ class Geoserver:
     def workspace_exists(self, workspace):
         """
         get name  workspace if exist
-        Example: curl -v -u admin:admin -XGET -H "Accept: text/xml"  http://localhost:8080/geoserver/rest/workspaces/acme.xml
+        Example: curl -v -u admin:password -XGET -H "Accept: text/xml"  http://localhost:8080/geoserver/rest/workspaces/acme.xml
         """
         try:
             payload = {"recurse": "true"}
             url = "{}/rest/workspaces/{}.json".format(self.service_url, workspace)
             r = requests.get(url, auth=(self.username, self.password), params=payload)
+
             if r.status_code == 200:
                 return r.json()
             else:
@@ -104,8 +105,6 @@ class Geoserver:
     def store_exists(self, store: str, workspace: str):
         """
         Return the data store in a given workspace.
-        If workspace is not provided, it will take the default workspace
-        curl -X GET http://localhost:8080/geoserver/rest/workspaces/demo/datastores -H  "accept: application/xml" -H  "content-type: application/json"
         """
         try:
             url = "{}/rest/workspaces/{}/datastores/{}".format(
@@ -163,12 +162,7 @@ class Geoserver:
                         </connectionParameters>
                         </dataStore>
                         """.format(
-                    store,
-                    host,
-                    port,
-                    pg_user,
-                    pg_password,
-                    db,
+                    store, host, port, pg_user, pg_password, db
                 )
 
                 r = self._requests(
@@ -331,22 +325,22 @@ class Geoserver:
             raise Exception(e)
 
 
-def main(csvs_path, postgres_pw, phes_type, country):
+def main(csvs_path, postgres_pw, admin_pw, phes_type, country):
     assert phes_type in ["Greenfield", "Bluefield", "Brownfield", "Ocean"], (
         'PHES_type must be "Greenfield", "Bluefield", "Brownfield" or "Ocean" but was'
         + phes_type
     )
-    
-    geo = Geoserver("https://re100.anu.edu.au/geoserver", username="admin", password="Geoserver_admin_re100")
+
+    geo = Geoserver("https://re100.anu.edu.au/geoserver", username="admin", password=admin_pw)
 
     workspace = country.lower() + "_" + phes_type.lower()
     store = workspace + "_store"
-
+    print(workspace)
     if geo.workspace_exists(workspace=workspace):
         var = input("workspace " + workspace + " already exists and will be deleted. If you do not wish to delete please type \'N\', otherwise type any other key.\n")
         if var.lower() == "n":
             quit()
-        geo.delete_workspace(workspace="indonesia_bluefield")
+        geo.delete_workspace(workspace=workspace)
     geo.create_workspace(workspace=workspace)
 
     assert not geo.store_exists(store=store, workspace=workspace)
@@ -385,6 +379,12 @@ if __name__ == "__main__":
         help="Password for postgres user",
     )
     parser.add_argument(
+        "--admin_password",
+        metavar="admin_password",
+        required=True,
+        help="Password for geoserver admin user",
+    )
+    parser.add_argument(
         "--PHES_type",
         metavar="PHES_type",
         required=True,
@@ -399,6 +399,7 @@ if __name__ == "__main__":
     main(
         csvs_path=args.csvs_path,
         postgres_pw=args.postgres_password,
+        admin_pw=args.admin_password,
         phes_type=args.PHES_type,
         country=args.country
     )
