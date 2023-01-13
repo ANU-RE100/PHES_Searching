@@ -101,7 +101,7 @@ class Geoserver:
         except Exception as e:
             raise Exception(e)
 
-    def store_exists(self, store: str, workspace: str = None):
+    def store_exists(self, store: str, workspace: str):
         """
         Return the data store in a given workspace.
         If workspace is not provided, it will take the default workspace
@@ -186,7 +186,7 @@ class Geoserver:
             except Exception as e:
                 raise Exception(e)
 
-    def layer_exists(self, layer_name: str, workspace: str = None):
+    def layer_exists(self, layer_name: str, workspace: str):
         """
         Returns the layer by layer name.
         """
@@ -210,7 +210,8 @@ class Geoserver:
         self,
         store: str,
         pg_table: str,
-        workspace: str = None,
+        workspace: str,
+        *args
     ):
         """
         Parameters
@@ -230,9 +231,16 @@ class Geoserver:
                 self.service_url, workspace, store
             )
 
+            bounding_box = ""
+            if args:
+                bounding_box = ("<nativeBoundingBox><minx>{}</minx><maxx>{}</maxx><miny>{}</miny><maxy>{}</maxy></nativeBoundingBox><latLonBoundingBox><minx>{}</minx><maxx>{}</maxx><miny>{}</miny><maxy>{}</maxy></latLonBoundingBox>".format(
+                    *args, *args
+                )
+            )
+
             layer_xml = (
-                "<featureType><name>{}</name><title>{}</title></featureType>".format(
-                    pg_table, pg_table
+                "<featureType><name>{}</name><title>{}</title>{}</featureType>".format(
+                    pg_table, pg_table, bounding_box
                 )
             )
 
@@ -254,16 +262,82 @@ class Geoserver:
         except Exception as e:
             raise Exception(e)
 
+    def style_layers(self, layer:str, workspace: str):
+        try:
+            url = "{}/rest/layers/{}:{}".format(
+            self.service_url, workspace, layer
+            )
+            style = "<layer><defaultStyle><name>phes_generic</name></defaultStyle></layer>"
+            headers = {"content-type": "text/xml"}
+
+            r = requests.put(
+                url,
+                data=style,
+                auth=(self.username, self.password),
+                headers=headers,
+            )
+
+            if r.status_code == 200:
+                return "Status code: {}, style layer".format(r.status_code)
+            else:
+                raise GeoserverException(r.status_code, r.content)
+        except Exception as e:
+            raise Exception(e)
+
+
+    def delete_layer(self, layer_name: str, workspace: str):
+        """
+        Parameters
+        ----------
+        layer_name : str
+        workspace : str
+        """
+        try:
+            payload = {"recurse": "true"}
+            url = "{}/rest/workspaces/{}/layers/{}".format(
+                self.service_url, workspace, layer_name
+            )
+            r = self._requests(method="delete", url=url, params=payload)
+            if r.status_code == 200:
+                return "Status code: {}, delete layer".format(r.status_code)
+            else:
+                raise GeoserverException(r.status_code, r.content)
+
+        except Exception as e:
+            raise Exception(e)
+
+    def extend_bounding_box(self, workspace: str, store: str, layer: str):
+        """
+        Parameters
+        ----------
+        workspace : str
+        store_name : str
+        layer: str
+        """
+        try:
+            url = "{}/rest/workspaces/{}/datastores/{}/featuretypes/{}.json".format(
+                self.service_url, workspace, store, layer
+            )
+            r = requests.get(url, auth=(self.username, self.password))
+            if r.status_code == 200:
+                bounding_box = r.json()["featureType"]["nativeBoundingBox"]
+                self.delete_layer(layer, workspace)
+                self.publish_layer(store, layer, workspace, bounding_box["minx"] - 1, bounding_box["maxx"] + 1, bounding_box["miny"] - 1, bounding_box["maxy"] + 1)
+                return
+            else:
+                raise GeoserverException(r.status_code, r.content)
+
+        except Exception as e:
+            raise Exception(e)
+
 
 def main(csvs_path, postgres_pw, phes_type, country):
-
-
-    # assert phes_type in ["Greenfield", "Bluefield", "Brownfield", "Ocean"], (
-    #     'PHES_type must be "Greenfield", "Bluefield", "Brownfield" or "Ocean" but was'
-    #     + phes_type
-    # )
+    assert phes_type in ["Greenfield", "Bluefield", "Brownfield", "Ocean"], (
+        'PHES_type must be "Greenfield", "Bluefield", "Brownfield" or "Ocean" but was'
+        + phes_type
+    )
+    
     geo = Geoserver("https://re100.anu.edu.au/geoserver", username="admin", password="Geoserver_admin_re100")
-    # print(geo.get_layers("global_ocean"))
 
     workspace = country.lower() + "_" + phes_type.lower()
     store = workspace + "_store"
@@ -287,9 +361,12 @@ def main(csvs_path, postgres_pw, phes_type, country):
     path_to_csvs = Path(csvs_path) / "csvs"
     for pth in path_to_csvs.iterdir():
         layer = get_layer_name(pth.stem[:-8])
-        print("publishing ", layer)
+        print("publishing", layer)
         assert not geo.layer_exists(layer, workspace=workspace)
         geo.publish_layer(workspace=workspace, store=store, pg_table=layer)
+        geo.extend_bounding_box(workspace=workspace, store=store, layer=layer)
+        geo.style_layers(layer=layer, workspace=workspace)
+
 
 if __name__ == "__main__":
     import argparse
