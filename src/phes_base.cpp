@@ -153,10 +153,6 @@ double calculate_tunnel_cost(double power, double head, double seperation){
 	return ((power_slope_factor*MIN(power,800)+slope_int)*pow(head,head_coeff)*seperation*1000)+(power_offset*MIN(power,800)+tunnel_fixed);
 }
 
-// When LINEAR_EXTRAPOLATE is `true`, the power house and tunnel cost and linearly extrapolated
-// When it is `false`, the power house and tunnel costs are double the cost with half the head and power 
-#define LINEAR_EXTRAPOLATE false
-
 void set_FOM(Pair* pair){
 	double seperation = pair->distance;
 	double head = (double)pair->head;
@@ -166,20 +162,9 @@ void set_FOM(Pair* pair){
 	double tunnel_cost;
 	double power_house_cost;
 	if (head > 800) {
-		if (LINEAR_EXTRAPOLATE) {
-			double power_house_cost_800m = calculate_power_house_cost(power, 800);
-			double power_house_cost_1600m = 2*calculate_power_house_cost(power/2, 800);
-			double tunnel_cost_800m = calculate_tunnel_cost(power, 800, seperation);
-			double tunnel_cost_1600m = 2*calculate_tunnel_cost(power/2, 800, seperation);
-			power_house_cost = (power_house_cost_1600m - power_house_cost_800m)/800*head + 2*power_house_cost_800m-power_house_cost_1600m;
-			tunnel_cost = (tunnel_cost_1600m - tunnel_cost_800m)/800*head + 2*tunnel_cost_800m-tunnel_cost_1600m;
-			power_cost = 0.001*(power_house_cost+tunnel_cost)/MIN(power, 800);
-		}
-		else { // Double half the cost
-			power_house_cost = 2*calculate_power_house_cost(power/2, head/2);
-			tunnel_cost = 2*calculate_tunnel_cost(power/2, head/2, seperation);
-			power_cost = 0.001*(power_house_cost+tunnel_cost)/MIN(power, 800);
-		}
+		power_house_cost = 2*calculate_power_house_cost(power/2, head/2);
+		tunnel_cost = 2*calculate_tunnel_cost(power/2, head/2, seperation);
+		power_cost = 0.001*(power_house_cost+tunnel_cost)/MIN(power, 800);
 	}
 	else {
 		power_house_cost = calculate_power_house_cost(power, head);
