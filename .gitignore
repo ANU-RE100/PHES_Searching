@@ -13,3 +13,4 @@ build
 .cache
 compile_commands.json
 variables
+tools/TN_debugging.cpp
