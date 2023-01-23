@@ -25,14 +25,14 @@ void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_t
 	}
 }
 
-string find_world_urban_filename(GeographicCoordinate point){
+string find_world_utm_filename(GeographicCoordinate point){
 	char clat = 'A'+floor((point.lat+96)/8);
 	if(clat>=73)clat++;
 	if(clat>=79)clat++;
 	int nlon = floor((point.lon+180)/6+1);
 	char strlon[3];
 	snprintf(strlon, 3, "%02d", nlon);
-	return "input/WORLD_URBAN/"+string(strlon)+string(1, clat)+"_hbase_human_built_up_and_settlement_extent_geographic_30m.tif";
+	return string(strlon)+string(1, clat);
 }
 
 Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
@@ -44,7 +44,9 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 			search_config.logger.debug("Using world urban data as filter");
 			vector<string> done;
 			for(GeographicCoordinate corner: DEM->get_corners()){
-				string urban_filename = find_world_urban_filename(corner);
+				string urban_filename = "input/filters/WORLD_URBAN/"+find_world_utm_filename(corner)+"_hbase_human_built_up_and_settlement_extent_geographic_30m.tif";
+        if (!file_exists(file_storage_location+urban_filename))
+           urban_filename = "input/WORLD_URBAN/"+find_world_utm_filename(corner)+"_hbase_human_built_up_and_settlement_extent_geographic_30m.tif";
 				if(find(done.begin(), done.end(), urban_filename)==done.end()){
 					read_tif_filter(file_storage_location+urban_filename, filter, 201);
 					done.push_back(urban_filename);
@@ -52,7 +54,7 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 			}
 		}else if(filename=="use_tiled_filter"){
 			search_config.logger.debug("Using tiled filter");
-			GridSquare sc = {(int)((filter->get_coordinate(filter->nrows(), filter->ncols()).lat+filter->get_origin().lat)/2.0)-1,(int)((filter->get_coordinate(filter->nrows(), filter->ncols()).lon+filter->get_origin().lon)/2.0)};
+			GridSquare sc = {convert_to_int(FLOOR((filter->get_coordinate(filter->nrows(), filter->ncols()).lat+filter->get_origin().lat)/2.0)),convert_to_int(FLOOR((filter->get_coordinate(filter->nrows(), filter->ncols()).lon+filter->get_origin().lon)/2.0))};
 			GridSquare neighbors[9] = {
 				(GridSquare){sc.lat  ,sc.lon  },
 				(GridSquare){sc.lat+1,sc.lon-1},
@@ -64,12 +66,16 @@ Model<bool>* read_filter(Model<short>* DEM, vector<string> filenames)
 				(GridSquare){sc.lat-1,sc.lon-1},
 				(GridSquare){sc.lat  ,sc.lon-1}};
 			for(int i = 0; i<9; i++){
-				try{
-					read_shp_filter(file_storage_location+"input/shapefile_tiles/"+str(neighbors[i])+"_shapefile_tile.shp", filter);
-				}catch(int e){
-					if(i==0)
-						exit(1);
-				}
+        string shp_filename = file_storage_location+"input/shapefile_tiles/"+str(neighbors[i])+"_shapefile_tile.shp";
+        if(file_exists(shp_filename))
+          read_shp_filter(shp_filename, filter);
+        else{
+          search_config.logger.debug("Couldn't find file " + shp_filename);
+          search_config.logger.debug(to_string(i));
+          if(i==0)
+            throw(1);
+
+        }
 			}
 		}else{
 			read_shp_filter(file_storage_location+filename, filter);
@@ -315,11 +321,19 @@ static Model<bool>* find_pour_points(Model<bool>* streams, Model<char>* flow_dir
 		for (int col = border; col <  border+pour_points->ncols()-2*border; col++)
 			if (streams->get(row,col)) {
 				ArrayCoordinate downstream = ArrayCoordinate_init(row+directions[flow_directions->get(row,col)].row,col+directions[flow_directions->get(row,col)].col, GeographicCoordinate_init(0,0));
-				if ( flow_directions->check_within(downstream.row, downstream.col) &&
-					DEM_filled->get(row,col)-DEM_filled->get(row,col)%contour_height>DEM_filled->get(downstream.row,downstream.col)) {
-						pour_points->set(row,col,true);
-						pour_point_count++;
-					}
+        if ( flow_directions->check_within(downstream.row, downstream.col)){
+          if(DEM_filled->get(row,col) >= 0){
+            if(DEM_filled->get(row,col)-DEM_filled->get(row,col)%contour_height>DEM_filled->get(downstream.row,downstream.col)) {
+              pour_points->set(row,col,true);
+              pour_point_count++;
+            }
+          } else {
+            if(DEM_filled->get(row,col)+DEM_filled->get(row,col)%contour_height>DEM_filled->get(downstream.row,downstream.col)) {
+              pour_points->set(row,col,true);
+              pour_point_count++;
+            }
+          }
+        }
 			}
 	search_config.logger.debug("Number of dam sites = "+  to_string(pour_point_count));
 	return pour_points;
@@ -330,7 +344,7 @@ static RoughGreenfieldReservoir model_greenfield_reservoir(ArrayCoordinate pour_
 				  Model<int>* modelling_array, int iterator)
 {
 
-	RoughGreenfieldReservoir reservoir = RoughReservoir(pour_point, (int)(DEM_filled->get(pour_point.row,pour_point.col)));
+	RoughGreenfieldReservoir reservoir = RoughReservoir(pour_point, convert_to_int(DEM_filled->get(pour_point.row,pour_point.col)));
 
 	double area_at_elevation[max_wall_height+1] = {0};
 	double cumulative_area_at_elevation[max_wall_height+1] = {0};
@@ -343,7 +357,7 @@ static RoughGreenfieldReservoir model_greenfield_reservoir(ArrayCoordinate pour_
 		ArrayCoordinate p = q.front();
 		q.pop();
 
-		int elevation = (int)(DEM_filled->get(p.row,p.col));
+		int elevation = convert_to_int(DEM_filled->get(p.row,p.col));
 		int elevation_above_pp = MAX(elevation - reservoir.elevation, 0);
 
 		update_reservoir_boundary(reservoir.shape_bound, p, elevation_above_pp);
@@ -358,7 +372,7 @@ static RoughGreenfieldReservoir model_greenfield_reservoir(ArrayCoordinate pour_
 			ArrayCoordinate neighbor = {p.row+directions[d].row, p.col+directions[d].col, p.origin};
 			if (flow_directions->check_within(neighbor.row, neighbor.col) &&
 			    flow_directions->flows_to(neighbor, p) &&
-			    ((int)(DEM_filled->get(neighbor.row,neighbor.col)-DEM_filled->get(pour_point.row,pour_point.col)) < max_wall_height) ) {
+			    (convert_to_int(DEM_filled->get(neighbor.row,neighbor.col)-DEM_filled->get(pour_point.row,pour_point.col)) < max_wall_height) ) {
 				q.push(neighbor);
 			}
 		}
@@ -373,18 +387,18 @@ static RoughGreenfieldReservoir model_greenfield_reservoir(ArrayCoordinate pour_
 	while (!q.empty()) {
 		ArrayCoordinate p = q.front();
 		q.pop();
-		int elevation = (int)(DEM_filled->get(p.row,p.col));
+		int elevation = convert_to_int(DEM_filled->get(p.row,p.col));
 		int elevation_above_pp = MAX(elevation - reservoir.elevation,0);
 		for (uint d=0; d<directions.size(); d++) {
 			ArrayCoordinate neighbor = {p.row+directions[d].row, p.col+directions[d].col, p.origin};
 			if (flow_directions->check_within(neighbor.row, neighbor.col)){
 				if(flow_directions->flows_to(neighbor, p) &&
-			    ((int)(DEM_filled->get(neighbor.row,neighbor.col)-DEM_filled->get(pour_point.row,pour_point.col)) < max_wall_height) ) {
+          (convert_to_int(DEM_filled->get(neighbor.row,neighbor.col)-DEM_filled->get(pour_point.row,pour_point.col)) < max_wall_height) ) {
 					q.push(neighbor);
 				}
 				if ((directions[d].row * directions[d].col == 0) // coordinate orthogonal directions
 				    && (modelling_array->get(neighbor.row,neighbor.col) < iterator ) ){
-					dam_length_at_elevation[MIN(MAX(elevation_above_pp, (int)(DEM_filled->get(neighbor.row,neighbor.col)-reservoir.elevation)),max_wall_height)] +=find_orthogonal_nn_distance(p, neighbor);	//WE HAVE PROBLEM IF VALUE IS NEGATIVE???
+					dam_length_at_elevation[MIN(MAX(elevation_above_pp, convert_to_int(DEM_filled->get(neighbor.row,neighbor.col)-reservoir.elevation)),max_wall_height)] +=find_orthogonal_nn_distance(p, neighbor);	//WE HAVE PROBLEM IF VALUE IS NEGATIVE???
 				}
 			}
 		}
@@ -700,7 +714,9 @@ int main(int nargs, char **argv) {
   unsigned long start_usec = walltime_usec();
   unsigned long t_usec = start_usec;
 
+  mkdir(convert_string(file_storage_location + "output"), 0777);
   mkdir(convert_string(file_storage_location + "output/reservoirs"), 0777);
+  mkdir(convert_string(file_storage_location + "processing_files"), 0777);
   mkdir(convert_string(file_storage_location + "processing_files/reservoirs"), 0777);
 
   if (search_config.search_type.not_existing()) {

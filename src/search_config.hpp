@@ -48,6 +48,8 @@ class SearchType {
       switch (value) {
       case OCEAN:
         return "ocean_";
+      case BULK_EXISTING:
+        return "existing_";
       default:
         return "";
       }
@@ -90,6 +92,8 @@ class Logger {
     level logging_level = DEBUG;
 };
 
+string format_for_filename(string s);
+
 class SearchConfig {
   public:
     SearchType search_type;
@@ -120,12 +124,14 @@ class SearchConfig {
         search_type = SearchType::PIT;
         adj = 1;
         arg1 = argv[1 + adj];
+        name = arg1;
         if (nargs > 2 + adj)
           logger = Logger(argv[2 + adj]);
       } else if (arg1.compare("reservoir") == 0) {
         search_type = SearchType::SINGLE_EXISTING;
         adj = 1;
         arg1 = argv[1 + adj];
+        name = arg1;
         if (nargs > 2 + adj)
           logger = Logger(argv[2 + adj]);
       } else {
@@ -136,6 +142,7 @@ class SearchConfig {
             logger = Logger(argv[3 + adj]);
         } catch (exception &e) {
           search_type = SearchType::SINGLE_EXISTING;
+          name = arg1;
           if (nargs > 2 + adj)
             logger = Logger(argv[2 + adj]);
         }
@@ -145,7 +152,7 @@ class SearchConfig {
     std::string filename(){
       if(search_type.grid_cell())
         return search_type.prefix() + str(grid_square);
-      return search_type.prefix() + name;
+      return search_type.prefix() + format_for_filename(name);
     }
 };
 

@@ -44,7 +44,6 @@ string get_html(Reservoir* reservoir, Pair* pair){
 "              <tr style=\"text-align:center;font-weight:bold;background:#9CBCE2\"><td>"+reservoir->identifier+"</td></tr>"+newline+
 "              <tr><td>"+newline+
 "              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">"+newline+
-(pair != NULL ? "              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>"+newline : "") +
 "              <tr bgcolor=\"#D4E4F3\"><td>Elevation</td><td>"+to_string(reservoir->elevation)+"</td></tr>"+newline+
 "              <tr><td>Depth</td><td>"+dtos(reservoir->dam_height,0)+"</td></tr>"+newline+
 "              <tr bgcolor=\"#D4E4F3\"><td>Latitude</td><td>"+dtos(reservoir->latitude,4)+"</td></tr>"+newline+
@@ -62,12 +61,10 @@ string get_html(Reservoir* reservoir, Pair* pair){
 "              <tr><td>"+newline+
 "              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">"+newline+
 //"              <tr><td>Reservoir Ref.</td><td>"+reservoir->identifier+"</td></tr>"+newline+
-(pair != NULL ? "              <tr><td>Class</td><td>"+string(1,pair->category)+"</td></tr>"+newline : "")+
 "              <tr bgcolor=\"#D4E4F3\"><td>Elevation</td><td>"+to_string(reservoir->elevation)+"</td></tr>"+newline+
 "              <tr><td>Latitude</td><td>"+dtos(reservoir->latitude,4)+"</td></tr>"+newline+
 "              <tr bgcolor=\"#D4E4F3\"><td>Longitude</td><td>"+dtos(reservoir->longitude,4)+"</td></tr>"+newline+
-"              <tr><td>Volume (GL)</td><td>"+dtos(reservoir->volume,1)+"</td></tr>"+newline+
-"              <tr bgcolor=\"#D4E4F3\"><td>Country</td><td>"+reservoir->country+"</td></tr>"+newline+
+"              <tr><td>Country</td><td>"+reservoir->country+"</td></tr>"+newline+
 "              </table></td></tr></table></body></html>\n";
 	}else{
 		return
@@ -118,6 +115,141 @@ string get_html(Pair* pair){
 "              </body>"+newline+
 "              </html>\n";
 }
+
+string get_attributes(Reservoir* reservoir, Pair* pair){
+	// if(reservoir->pit){
+		return
+"        <ExtendedData>\n"
+"          <Data name=\"Identifier\">\n"
+"            <value>"+reservoir->identifier+"</value>\n"
+"          </Data>\n"
+"          <Data name=\"isUpper\">\n"
+"            <value>"+(&(pair->upper)==reservoir ? "1" : "0")+"</value>\n"
+"          </Data>\n"
+// "          <Data name=\"Elevation\">\n"
+// "            <value>"+to_string(reservoir->elevation)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Depth\">\n"
+// "            <value>"+dtos(reservoir->dam_height,0)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Latitude\">\n"
+// "            <value>"+dtos(reservoir->latitude,4)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Longitude\">\n"
+// "            <value>"+dtos(reservoir->longitude,4)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=Volume (GL)>\n"
+// "            <value>"+dtos(reservoir->volume,1)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Country\">\n"
+// "            <value>"+reservoir->country+"</value>\n"
+// "          </Data>\n"
+"        </ExtendedData>\n";
+// } else if(reservoir->brownfield){
+// 		return
+// "        <ExtendedData>\n"
+// "          <Data name=\"Identifier\">\n"
+// "            <value>"+reservoir->identifier+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"isUpper\">\n"
+// "            <value>"+(&(pair->upper)==reservoir ? "1" : "0")+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Elevation\">\n"
+// "            <value>"+to_string(reservoir->elevation)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Latitude\">\n"
+// "            <value>"+dtos(reservoir->latitude,4)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Longitude\">\n"
+// "            <value>"+dtos(reservoir->longitude,4)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Volume (GL)\">\n"
+// "            <value>"+dtos(reservoir->volume,1)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Country\">\n"
+// "            <value>"+reservoir->country+"</value>\n"
+// "          </Data>\n"
+// "        </ExtendedData>\n";
+
+// }else{
+// 		return
+// "        <ExtendedData>\n"
+// "          <Data name=\"Identifier\">\n"
+// "            <value>"+reservoir->identifier+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"isUpper\">\n"
+// "            <value>"+(&(pair->upper)==reservoir ? "1" : "0")+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Elevation\">\n"
+// "            <value>"+to_string(reservoir->elevation)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Latitude\">\n"
+// "            <value>"+dtos(reservoir->latitude,4)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Longitude\">\n"
+// "            <value>"+dtos(reservoir->longitude,4)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Area\">\n"
+// "            <value>"+dtos(reservoir->area,0)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Volume (GL)\">\n"
+// "            <value>"+dtos(reservoir->volume,1)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Dam Wall Height (m)\">\n"
+// "            <value>"+dtos(reservoir->dam_height,1)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Dam Length (m)\">\n"
+// "            <value>"+dtos(reservoir->dam_length,0)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Dam Volume (GL)\">\n"
+// "            <value>"+dtos(reservoir->dam_volume,1)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Water/Rock Ratio\">\n"
+// "            <value>"+dtos(reservoir->water_rock,1)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Country\">\n"
+// "            <value>"+reservoir->country+"</value>\n"
+// "          </Data>\n"
+// "        </ExtendedData>\n";
+// 	}
+}
+
+string get_attributes(Pair* pair){
+	return
+"        <ExtendedData>\n"
+// "          <Data name=\"Identifier\">\n"
+// "            <value>"+pair->identifier+"</value>\n"
+// "          </Data>\n"
+"          <Data name=\"Class\">\n"
+"            <value>"+string(1,pair->category)+"</value>\n"
+"          </Data>\n"
+// "          <Data name=\"Head (m)\">\n"
+// "            <value>"+to_string(pair->head)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Separation (km)\">\n"
+// "            <value>"+dtos(pair->distance,1)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Average Slope (%)\">\n"
+// "            <value>"+dtos(pair->slope*100,0)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Volume (GL)\">\n"
+// "            <value>"+dtos(pair->volume,1)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Water to Rock (Pair)\">\n"
+// "            <value>"+dtos(pair->water_rock,1)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Energy (GWh)\">\n"
+// "            <value>"+energy_capacity_to_string(pair->energy_capacity)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Storage time (h)\">\n"
+// "            <value>"+to_string(pair->storage_time)+"</value>\n"
+// "          </Data>\n"
+// "          <Data name=\"Country\">\n"
+// "            <value>"+pair->country+"</value>\n"
+// "          </Data>\n"
+"       </ExtendedData>\n";
+}
+
 
 string get_reservoir_geometry(Reservoir_KML_Coordinates coordinates){
 	return
@@ -190,6 +322,7 @@ string get_reservoir_kml(Reservoir* reservoir, string colour, Reservoir_KML_Coor
 "            <color>"+colour+"</color>\n"
 "          </PolyStyle>\n"
 "        </Style>\n"
+			+get_attributes(reservoir, pair)
 			+get_reservoir_geometry(coordinates)+
 "        <description>\n"
 "           <![CDATA[\n"
@@ -256,6 +389,7 @@ string get_point_kml(Pair* pair, string coordinates){
 "            <Icon><href>http://maps.google.com/mapfiles/kml/paddle/"+pair->category+".png</href></Icon>\n"
 "          </IconStyle>\n"
 "        </Style>\n"
+			+get_attributes(pair)
 			+get_point_geometry(coordinates)+
 "        <altitudeMode>relativeToGround</altitudeMode>\n"
 "        <description>\n"
