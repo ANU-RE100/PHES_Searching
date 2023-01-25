@@ -206,6 +206,6 @@ GeographicCoordinate get_origin(double latitude, double longitude, int border);
 ExistingReservoir get_existing_reservoir(string name);
 vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square);
 RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r);
-ExistingPit get_pit_details(string pitname);
+vector<ExistingPit> get_pit_details(GridSquare grid_square);
 
 #endif

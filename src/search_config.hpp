@@ -8,21 +8,21 @@
 
 class SearchType {
   public:
-    enum type {GREENFIELD, OCEAN, SINGLE_EXISTING, BULK_EXISTING, PIT};
+    enum type {GREENFIELD, OCEAN, SINGLE_EXISTING, BULK_EXISTING, BULK_PIT};
     constexpr SearchType(type search_type) : value(search_type){}
     constexpr operator type() const { return value; }
 
     bool existing(){
-      return value == SINGLE_EXISTING || value == BULK_EXISTING || value == PIT;
+      return value == SINGLE_EXISTING || value == BULK_EXISTING || value == BULK_PIT;
     }
     bool not_existing(){
       return value == GREENFIELD || value == OCEAN;
     }
     bool grid_cell(){
-      return value == GREENFIELD || value == OCEAN || value == BULK_EXISTING;
+      return value == GREENFIELD || value == OCEAN || value == BULK_EXISTING || value == BULK_PIT;
     }
     bool single(){
-      return value == SINGLE_EXISTING || value == PIT;
+      return value == SINGLE_EXISTING;
     }
 
     // Filename prefix
@@ -30,7 +30,7 @@ class SearchType {
       switch(value){
         case OCEAN:
           return "ocean_";
-        case PIT:
+        case BULK_PIT:
           return "pit_";
         case BULK_EXISTING:
           return "existing_";
@@ -108,14 +108,12 @@ class SearchConfig {
         search_type = SearchType::BULK_EXISTING;
         adj = 1;
         arg1 = argv[1 + adj];
-      }
-      if (arg1.compare("pit") == 0) {
-        search_type = SearchType::PIT;
+      } else if (arg1.compare("bulk_pit") == 0) {
+        search_type = SearchType::BULK_PIT;
         adj = 1;
         arg1 = argv[1 + adj];
-        if (nargs > 2 + adj)
-          logger = Logger(argv[2 + adj]);
-      } else if (arg1.compare("reservoir") == 0) {
+      } 
+      if (arg1.compare("reservoir") == 0) {
         search_type = SearchType::SINGLE_EXISTING;
         adj = 1;
         arg1 = argv[1 + adj];

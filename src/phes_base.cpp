@@ -344,12 +344,17 @@ RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r){
 	return reservoir;
 }
 
-ExistingPit get_pit_details(string pitname){
-	ExistingPit pit;
+vector<ExistingPit> get_pit_details(GridSquare grid_square){
+	vector<ExistingPit> gridsquare_pits;
+	printf("Success 4\n");
+
 	vector<ExistingPit> pits = read_existing_pit_data(convert_string(file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_csv));
 
-	for(ExistingPit p : pits)
-		if(p.reservoir.identifier==pitname)
-			pit = p;
-	return pit;
+	for(ExistingPit p : pits){
+		printf("Success 2\n");
+		if (check_within(GeographicCoordinate_init(p.reservoir.latitude, p.reservoir.longitude), grid_square))
+		printf("Success 3\n");
+			gridsquare_pits.push_back(p);
+	}
+	return gridsquare_pits;
 }

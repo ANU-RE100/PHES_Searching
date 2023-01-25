@@ -3,7 +3,7 @@
 #include "kml.h"
 
 vector<vector<Pair>> pairs;
-ExistingPit pit_details;
+vector<ExistingPit> pit_details;
 
 
 
@@ -110,8 +110,8 @@ int main(int nargs, char **argv)
     if(search_config.search_type.single())
         search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
 
-    if (search_config.search_type == SearchType::PIT)
-        pit_details = get_pit_details(search_config.name);
+    if (search_config.search_type == SearchType::BULK_PIT)
+        pit_details = get_pit_details(search_config.grid_square);
 
     BigModel big_model = BigModel_init(search_config.grid_square);
     vector<string> country_names;
