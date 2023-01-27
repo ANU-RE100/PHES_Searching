@@ -331,6 +331,7 @@ RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r){
 	reservoir.latitude = r.latitude;
 	reservoir.longitude = r.longitude;
 	reservoir.elevation = r.elevation;
+	reservoir.bottom_elevation = r.elevation;
 	for(uint i = 0; i<dam_wall_heights.size(); i++){
 		reservoir.volumes.push_back(r.volume);
 		reservoir.dam_volumes.push_back(0);
@@ -346,14 +347,11 @@ RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r){
 
 vector<ExistingPit> get_pit_details(GridSquare grid_square){
 	vector<ExistingPit> gridsquare_pits;
-	printf("Success 4\n");
 
 	vector<ExistingPit> pits = read_existing_pit_data(convert_string(file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_csv));
 
 	for(ExistingPit p : pits){
-		printf("Success 2\n");
 		if (check_within(GeographicCoordinate_init(p.reservoir.latitude, p.reservoir.longitude), grid_square))
-		printf("Success 3\n");
 			gridsquare_pits.push_back(p);
 	}
 	return gridsquare_pits;

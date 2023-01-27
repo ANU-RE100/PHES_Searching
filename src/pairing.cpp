@@ -94,26 +94,37 @@ double pit_volume(ExistingPit &pit, int bottom_elevation, int top_elevation) {
 bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
                                         RoughReservoir* &lower,
                                         double energy_capacity,
-                                        ExistingPit &pit_details,
+                                        ExistingPit &pit_details_single,
                                         double &required_volume, int &head) {
-  RoughReservoir* greenfield;
+  RoughReservoir* greenfield = upper;
   RoughReservoir* pit = lower;
   if (upper->brownfield) {
     greenfield = lower;
     pit = upper;
   }
-  while (pit->elevation < max_altitude(pit_details.volumes)) {
-    pit->max_dam_height = max_altitude(pit_details.volumes) - pit->elevation;
+  pit->elevation = pit->bottom_elevation; // Reset elevation of pit
+
+  /* for (uint i = 0; i < pit_details_single.volumes.size(); i++) {
+    printf("Alt %d: %d %.2f\n",int(i),pit_details_single.volumes[i].altitude, pit_details_single.volumes[i].volume);
+  } */ // DEBUG
+  //printf("Max: %d %d %d\n",max_altitude(pit_details_single.volumes), pit->elevation, pit->bottom_elevation);
+
+  while (pit->elevation < max_altitude(pit_details_single.volumes)) {
+    pit->max_dam_height = max_altitude(pit_details_single.volumes) - pit->elevation;
     int pit_depth = 0;
     while (pit_depth < pit->max_dam_height) {
+      //printf("success 11 %d %d %.2f\n", pit_depth, pit->elevation, pit->max_dam_height);
       pit_depth += 1;
       double volume =
-          pit_volume(pit_details, pit->elevation, pit->elevation + pit_depth);
+          pit_volume(pit_details_single, pit->elevation, pit->elevation + pit_depth);
+      //printf("success 12, %.2f %.2f %d %d\n", required_volume, volume, int(greenfield->volumes.size()), int(dam_wall_heights.size()));
       double greenfield_wall_height =
           linear_interpolate(volume, greenfield->volumes, dam_wall_heights);
       head = (int)ABS(((0.5 * (double)greenfield_wall_height +
                         (double)greenfield->elevation) -
                        (0.5 * (double)pit_depth + (double)pit->elevation)));
+      
+      //printf("success 13 %d %d %d\n", head, min_head, max_head);
       if (head < min_head || head > max_head)
         continue;
       double head_ratio =
@@ -122,9 +133,12 @@ bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
       // cout << volume << " " << greenfield_wall_height << " " <<
       // greenfield->elevation << " " << pit_depth << " " << pit->elevation << " "
       // << head << " " << head_ratio << "\n";
+
+      //printf("success 14 %.2f %.2f\n", head_ratio, max_head_variability);
       if (head_ratio > (1 + max_head_variability)) {
         break;
       }
+      //printf("success 15 %.2f %.2f\n", volume, find_required_volume(energy_capacity, head));
       if (volume < find_required_volume(energy_capacity, head)) {
         continue;
       }
@@ -147,10 +161,12 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
     return NULL;
 
   if (search_config.search_type == SearchType::BULK_PIT)
-    for (uint i = 0; i < pit_details.size(); i++)
+    for (uint i = 0; i < pit_details.size(); i++) {
       if (!determine_pit_elevation_and_volume(upper, lower, energy_capacity,
-                                          pit_details[i], required_volume, head))
+                                          pit_details[i], required_volume, head)) {
         return NULL;
+      }
+    }
 
   double upper_dam_wall_height = 0;
   double lower_dam_wall_height = 0;
@@ -229,8 +245,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
 
   upper_reservoir.identifier = upper->identifier;
   upper_reservoir.volume = required_volume;
-  // if(upper->brownfield)
-  // 	upper_reservoir.volume = upper->volumes[0];
+  
   if (!upper->brownfield) {
     upper_reservoir.dam_volume = linear_interpolate(
         upper_dam_wall_height, dam_wall_heights, upper->dam_volumes);
@@ -296,7 +311,6 @@ void pairing(vector<unique_ptr<RoughReservoir>> &upper_reservoirs,
     double coslat = COS(RADIANS(upper_reservoir->latitude));
     for (uint ilower = 0; ilower < lower_reservoirs.size(); ilower++) {
       RoughReservoir* lower_reservoir = lower_reservoirs[ilower].get();
-
       int head = upper_reservoir->elevation - lower_reservoir->elevation;
       if (head < min_head || head > max_head)
         continue;
@@ -333,10 +347,12 @@ void pairing(vector<unique_ptr<RoughReservoir>> &upper_reservoirs,
             (category_cutoffs[0].storage_cost * tests[itest].storage_time +
              category_cutoffs[0].power_cost) *
             (1 + tolerance_on_FOM);
+        
         if (check_good_pair(upper_reservoir, lower_reservoir,
                             tests[itest].energy_capacity,
                             tests[itest].storage_time, &temp_pair, max_FOM)) {
           temp_pairs[itest].insert(temp_pair);
+
           if ((int)temp_pairs[itest].size() > max_lowers_per_upper ||
               (search_config.search_type == SearchType::BULK_PIT && temp_pairs[itest].size() > 1))
             temp_pairs[itest].erase(prev(temp_pairs[itest].end()));
@@ -370,15 +386,12 @@ int main(int nargs, char **argv) {
         convert_string(file_storage_location + "processing_files/reservoirs/" +
                        search_config.filename() + "_reservoirs_data.csv"));
     if (search_config.search_type == SearchType::BULK_PIT) {
-      printf("Success 0\n");
       pit_details = get_pit_details(search_config.grid_square);
-      printf("Success 1\n");
     }
   } else
     upper_reservoirs = read_rough_reservoir_data(
         convert_string(file_storage_location + "processing_files/reservoirs/" +
                        str(search_config.grid_square) + "_reservoirs_data.csv"));
-
   search_config.logger.debug("Read in "+to_string(upper_reservoirs.size())+" uppers");
   vector<unique_ptr<RoughReservoir>> lower_reservoirs;
 
@@ -398,8 +411,9 @@ int main(int nargs, char **argv) {
       vector<unique_ptr<RoughReservoir>> temp = read_rough_reservoir_data(convert_string(
           file_storage_location + "processing_files/reservoirs/" +
           search_config.search_type.lowers_prefix() + str(neighbors[i]) + "_reservoirs_data.csv"));
-      for (uint j = 0; j < temp.size(); j++)
+      for (uint j = 0; j < temp.size(); j++){
         lower_reservoirs.push_back(std::move(temp[j]));
+      }
     } catch (int e) {
       search_config.logger.debug("Could not import reservoirs from " +
                                  file_storage_location +

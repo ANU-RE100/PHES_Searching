@@ -3,9 +3,6 @@
 #include "kml.h"
 
 vector<vector<Pair>> pairs;
-vector<ExistingPit> pit_details;
-
-
 
 bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinates, vector<vector<vector<GeographicCoordinate>>>& countries, vector<string>& country_names){
     ExistingReservoir r = get_existing_reservoir(reservoir->identifier);
@@ -109,9 +106,6 @@ int main(int nargs, char **argv)
 
     if(search_config.search_type.single())
         search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
-
-    if (search_config.search_type == SearchType::BULK_PIT)
-        pit_details = get_pit_details(search_config.grid_square);
 
     BigModel big_model = BigModel_init(search_config.grid_square);
     vector<string> country_names;
