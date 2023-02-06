@@ -5,12 +5,14 @@ import requests
 
 DESCRIPTION = "As the proportion of wind and solar photovoltaics (PV) in an electrical grid extends into the 50-100% range a combination of additional long-distance high voltage transmission, demand management and local storage is required for stability. Pumped Hydro Energy Storage (PHES) constitutes 97% of electricity storage worldwide because of its low cost.<p>The <a href='http://re100.eng.anu.edu.au/global'>RE100 Group ANU</a> found about 530,000 potentially feasible PHES sites with storage potential of about 22 million Gigawatt-hours (GWh) by using geographic information system (GIS) analysis. This is about one hundred times greater than required to support a 100% global renewable electricity system. Brownfield sites (existing reservoirs, old mining sites) will be included in a future analysis.</p>This information has been developed by the 100% Renewable Energy group from the Research School of Electrical, Energy and Materials Engineering at the Australia National University.  http://re100.eng.anu.edu.au<p>Potential sites for off-river PHES are identified using GIS algorithms with defined search criteria. The surveyed latitude range is up to 60 degrees north and south. Each identified site comprises an upper and lower reservoir pair plus a hypothetical tunnel route between the reservoirs, and includes data such as latitude, longitude, altitude, head, slope, water volume, water area, rock volume, dam wall length, water/rock ratio, energy storage potential and approximate relative cost (categories A-E).</p><p>Wall heights are adjusted for each reservoir in a pair to yield equal water volumes to achieve the targeted energy storage. Energy (= head * usable volume * g * efficiency) and storage-length combinations are provided in Table 1. The approximate number of people that a reservoirs could service for a 100% renewable electricity grid is listed in the third line.</p><style>  table, th, td {    border: 1px solid black;    padding: 5px;    text-align: center;  }</style><center><table>  <tr>   <th>Energy</th> <th>Duration</th> <th>Millions of people</th> </tr> <tr>   <th>2 GWh</th> <td>6 hours</td> <td>0.1</td>   </tr>  <tr>    <th>5 GWh</th> <td>18 hours</td> <td>0.25</td>   </tr>  <tr>    <th>15 GWh</th> <td>18 hours</td> <td>0.75</td>   </tr>  <tr>    <th>50 GWh</th> <td>50 hours</td> <td>2.5</td>   </tr>  <tr>    <th>150 GWh</th> <td>50 hours</td> <td>7.5</td>   </tr>  <tr>    <th>500 GWh</th> <td>168 hours</td> <td>25</td>   </tr>  <tr>    <th>1500 GWh</th> <td>504 hours</td> <td>75</td>   </tr> </table></center><p>Virtually all upper reservoirs are away from rivers, and none intrude on protected area or urban areas listed in the databases that we use below.  There may be local constraints that prevent use of a particular site that is not reflected in these databases. Please refer to the ANU 100% Renewable Energy website for additional information: http://re100.eng.anu.edu.au/global</p>"
 
+
 # Custom exceptions.
 class GeoserverException(Exception):
     def __init__(self, status, message):
         self.status = status
         self.message = message
         super().__init__(f"Status : {self.status} - {self.message}")
+
 
 class Geoserver:
     """
@@ -45,7 +47,6 @@ class Geoserver:
             return requests.put(url, auth=(self.username, self.password), **kwargs)
         elif method == "delete":
             return requests.delete(url, auth=(self.username, self.password), **kwargs)
-
 
     def workspace_exists(self, workspace):
         """
@@ -125,35 +126,34 @@ class Geoserver:
         except Exception as e:
             raise Exception(e)
 
-
     def create_store(
-            self,
-            store: str,
-            workspace: str,
-            db: str = "postgres",
-            host: str = "localhost",
-            port: int = 5432,
-            pg_user: str = "postgres",
-            pg_password: str = "admin",
-        ):
-            """
-            Create PostGIS store for connecting postgres with geoserver.
-            Parameters
-            ----------
-            store : str
-            workspace : str
-            db : str
-            host : str
-            port : int
-            pg_user : str
-            pg_password : str
-            """
-            try:
-                url = "{}/rest/workspaces/{}/datastores".format(self.service_url, workspace)
+        self,
+        store: str,
+        workspace: str,
+        db: str = "postgres",
+        host: str = "localhost",
+        port: int = 5432,
+        pg_user: str = "postgres",
+        pg_password: str = "admin",
+    ):
+        """
+        Create PostGIS store for connecting postgres with geoserver.
+        Parameters
+        ----------
+        store : str
+        workspace : str
+        db : str
+        host : str
+        port : int
+        pg_user : str
+        pg_password : str
+        """
+        try:
+            url = "{}/rest/workspaces/{}/datastores".format(self.service_url, workspace)
 
-                headers = {"content-type": "text/xml"}
+            headers = {"content-type": "text/xml"}
 
-                database_connection = """
+            database_connection = """
                         <dataStore>
                         <name>{}</name>
                         <connectionParameters>
@@ -166,23 +166,66 @@ class Geoserver:
                         </connectionParameters>
                         </dataStore>
                         """.format(
-                    store, host, port, pg_user, pg_password, db
-                )
+                store, host, port, pg_user, pg_password, db
+            )
 
-                r = self._requests(
-                    "post",
-                    url,
-                    data=database_connection,
-                    headers=headers,
-                )
+            r = self._requests(
+                "post",
+                url,
+                data=database_connection,
+                headers=headers,
+            )
 
-                if r.status_code in [200, 201]:
-                    return "Featurestore created/updated successfully"
-                else:
-                    raise GeoserverException(r.status_code, r.content)
+            if r.status_code in [200, 201]:
+                return "Featurestore created/updated successfully"
+            else:
+                raise GeoserverException(r.status_code, r.content)
 
-            except Exception as e:
-                raise Exception(e)
+        except Exception as e:
+            raise Exception(e)
+
+    def create_raster_store(
+        self,
+        store: str,
+        workspace: str,
+        tif_path: str,
+    ):
+        """
+        Create raster store.
+        """
+        try:
+            url = "{}/rest/workspaces/{}/coveragestores?configure=all".format(
+                self.service_url, workspace
+            )
+
+            headers = {"content-type": "text/xml"}
+
+            database_connection = """
+                        <coverageStore>
+                          <name>{}</name>
+                          <workspace>{}</workspace>
+                          <enabled>true</enabled>
+                          <type>GeoTIFF</type>
+                          <url>{}</url>
+                        </coverageStore>
+                        """.format(
+                store, workspace, tif_path
+            )
+
+            r = self._requests(
+                "post",
+                url,
+                data=database_connection,
+                headers=headers,
+            )
+
+            if r.status_code in [200, 201]:
+                return "Featurestore created/updated successfully"
+            else:
+                raise GeoserverException(r.status_code, r.content)
+
+        except Exception as e:
+            raise Exception(e)
 
     def layer_exists(self, layer_name: str, workspace: str):
         """
@@ -204,13 +247,7 @@ class Geoserver:
         except Exception as e:
             raise Exception(e)
 
-    def publish_layer(
-        self,
-        store: str,
-        pg_table: str,
-        workspace: str,
-        *args
-    ):
+    def publish_layer(self, store: str, pg_table: str, workspace: str, *args):
         """
         Parameters
         ----------
@@ -231,10 +268,9 @@ class Geoserver:
 
             bounding_box = ""
             if args:
-                bounding_box = ("<nativeBoundingBox><minx>{}</minx><maxx>{}</maxx><miny>{}</miny><maxy>{}</maxy></nativeBoundingBox><latLonBoundingBox><minx>{}</minx><maxx>{}</maxx><miny>{}</miny><maxy>{}</maxy></latLonBoundingBox>".format(
+                bounding_box = "<nativeBoundingBox><minx>{}</minx><maxx>{}</maxx><miny>{}</miny><maxy>{}</maxy></nativeBoundingBox><latLonBoundingBox><minx>{}</minx><maxx>{}</maxx><miny>{}</miny><maxy>{}</maxy></latLonBoundingBox>".format(
                     *args, *args
                 )
-            )
 
             layer_xml = (
                 "<featureType><name>{}</name><title>{}</title>{}</featureType>".format(
@@ -260,12 +296,58 @@ class Geoserver:
         except Exception as e:
             raise Exception(e)
 
-    def style_layers(self, layer:str, workspace: str):
+    def publish_raster_layer(
+        self, store: str, workspace: str, layer_name: str, tif_path: str, *args
+    ):
+        """
+        Parameters
+        ----------
+        store : str
+        workspace : str
+        Returns
+        -------
+        """
         try:
-            url = "{}/rest/layers/{}:{}".format(
-            self.service_url, workspace, layer
+            url = "{}/rest/workspaces/{}/coveragestores/{}/coverages".format(
+                self.service_url, workspace, store
             )
-            style = "<layer><defaultStyle><name>phes_generic</name></defaultStyle></layer>"
+
+            bounding_box = ""
+            if args:
+                bounding_box = "<nativeBoundingBox><minx>{}</minx><maxx>{}</maxx><miny>{}</miny><maxy>{}</maxy></nativeBoundingBox><latLonBoundingBox><minx>{}</minx><maxx>{}</maxx><miny>{}</miny><maxy>{}</maxy></latLonBoundingBox>".format(
+                    *args, *args
+                )
+            print(store, workspace)
+
+            tif_pth = Path(tif_path)
+            layer_xml = "<coverage><name>{}</name><nativeName>{}</nativeName><title>{}</title>{}</coverage>".format(
+                layer_name, tif_pth.name[:-4], layer_name, bounding_box
+            )
+
+            headers = {"content-type": "text/xml"}
+
+            r = requests.post(
+                url,
+                data=layer_xml,
+                auth=(self.username, self.password),
+                headers=headers,
+            )
+
+            if r.status_code == 201:
+                return r.status_code
+            else:
+                print("Have you run `write_to_postgres.sh`?")
+                raise GeoserverException(r.status_code, r.content)
+
+        except Exception as e:
+            raise Exception(e)
+
+    def style_layers(self, layer: str, workspace: str):
+        try:
+            url = "{}/rest/layers/{}:{}".format(self.service_url, workspace, layer)
+            style = (
+                "<layer><defaultStyle><name>phes_generic</name></defaultStyle></layer>"
+            )
             headers = {"content-type": "text/xml"}
 
             r = requests.put(
@@ -282,6 +364,27 @@ class Geoserver:
         except Exception as e:
             raise Exception(e)
 
+    def style_heatmap_layers(self, layer: str, workspace: str):
+        try:
+            url = "{}/rest/layers/{}:{}".format(self.service_url, workspace, layer)
+            style = (
+                "<layer><defaultStyle><name>Heatmap</name></defaultStyle></layer>"
+            )
+            headers = {"content-type": "text/xml"}
+
+            r = requests.put(
+                url,
+                data=style,
+                auth=(self.username, self.password),
+                headers=headers,
+            )
+
+            if r.status_code == 200:
+                return "Status code: {}, style layer".format(r.status_code)
+            else:
+                raise GeoserverException(r.status_code, r.content)
+        except Exception as e:
+            raise Exception(e)
 
     def delete_layer(self, layer_name: str, workspace: str):
         """
@@ -320,7 +423,15 @@ class Geoserver:
             if r.status_code == 200:
                 bounding_box = r.json()["featureType"]["nativeBoundingBox"]
                 self.delete_layer(layer, workspace)
-                self.publish_layer(store, layer, workspace, bounding_box["minx"] - 1, bounding_box["maxx"] + 1, bounding_box["miny"] - 1, bounding_box["maxy"] + 1)
+                self.publish_layer(
+                    store,
+                    layer,
+                    workspace,
+                    bounding_box["minx"] - 1,
+                    bounding_box["maxx"] + 1,
+                    bounding_box["miny"] - 1,
+                    bounding_box["maxy"] + 1,
+                )
                 return
             else:
                 raise GeoserverException(r.status_code, r.content)
@@ -348,6 +459,7 @@ def add_reservoir_description(dict, energy, time):
         + "{:g}".format(float(energy * 0.05))
         + " million people. "
     )
+
 
 def create_member(site, country, phes_type, name):
     member = {
@@ -386,7 +498,12 @@ def create_member(site, country, phes_type, name):
     time = int(site.split("_")[1].split("h")[0])
     add_reservoir_description(member["info"][0], energy, time)
     member["name"] = (
-        (name or country + " " + phes_type) + " " + str(energy) + "GWh " + str(time) + "h"
+        (name or country + " " + phes_type)
+        + " "
+        + str(energy)
+        + "GWh "
+        + str(time)
+        + "h"
     )
     member["id"] = country + "_" + phes_type + "_" + site
     member["layers"] = get_layer_name(site)
@@ -401,31 +518,49 @@ def create_member(site, country, phes_type, name):
     return member
 
 
-def main(output_summary_path, postgres_pw, admin_pw, re100_un, phes_type, country, name):
+def main(
+    output_summary_path, postgres_pw, admin_pw, re100_un, phes_type, country, name
+):
     assert phes_type in ["Greenfield", "Bluefield", "Brownfield", "Ocean"], (
         'PHES_type must be "Greenfield", "Bluefield", "Brownfield" or "Ocean" but was'
         + phes_type
     )
     if phes_type in ["Bluefield", "Brownfield"] and not country:
-        var = input("You have not specifed a country for a " + phes_type + " search. Would you like to continue? [y/n]\n")
+        var = input(
+            "You have not specifed a country for a "
+            + phes_type
+            + " search. Would you like to continue? [y/n]\n"
+        )
         if var.lower() != "y":
             quit()
 
     # UPDATE GEOSERVER
 
-    geo = Geoserver("https://re100.anu.edu.au/geoserver", username="admin", password=admin_pw)
+    geo = Geoserver(
+        "https://re100.anu.edu.au/geoserver", username="admin", password=admin_pw
+    )
 
     workspace = country.lower() + "_" + phes_type.lower()
     store = workspace + "_store"
     if geo.workspace_exists(workspace=workspace):
-        var = input("workspace " + workspace + " already exists and will be replaced. If you do not wish to delete please type \'N\', otherwise type any other key.\n")
+        var = input(
+            "workspace "
+            + workspace
+            + " already exists and will be replaced. If you do not wish to delete please type 'N', otherwise type any other key.\n"
+        )
         if var.lower() == "n":
             quit()
         geo.delete_workspace(workspace=workspace)
     geo.create_workspace(workspace=workspace)
 
     assert not geo.store_exists(store=store, workspace=workspace)
-    geo.create_store(store=store, workspace=workspace, db=workspace, pg_user='postgres', pg_password=postgres_pw)
+    geo.create_store(
+        store=store,
+        workspace=workspace,
+        db=workspace,
+        pg_user="postgres",
+        pg_password=postgres_pw,
+    )
 
     path_to_csvs = Path(output_summary_path) / "csvs"
     for pth in path_to_csvs.iterdir():
@@ -436,12 +571,15 @@ def main(output_summary_path, postgres_pw, admin_pw, re100_un, phes_type, countr
         geo.extend_bounding_box(workspace=workspace, store=store, layer=layer)
         geo.style_layers(layer=layer, workspace=workspace)
 
+    # UPDATE SIMPLE.JSON
 
-# UPDATE SIMPLE.JSON
-    
     # Copy locally
     print("Copying locally:")
-    os.system("scp "+re100_un+"@re100.anu.edu.au:/etc/var/www/RE100Map/wwwroot/init/simple.json .")
+    os.system(
+        "scp "
+        + re100_un
+        + "@re100.anu.edu.au:/etc/var/www/RE100Map/wwwroot/init/simple.json ."
+    )
 
     with open("./simple.json", "r") as f:
         simple_json = json.load(f)
@@ -478,7 +616,7 @@ def main(output_summary_path, postgres_pw, admin_pw, re100_un, phes_type, countr
             var = input(
                 "members already exist in "
                 + group["name"]
-                + " and will be replaced. If you do not wish to delete please type \'N\', otherwise type any other key.\n"
+                + " and will be replaced. If you do not wish to delete please type 'N', otherwise type any other key.\n"
             )
             if var.lower() == "n":
                 quit()
@@ -494,7 +632,11 @@ def main(output_summary_path, postgres_pw, admin_pw, re100_un, phes_type, countr
 
     # Copy to re100
     print("Copying to RE100:")
-    os.system("scp ./simple.json "+re100_un+"@re100.anu.edu.au:/etc/var/www/RE100Map/wwwroot/init")
+    os.system(
+        "scp ./simple.json "
+        + re100_un
+        + "@re100.anu.edu.au:/etc/var/www/RE100Map/wwwroot/init"
+    )
 
     # Delete local copy
     os.remove("./simple.json")
@@ -552,5 +694,5 @@ if __name__ == "__main__":
         re100_un=args.re100_username,
         phes_type=args.PHES_type,
         country=args.country,
-        name=args.name  
+        name=args.name,
     )
