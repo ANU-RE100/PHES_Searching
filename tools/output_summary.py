@@ -10,7 +10,7 @@ import pandas as pd
 import xml.etree.cElementTree as ET
 ET.register_namespace("", "http://www.opengis.net/kml/2.2")
 
-FILESIZE = 1000 # In MB
+FILESIZE = 500 # In MB
 
 def byte_len(string):
     """
@@ -46,9 +46,12 @@ def get_site(task):
     task = task.split(" ")
     ns = "n" if int(task[-1]) >= 0 else "s"
     ew = "e" if int(task[-2]) >= 0 else "w"
-    existing = "existing_" if len(task) == 3 else ""
-    # TODO(work for pits as well)
-    return existing+ns+str(abs(int(task[-1]))).zfill(2)+"_"+ew+str(abs(int(task[-2]))).zfill(3)
+    type = ""
+    if task[0] == "bulk_existing":
+        type = "existing_"
+    if task[0] == "ocean":
+        type = "ocean_"
+    return type+ns+str(abs(int(task[-1]))).zfill(2)+"_"+ew+str(abs(int(task[-2]))).zfill(3)
 
 def remove_fullstop(site):
     if "." in site:
@@ -65,7 +68,7 @@ def main(path_to_tasks_file, path_to_final_output_classes, output_path="."):
 
     final_output_classes_path = Path(path_to_final_output_classes)/"final_output_classes"
 
-    output_folder = tasks_file_path.parent/output_path
+    output_folder = Path(output_path)
     if not output_folder.exists():
         output_folder.mkdir(parents=True)
 
@@ -167,20 +170,20 @@ def main(path_to_tasks_file, path_to_final_output_classes, output_path="."):
                 writer.writerow(header)
                 for i in range(int(len(data))):
                     writer.writerow(data[i])
-
-            output_tree = ET.ElementTree(output_kml)
-            grouped_file_path = kmls_folder/(size+"_summary_"+str(kml_file_no)+".kml")
-            output_tree.write(grouped_file_path)
+            if total_size > 0:
+                output_tree = ET.ElementTree(output_kml)
+                grouped_file_path = kmls_folder/(size+"_summary_"+str(kml_file_no)+".kml")
+                output_tree.write(grouped_file_path)
 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description='Split a KML file into <10MB files')
+    parser = argparse.ArgumentParser(description='Summarise output of final_output_classes')
     parser.add_argument('--task_file_path', metavar='task_file_path', required=True,
-                        help='the path to task file')    
+                        help='the path to task file (from working directory)')    
     parser.add_argument('--final_output_classes_path', metavar='final_output_classes_path', required=True,
-                        help='the path to final_output_classes folder')
+                        help='the path to final_output_classes folder (from working directory)')
     parser.add_argument('--output_path', metavar='output_folder_path', default=".",
-                        help='the path to the output folder relative to the kml file')
+                        help='the path to the output results to (from working directory)')
     args = parser.parse_args()
     main(path_to_tasks_file=args.task_file_path, path_to_final_output_classes=args.final_output_classes_path, output_path=args.output_path)
