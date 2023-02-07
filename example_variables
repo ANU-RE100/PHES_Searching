@@ -27,6 +27,7 @@ filter = input/CAPAD/capad.shp;
 filter = input/WPAD/WDPA_Nov2018-shapefile-polygons.shp; 	// Location of shapefile to be tiled
 
 dam_wall_heights = 10, 20, 30, 40, 50, 60, 70, 80, 90, 100;			//  Wall heights to test and export in greenfield search
+pit_heights = 20, 40, 60, 80, 100, 120, 140, 160, 180, 200;         // Test heights within pits for brownfield search
 
 // Pairing
 min_head = 100;					// Minimum head (m) to be considered a potential pair

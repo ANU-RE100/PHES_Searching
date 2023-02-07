@@ -61,6 +61,7 @@ extern double
 
 extern vector<string> filter_filenames;
 extern vector<double> dam_wall_heights; //  Wall heights to test and export
+extern vector<double> pit_heights; // Test heights within pits for brownfield search
 
 // Pairing
 extern int min_head; // Minimum head (m) to be considered a potential pair
