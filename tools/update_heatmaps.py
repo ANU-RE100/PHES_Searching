@@ -4,24 +4,26 @@ import os
 import requests
 from update_map_server import Geoserver
 
-DESCRIPTION = "As the proportion of wind and solar photovoltaics (PV) in an electrical grid extends into the 50-100% range a combination of additional long-distance high voltage transmission, demand management and local storage is required for stability. Pumped Hydro Energy Storage (PHES) constitutes 97% of electricity storage worldwide because of its low cost.<p>The <a href='http://re100.eng.anu.edu.au/global'>RE100 Group ANU</a> found about 530,000 potentially feasible PHES sites with storage potential of about 22 million Gigawatt-hours (GWh) by using geographic information system (GIS) analysis. This is about one hundred times greater than required to support a 100% global renewable electricity system. Brownfield sites (existing reservoirs, old mining sites) will be included in a future analysis.</p>This information has been developed by the 100% Renewable Energy group from the Research School of Electrical, Energy and Materials Engineering at the Australia National University.  http://re100.eng.anu.edu.au<p>Potential sites for off-river PHES are identified using GIS algorithms with defined search criteria. The surveyed latitude range is up to 60 degrees north and south. Each identified site comprises an upper and lower reservoir pair plus a hypothetical tunnel route between the reservoirs, and includes data such as latitude, longitude, altitude, head, slope, water volume, water area, rock volume, dam wall length, water/rock ratio, energy storage potential and approximate relative cost (categories A-E).</p><p>Wall heights are adjusted for each reservoir in a pair to yield equal water volumes to achieve the targeted energy storage. Energy (= head * usable volume * g * efficiency) and storage-length combinations are provided in Table 1. The approximate number of people that a reservoirs could service for a 100% renewable electricity grid is listed in the third line.</p><style>  table, th, td {    border: 1px solid black;    padding: 5px;    text-align: center;  }</style><center><table>  <tr>   <th>Energy</th> <th>Duration</th> <th>Millions of people</th> </tr> <tr>   <th>2 GWh</th> <td>6 hours</td> <td>0.1</td>   </tr>  <tr>    <th>5 GWh</th> <td>18 hours</td> <td>0.25</td>   </tr>  <tr>    <th>15 GWh</th> <td>18 hours</td> <td>0.75</td>   </tr>  <tr>    <th>50 GWh</th> <td>50 hours</td> <td>2.5</td>   </tr>  <tr>    <th>150 GWh</th> <td>50 hours</td> <td>7.5</td>   </tr>  <tr>    <th>500 GWh</th> <td>168 hours</td> <td>25</td>   </tr>  <tr>    <th>1500 GWh</th> <td>504 hours</td> <td>75</td>   </tr> </table></center><p>Virtually all upper reservoirs are away from rivers, and none intrude on protected area or urban areas listed in the databases that we use below.  There may be local constraints that prevent use of a particular site that is not reflected in these databases. Please refer to the ANU 100% Renewable Energy website for additional information: http://re100.eng.anu.edu.au/global</p>"
+DESCRIPTION = """
+Solar and wind play major roles in decarbonising the energy system. But where are the best sites?
+
+In our high-resolution heat maps, an indicative cost of electricity (in AUD/MWh) is calculated for each pixel (1km x 1km for solar and 250m x 250m for wind), comprising the cost of energy from a solar/wind farm PLUS an associated powerline connecting the solar/wind farm to the existing and planned high voltage transmission network.
+
+Access to transmission is currently the largest constraint for solar/wind farms. Heat maps identify the potential of all prospective areas close to the transmission network and are much more useful than solar and wind data alone.
+
+Our heat maps provide detailed qualitative and quantitative information about prospective places for solar and wind farms. They balance knowledge between developers and landholders. They empower landholders and local Government to identify prospective area and facilitate collective bargaining with developers.
+
+The maps use colours to show the lowest indicative costs for wind or solar. The example below shows the area around Tamworth for the low-cost, overhead transmission line scenario for solar farms. The lowest indicative cost is in red, pink shows the second lowest costs, and the unsuitable areas within urban areas and the surrounding National Parks are shown in green.
+"""
 
 
-def add_reservoir_description(dict, energy, time):
-    dict["content"] = (
-        "This information has been developed by the 100% Renewable Energy group from the Research School of Electrical, Energy and Materials Engineering at the Australia National University.  http://re100.eng.anu.edu.au<p>These sites will store "
-        + str(energy)
-        + " GWh of electricity which will discharge over "
-        + str(time)
-        + " hours yielding "
-        + str(round(energy / time, 1))
-        + " GW of power. Each pair of reservoirs would provide sufficient energy for "
-        + "{:g}".format(float(energy * 0.05))
-        + " million people. "
-    )
+def add_description(dict):
+    dict[
+        "content"
+    ] = "This information has been developed by the 100% Renewable Energy group from the Research School of Electrical, Energy and Materials Engineering at the Australia National University.  http://re100.eng.anu.edu.au"
 
 
-def create_member(site, country, phes_type, name):
+def create_member(country, heatmap_type, heatmap_cost, transmission_type, name):
     member = {
         "type": "wms",
         "info": [
@@ -30,50 +32,61 @@ def create_member(site, country, phes_type, name):
             },
             {
                 "name": "Disclaimer",
-                "content": "None of the PHES sites discussed in this study have been the subject of geological, hydrological, environmental, heritage and other studies, and it is not known whether any particular site would be suitable. The commercial feasibility of developing these sites is unknown. As with all major engineering projects, diligent attention to quality assurance would be required for safety and efficacy.<p>There has been no investigation of land tenure apart from exclusion of some environmental areas and urban areas, and no discussions with land owners and managers. Nothing in this list of potential site locations implies any rights for development of these locations. Accuracy of the sites depends on the accuracy of the source data. There may be sites that fall into local protected areas or urban areas that are not identified by the source data.</p>",
+                "content": """None of the solar or wind sites discussed in this study have been the subject of any other studies, and it is not known whether any particular site would be suitable. The commercial feasibility of developing these sites is unknown. As with all major engineering projects, diligent attention to quality assurance would be required for safety and efficacy. The publicly available datasets used for this work contain inaccuracies – results should be viewed as indicative.
+
+There has been no investigation of land tenure apart from exclusion of some environmental areas and urban areas (which are marked as “Unsuitable” and assigned a value of 0 in the maps), and no discussions with land owners and managers. The heat maps do not imply any rights for development at any location. Accuracy of the sites depends on the accuracy of the source data. The indicative costs are assumed to be constant within a pixel, which is 1km x 1km for solar heat maps and 250m x 250m for wind heat maps. There may be pixels that are not marked as “Unsuitable” in the heat maps but fall into protected areas or urban areas that are not identified by the source data.
+
+Only transmission lines with rating 275kV and higher were included except for Tasmania (220 kV).
+Transmission constraints were not included in the study. Substation costs were not included in
+indicative costs.""",
             },
             {
                 "name": "Access and acknowledgements",
                 "content": "In publications that use this information please acknowledge the RE100 Group, Australian National University, http://re100.eng.anu.edu.au/",
             },
-            {
-                "name": "Source Data",
-                "content": "Digital Terrain Model (DTM) https://earthexplorer.usgs.gov/ <p>World Database Protected Areas: https://www.protectedplanet.net/</p> <p>Urban extent:  HBASE http://sedac.ciesin.columbia.edu/data/set/ulandsat-hbase-v1/data-download</p> ",
-            },
+            # {
+            # "name": "Source Data",
+            # "content": "",
+            # },
         ],
         "infoSectionOrder": [
             "Disclaimer",
             "Description",
             "Access and acknowledgements",
-            "Source Data",
+            # "Source Data",
         ],
-        "opacity": 1,
-        "featureInfoTemplate": {
-            "template": "<div>  <style>    tr {background-color: transparent; ! important;}  </style>  {{description}}</div>"
-        },
+        "opacity": 0.7,
+        # "featureInfoTemplate": {
+        # "template": "<div>  <style>    tr {background-color: transparent; ! important;}  </style>  {{description}}</div>"
+        # },
         "tileErrorHandlingOptions": {"ignoreUnknownTileErrors": True},
     }
     country = country or "Global"
-    energy = int(site.split("_")[0].split("G")[0].split(".")[0])
-    time = int(site.split("_")[1].split("h")[0])
-    add_reservoir_description(member["info"][0], energy, time)
+    add_description(member["info"][0])
     member["name"] = (
-        (name or country + " " + phes_type)
+        name
+        or country
         + " "
-        + str(energy)
-        + "GWh "
-        + str(time)
-        + "h"
+        + heatmap_type.lower()
+        + " "
+        + transmission_type.lower()
+        + " "
+        + heatmap_cost.lower()
+        + "-cost"
     )
-    member["id"] = country + "_" + phes_type + "_" + site
-    member["layers"] = get_layer_name(site)
-    member["url"] = (
-        "https://re100.anu.edu.au/geoserver/"
-        + country.lower()
+
+    member["id"] = (
+        country.lower()
         + "_"
-        + phes_type.lower()
-        + "/wms"
+        + transmission_type.lower()
+        + "_"
+        + heatmap_type.lower()
+        + "_"
+        + heatmap_cost.lower()
+        + "-cost_heatmap"
     )
+    member["layers"] = member["id"]
+    member["url"] = "https://re100.anu.edu.au/geoserver/heatmaps/wms"
 
     return member
 
@@ -147,22 +160,35 @@ def main(
 
         group = None
         for g in simple_json["catalog"]:
-            if g["id"] == heatmap_type:
+            if g["id"] == "heatmaps":
                 group = g
                 break
         if not group:
             group = {}
-            group["id"] = heatmap_type
+            group["id"] = "heatmaps"
             group["type"] = "group"
-            group["name"] = (
-                name or "Global " + heatmap_type if not country else heatmap_type
-            )
+            group["name"] = "Heatmaps"
             group["description"] = DESCRIPTION
             group["members"] = []
             simple_json["catalog"].append(group)
+
+        type_group = None
+        for g in group["members"]:
+            if g["id"] == heatmap_type:
+                type_group = g
+                break
+        if not type_group:
+            type_group = {}
+            type_group["id"] = heatmap_type.lower()
+            type_group["type"] = "group"
+            type_group["name"] = heatmap_type
+            type_group["description"] = DESCRIPTION
+            type_group["members"] = []
+            group["members"].append(type_group)
+
         if country:
             new_group = None
-            for g in group["members"]:
+            for g in type_group["members"]:
                 if g["id"] == heatmap_type + "_" + country:
                     new_group = g
                     break
@@ -170,10 +196,10 @@ def main(
                 new_group = {}
                 new_group["type"] = "group"
                 new_group["id"] = heatmap_type + "_" + country
-                new_group["name"] = (name or country + " " + heatmap_type) + " Sites"
+                new_group["name"] = country
                 new_group["description"] = DESCRIPTION
                 new_group["members"] = []
-                group["members"].append(new_group)
+                type_group["members"].append(new_group)
             group = new_group
         if group["members"] != []:
             var = input(
@@ -183,11 +209,22 @@ def main(
             )
             if var.lower() == "n":
                 quit()
-        exit()
 
-        members = []
-        members.append(create_member(pth.stem[:-8], country, heatmap_type, name))
-        group["members"] = members
+        cid = (
+            country.lower()
+            + "_"
+            + transmission_type.lower()
+            + "_"
+            + heatmap_type.lower()
+            + "_"
+            + heatmap_cost.lower()
+            + "-cost_heatmap"
+        )
+        group["members"] = list(filter(lambda g: g["id"] == cid, group["members"]))
+
+        group["members"].append(
+            create_member(country, heatmap_type, heatmap_cost, transmission_type, name)
+        )
 
     with open("./simple.json", "w") as outfile:
         json.dump(simple_json, outfile, indent=2)
