@@ -174,7 +174,7 @@ def main(
 
         type_group = None
         for g in group["members"]:
-            if g["id"] == heatmap_type:
+            if g["id"] == heatmap_type.lower():
                 type_group = g
                 break
         if not type_group:
@@ -189,26 +189,18 @@ def main(
         if country:
             new_group = None
             for g in type_group["members"]:
-                if g["id"] == heatmap_type + "_" + country:
+                if g["id"] == heatmap_type.lower() + "_" + country.lower():
                     new_group = g
                     break
             if not new_group:  # country does not exist, create new group
                 new_group = {}
                 new_group["type"] = "group"
-                new_group["id"] = heatmap_type + "_" + country
+                new_group["id"] = heatmap_type.lower() + "_" + country.lower()
                 new_group["name"] = country
                 new_group["description"] = DESCRIPTION
                 new_group["members"] = []
                 type_group["members"].append(new_group)
             group = new_group
-        if group["members"] != []:
-            var = input(
-                "members already exist in "
-                + group["name"]
-                + " and will be replaced. If you do not wish to delete please type 'N', otherwise type any other key.\n"
-            )
-            if var.lower() == "n":
-                quit()
 
         cid = (
             country.lower()
@@ -220,7 +212,7 @@ def main(
             + heatmap_cost.lower()
             + "-cost_heatmap"
         )
-        group["members"] = list(filter(lambda g: g["id"] == cid, group["members"]))
+        group["members"] = list(filter(lambda g: g["id"] != cid, group["members"]))
 
         group["members"].append(
             create_member(country, heatmap_type, heatmap_cost, transmission_type, name)
