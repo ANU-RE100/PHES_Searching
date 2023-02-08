@@ -233,7 +233,7 @@ vector<unique_ptr<RoughReservoir>> read_rough_reservoir_data(char *filename) {
     GeographicCoordinate gc =
         GeographicCoordinate_init(stod(line[1]), stod(line[2]));
     GeographicCoordinate origin = get_origin(
-        GridSquare_init((int)FLOOR(gc.lat) - EPS, (int)FLOOR(gc.lon) + EPS),
+        GridSquare_init(convert_to_int(FLOOR(gc.lat)), convert_to_int(FLOOR(gc.lon))),
         border);
     unique_ptr<RoughReservoir> reservoir(new RoughReservoir(convert_coordinates(gc, origin), stoi(line[3])));
     for (uint i = 0; i < dam_wall_heights.size(); i++)
@@ -586,15 +586,19 @@ void write_pair_csv(FILE *csv_file, Pair *pair, bool output_FOM) {
   write_to_csv_file(csv_file, line);
 }
 
-void write_total_csv_header(FILE *csv_file) {
-  vector<string> header = {"Grid Identifier", "Number of paired sites",
+void write_summary_csv_header(FILE *csv_file) {
+  vector<string> header = {"Grid Identifier", "Reservoir type",
+                           "Non-overlapping paired sites",
+                           "Total paired sites",
                            "Total potential capacity (GWh)"};
   write_to_csv_file(csv_file, header);
 }
 
-void write_total_csv(FILE *csv_file, string square_name, int num_sites,
-                     int energy_capacity) {
-  vector<string> line = {square_name, to_string(num_sites),
-                         to_string(energy_capacity)};
+void write_summary_csv(FILE *csv_file, string square_name, string test,
+                      int non_overlapping_sites, int num_sites,
+                      int energy_capacity) {
+  string str_num_sites = (num_sites == -1) ? "N/A" : to_string(num_sites);
+  vector<string> line = {square_name, test, to_string(non_overlapping_sites),
+                         str_num_sites, to_string(energy_capacity)};
   write_to_csv_file(csv_file, line);
 }

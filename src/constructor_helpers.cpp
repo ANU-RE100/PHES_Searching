@@ -64,6 +64,7 @@ vector<vector<vector<GeographicCoordinate>>> read_countries(string filename, vec
     return relevant_polygons;
 }
 
+
 /*
  * Returns a tuple with the two cells adjacent to an edge defined by two points
  */
@@ -73,15 +74,15 @@ ArrayCoordinate *get_adjacent_cells(ArrayCoordinate point1, ArrayCoordinate poin
 
   ArrayCoordinate *points = (ArrayCoordinate *)malloc(2 * sizeof(ArrayCoordinate));
 
-  if (average_row - (int)average_row > 0.9 || average_row - (int)average_row < 0.1) {
-    points[0] = ArrayCoordinate_init((int)(average_row + EPS), (int)(average_col - 0.5 + EPS),
+  if (abs(average_row-round(average_row))<0.25){
+    points[0] = ArrayCoordinate_init(round(average_row), round(average_col - 0.5),
                                      point1.origin);
-    points[1] = ArrayCoordinate_init((int)(average_row - 1 + EPS), (int)(average_col - 0.5 + EPS),
+    points[1] = ArrayCoordinate_init(round(average_row - 1), round(average_col - 0.5),
                                      point1.origin);
   } else {
-    points[0] = ArrayCoordinate_init((int)(average_row - 0.5 + EPS), (int)(average_col + EPS),
+    points[0] = ArrayCoordinate_init(round(average_row - 0.5), round(average_col),
                                      point1.origin);
-    points[1] = ArrayCoordinate_init((int)(average_row - 0.5 + EPS), (int)(average_col - 1 + EPS),
+    points[1] = ArrayCoordinate_init(round(average_row - 0.5), round(average_col - 1),
                                      point1.origin);
   }
   return points;
@@ -97,15 +98,19 @@ bool is_edge(ArrayCoordinate point1, ArrayCoordinate point2, Model<char>* model,
     if (point2.row+offset.row<0 || point2.col+offset.col<0 || point2.row+offset.row>model->nrows() || point2.col+offset.col>model->ncols())
         return false;
 
+    point1.row += offset.row;
+    point2.row += offset.row;
+    point1.col += offset.col;
+    point2.col += offset.col;
     ArrayCoordinate* to_check = get_adjacent_cells(point1, point2);
 
-    if((!model->check_within(to_check[0].row+offset.row,to_check[0].col+offset.col) && model->get(to_check[1].row+offset.row,to_check[1].col+offset.col)>=threshold)||
-        (!model->check_within(to_check[1].row+offset.row,to_check[1].col+offset.col) && model->get(to_check[0].row+offset.row,to_check[0].col+offset.col)>=threshold))
+    if((!model->check_within(to_check[0].row,to_check[0].col) && model->get(to_check[1].row,to_check[1].col)>=threshold)||
+        (!model->check_within(to_check[1].row,to_check[1].col) && model->get(to_check[0].row,to_check[0].col)>=threshold))
         return true;
 
-    if (model->get(to_check[0].row+offset.row,to_check[0].col+offset.col)<threshold && model->get(to_check[1].row+offset.row,to_check[1].col+offset.col)>=threshold)
+    if (model->get(to_check[0].row,to_check[0].col)<threshold && model->get(to_check[1].row,to_check[1].col)>=threshold)
         return true;
-    if (model->get(to_check[1].row+offset.row,to_check[1].col+offset.col)<threshold && model->get(to_check[0].row+offset.row,to_check[0].col+offset.col)>=threshold)
+    if (model->get(to_check[1].row,to_check[1].col)<threshold && model->get(to_check[0].row,to_check[0].col)>=threshold)
         return true;
 
     return false;
@@ -120,18 +125,7 @@ bool is_dam_wall(ArrayCoordinate point1, ArrayCoordinate point2, Model<short>* D
     if (point2.row<0 || point2.col<0 || point2.row>DEM->nrows() || point2.col>DEM->ncols())
         return false;
 
-    double average_row = (point1.row+point2.row)/2.0;
-    double average_col = (point1.col+point2.col)/2.0;
-
     ArrayCoordinate* to_check = get_adjacent_cells(point1, point2);
-
-    if(average_row-(int)average_row>0.9 || average_row-(int)average_row<0.1){
-        to_check[0] = ArrayCoordinate_init((int)(average_row+EPS),(int)(average_col-0.5+EPS), point1.origin);
-    	to_check[1] = ArrayCoordinate_init((int)(average_row-1+EPS),(int)(average_col-0.5+EPS), point1.origin);
-    }else{
-    	to_check[0] = ArrayCoordinate_init((int)(average_row-0.5+EPS),(int)(average_col+EPS), point1.origin);
-    	to_check[1] = ArrayCoordinate_init((int)(average_row-0.5+EPS),(int)(average_col-1+EPS), point1.origin);
-    }
 
     if(!DEM->check_within(to_check[0].row, to_check[0].col) || !DEM->check_within(to_check[1].row, to_check[1].col))
         return false;
@@ -148,6 +142,7 @@ int testsa[] = {1, 2, 0, 3};
 /*
  * Converts a raster model to a polygon given a raster model and a point on the interior edge of the polygon
  */
+// FIXME threshold should be same type as model
 vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate offset, ArrayCoordinate pour_point, int threshold){
 
     vector<ArrayCoordinate> to_return;
@@ -195,6 +190,9 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
     }
     if(!succesful_path){
       search_config.logger.error("Could not find a succesful path around the polygon.");
+      search_config.logger.debug("Threshold: " + to_string(threshold));
+      model->set(pour_point.row+offset.row, pour_point.col+offset.col, model->get(pour_point.row+offset.row, pour_point.col+offset.col)+100);
+      model->write(to_string(threshold)+"dump.tif", GDT_Byte);
       throw 1;
     }
     return to_return;
@@ -431,12 +429,8 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
     if (full_cur_model->get(adjacent[0].row + offset.row, adjacent[0].col + offset.col) == 2)
       to_check = adjacent[0];
     vector<GeographicCoordinate> polygon;
-    try {
-      polygon = compress_poly(
-          corner_cut_poly(convert_poly(convert_to_polygon(full_cur_model, offset, to_check, 2))));
-    } catch (int e) {
-      return false;
-    }
+    polygon = compress_poly(
+        corner_cut_poly(convert_poly(convert_to_polygon(full_cur_model, offset, to_check, 2))));
     string polygon_string =
         str(polygon, reservoir->elevation + reservoir->dam_height + freeboard);
     coordinates->dam.push_back(polygon_string);

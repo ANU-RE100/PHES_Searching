@@ -32,7 +32,7 @@ int main()
 	parse_variables(convert_string(file_storage_location+"variables"));
 	unsigned long start_usec = walltime_usec();
 
-	vector<GridSquare> tasklist = read_tasklist(convert_string(tasks_file));
+	vector<GridSquare> tasklist = read_tasklist(convert_string(file_storage_location + tasks_file));
 
 	Model<vector<int>>* relevant_polygons = new Model<vector<int>>(180, 360);
 	Model<bool>* to_keep = new Model<bool>(180, 360, MODEL_SET_ZERO);
@@ -121,8 +121,8 @@ int main()
 
 		    SHPWriteObject( SHP, -1, psObject );
 		    SHPDestroyObject( psObject );
-		    delete padfY;
-		    delete padfX;
+		    delete[] padfY;
+		    delete[] padfX;
 	    }
 	    SHPClose(SHP);
 	}

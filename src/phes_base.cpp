@@ -145,21 +145,38 @@ BigModel BigModel_init(GridSquare sc){
 	return big_model;
 }
 
+double calculate_power_house_cost(double power, double head){
+	return powerhouse_coeff*pow(MIN(power,800),(power_exp))/pow(head,head_exp);
+}
+
+double calculate_tunnel_cost(double power, double head, double seperation){
+	return ((power_slope_factor*MIN(power,800)+slope_int)*pow(head,head_coeff)*seperation*1000)+(power_offset*MIN(power,800)+tunnel_fixed);
+}
+
 void set_FOM(Pair* pair){
 	double seperation = pair->distance;
 	double head = (double)pair->head;
 	double power = 1000*pair->energy_capacity/pair->storage_time;
-	double power_house_cost = powerhouse_coeff*pow(MIN(power,800),(power_exp))/pow(head,head_exp);
-	double tunnel_cost = ((power_slope_factor*MIN(power,800)+slope_int)*pow(head,head_coeff)*seperation*1000)+(power_offset*MIN(power,800)+tunnel_fixed);
-	double power_cost = 0.001*(power_house_cost+tunnel_cost)/MIN(power, 800);
-	double energy_cost = dam_cost*1/(pair->water_rock*generation_efficiency * usable_volume*water_density*gravity*pair->head)*J_GWh_conversion/cubic_metres_GL_conversion;
-
-	if(pair->lower.ocean){
-		double total_lining_cost = lining_cost*pair->upper.area*meters_per_hectare;
-		power_house_cost = power_house_cost*sea_power_scaling;
-		double marine_outlet_cost = ref_marine_cost*power*ref_head/(ref_power*head);
-		power_cost = 0.001*((power_house_cost+tunnel_cost)/MIN(power, 800) + marine_outlet_cost/power);
-		energy_cost += 0.000001*total_lining_cost/pair->energy_capacity;
+	double energy_cost = dam_cost*1/(pair->water_rock*generation_efficiency * usable_volume*water_density*gravity*head)*J_GWh_conversion/cubic_metres_GL_conversion;
+	double power_cost;
+	double tunnel_cost;
+	double power_house_cost;
+	if (head > 800) {
+		power_house_cost = 2*calculate_power_house_cost(power/2, head/2);
+		tunnel_cost = 2*calculate_tunnel_cost(power/2, head/2, seperation);
+		power_cost = 0.001*(power_house_cost+tunnel_cost)/MIN(power, 800);
+	}
+	else {
+		power_house_cost = calculate_power_house_cost(power, head);
+		tunnel_cost = calculate_tunnel_cost(power, head, seperation);
+		power_cost = 0.001*(power_house_cost+tunnel_cost)/MIN(power, 800);
+		if(pair->lower.ocean){
+			double total_lining_cost = lining_cost*pair->upper.area*meters_per_hectare;
+			power_house_cost = power_house_cost*sea_power_scaling;
+			double marine_outlet_cost = ref_marine_cost*power*ref_head/(ref_power*head);
+			power_cost = 0.001*((power_house_cost+tunnel_cost)/MIN(power, 800) + marine_outlet_cost/power);
+			energy_cost += 0.000001*total_lining_cost/pair->energy_capacity;
+		}
 	}
 
 	pair->FOM = power_cost+energy_cost*pair->storage_time;
@@ -175,7 +192,7 @@ string energy_capacity_to_string(double energy_capacity){
 	if(energy_capacity<10-EPS)
 		return dtos(energy_capacity,1);
 	else
-		return to_string((int)(energy_capacity+EPS));
+		return to_string(convert_to_int(energy_capacity));
 }
 
 string str(Test test){
@@ -187,11 +204,11 @@ bool file_exists (char* name) {
     return infile.good();
 }
 
-string format_for_filename(string s){
-	replace(s.begin(), s.end(), ' ' , '_');
-	s.erase(remove(s.begin(), s.end(), '"'), s.end());
-	return s;
+bool file_exists (string name) {
+	ifstream infile(name.c_str());
+    return infile.good();
 }
+
 
 GeographicCoordinate get_origin(double latitude, double longitude, int border){
 	return GeographicCoordinate_init(FLOOR(latitude)+1+(border/3600.0),FLOOR(longitude)-(border/3600.0));
@@ -232,7 +249,6 @@ ExistingReservoir get_existing_reservoir(string name) {
   SHPHandle SHP = SHPOpen(convert_string(filename), "rb");
   if (SHP != NULL) {
     int nEntities;
-    vector<vector<GeographicCoordinate>> relevant_polygons;
     SHPGetInfo(SHP, &nEntities, NULL, NULL, NULL);
 
     SHPObject *shape;
@@ -240,8 +256,8 @@ ExistingReservoir get_existing_reservoir(string name) {
     if (shape == NULL) {
       fprintf(stderr, "Unable to read shape %d, terminating object reading.\n",
               i);
+      throw(1);
     }
-    vector<GeographicCoordinate> temp_poly;
     for (int j = 0; j < shape->nVertices; j++) {
       // if(shape->panPartStart[iPart] == j )
       //  break;
@@ -301,9 +317,9 @@ vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square) {
         search_config.logger.debug("Could not find reservoir with id " + names[i]);
       }
       ExistingReservoir reservoir = reservoirs[idx];
-      GeographicCoordinate gc = GeographicCoordinate_init(reservoir.latitude, reservoir.longitude);
-      if(!check_within(gc, grid_square))
-        continue;
+      //GeographicCoordinate gc = GeographicCoordinate_init(reservoir.latitude, reservoir.longitude);
+      //if(!check_within(gc, grid_square))
+        //continue;
       vector<GeographicCoordinate> temp_poly;
       for (int j = 0; j < shape->nVertices; j++) {
         // if(shape->panPartStart[iPart] == j )
@@ -312,7 +328,14 @@ vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square) {
             GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
         reservoir.polygon.push_back(temp_point);
       }
+      bool overlaps_grid_cell = false;
+      for(GeographicCoordinate gc : reservoir.polygon)
+        if(check_within(gc, grid_square)){
+          overlaps_grid_cell = true;
+          break;
+        }
       SHPDestroyObject(shape);
+      if(overlaps_grid_cell)
         to_return.push_back(reservoir);
     }
   } else {

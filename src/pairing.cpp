@@ -1,3 +1,4 @@
+#include "coordinates.h"
 #include "phes_base.h"
 #include "reservoir.h"
 #include "search_config.hpp"
@@ -41,18 +42,22 @@ vector<GeographicCoordinate> find_points_to_test(RoughReservoir* &reservoir,
 
 double find_least_distance_sqd(RoughReservoir* upper, RoughReservoir* &lower,
                                double upper_wall_height, double lower_wall_height,
-                               ArrayCoordinate upper_pour_point, ArrayCoordinate lower_pour_point) {
+                               ArrayCoordinate* upper_pour_point, ArrayCoordinate* lower_pour_point) {
   double mindist2 = INF;
   vector<GeographicCoordinate> upper_points =
-      find_points_to_test(upper, upper_wall_height, upper_pour_point);
+      find_points_to_test(upper, upper_wall_height, *upper_pour_point);
   vector<GeographicCoordinate> lower_points =
-      find_points_to_test(lower, lower_wall_height, lower_pour_point);
+      find_points_to_test(lower, lower_wall_height, *lower_pour_point);
 
   for (uint iu = 0; iu < upper_points.size(); iu++) {
     GeographicCoordinate p1 = upper_points[iu];
     for (uint il = 0; il < lower_points.size(); il++) {
       GeographicCoordinate p2 = lower_points[il];
-      mindist2 = MIN(mindist2, find_distance_sqd(p1, p2));
+      if (mindist2 > find_distance_sqd(p1, p2)){
+        mindist2 = find_distance_sqd(p1, p2);
+        *upper_pour_point = convert_coordinates(p1,upper_pour_point->origin);
+        *lower_pour_point = convert_coordinates(p2,lower_pour_point->origin);
+      }
     }
   }
 
@@ -112,10 +117,9 @@ bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
           pit_volume(pit_details_single, pit->elevation, pit->elevation + pit_depth);
       double greenfield_wall_height =
           linear_interpolate(volume, greenfield->volumes, dam_wall_heights);
-      head = (int)ABS(((0.5 * (double)greenfield_wall_height +
+      head = convert_to_int(ABS(((0.5 * (double)greenfield_wall_height +
                         (double)greenfield->elevation) -
-                       (0.5 * (double)pit_depth + (double)pit->elevation)));
-      
+                       (0.5 * (double)pit_depth + (double)pit->elevation))));
       if (head < min_head || head > max_head)
         continue;
       double head_ratio =
@@ -235,10 +239,14 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
 
   double least_distance = find_least_distance_sqd(
       upper, lower, upper_dam_wall_height,
-      lower_dam_wall_height, upper_coordinates, lower_coordinates);
+      lower_dam_wall_height, &upper_coordinates, &lower_coordinates);
 
   if (SQ(head * 0.001) < least_distance * SQ(min_slope)) {
     return NULL;
+  }
+
+  if(search_config.search_type==SearchType::OCEAN){
+    lower->pour_point=lower_coordinates;
   }
 
   Reservoir upper_reservoir = Reservoir_init(upper->pour_point, upper->elevation);
@@ -379,21 +387,19 @@ int main(int nargs, char **argv) {
   parse_variables(convert_string(file_storage_location + "variables"));
 
   vector<unique_ptr<RoughReservoir>> upper_reservoirs;
-  if (search_config.search_type.existing()) {
-    if((search_config.search_type != SearchType::BULK_EXISTING) && (search_config.search_type != SearchType::BULK_PIT))
+  vector<unique_ptr<RoughReservoir>> lower_reservoirs;
+  
+  if (search_config.search_type.single()) {
       search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
-    upper_reservoirs = read_rough_reservoir_data(
-        convert_string(file_storage_location + "processing_files/reservoirs/" +
-                       search_config.filename() + "_reservoirs_data.csv"));
+      upper_reservoirs = read_rough_reservoir_data(
+          convert_string(file_storage_location + "processing_files/reservoirs/" +
+                         search_config.filename() + "_reservoirs_data.csv"));
     if (search_config.search_type == SearchType::BULK_PIT) {
       pit_details = get_pit_details(search_config.grid_square);
-    }
   } else
     upper_reservoirs = read_rough_reservoir_data(
         convert_string(file_storage_location + "processing_files/reservoirs/" +
                        str(search_config.grid_square) + "_reservoirs_data.csv"));
-  search_config.logger.debug("Read in "+to_string(upper_reservoirs.size())+" uppers");
-  vector<unique_ptr<RoughReservoir>> lower_reservoirs;
 
   GridSquare neighbors[9] = {
       (GridSquare){search_config.grid_square.lat, search_config.grid_square.lon},
@@ -406,22 +412,28 @@ int main(int nargs, char **argv) {
       (GridSquare){search_config.grid_square.lat - 1, search_config.grid_square.lon - 1},
       (GridSquare){search_config.grid_square.lat, search_config.grid_square.lon - 1}};
 
+  set<string> lower_ids;
   for (int i = 0; i < 9; i++) {
     try {
       vector<unique_ptr<RoughReservoir>> temp = read_rough_reservoir_data(convert_string(
           file_storage_location + "processing_files/reservoirs/" +
           search_config.search_type.lowers_prefix() + str(neighbors[i]) + "_reservoirs_data.csv"));
-      for (uint j = 0; j < temp.size(); j++){
+
+      for (uint j = 0; j < temp.size(); j++) {
+        if (search_config.search_type == SearchType::BULK_EXISTING &&
+            lower_ids.contains(temp[j]->identifier))
+          continue;
+        lower_ids.insert(temp[j]->identifier);
         lower_reservoirs.push_back(std::move(temp[j]));
       }
     } catch (int e) {
-      search_config.logger.debug("Could not import reservoirs from " +
-                                 file_storage_location +
+      search_config.logger.debug("Could not import reservoirs from " + file_storage_location +
                                  "processing_files/reservoirs/" +
-                                 search_config.search_type.lowers_prefix() +
-                                 str(neighbors[i]) + "_reservoirs_data.csv");
+                                 search_config.search_type.lowers_prefix() + str(neighbors[i]) +
+                                 "_reservoirs_data.csv");
     }
   }
+  search_config.logger.debug("Read in "+to_string(upper_reservoirs.size())+" uppers");
   search_config.logger.debug("Read in " + to_string(lower_reservoirs.size()) + " lowers");
 
   mkdir(convert_string(file_storage_location + "output/pairs"), 0777);
