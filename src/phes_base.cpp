@@ -1,5 +1,6 @@
 #include "phes_base.h"
 #include "coordinates.h"
+#include "search_config.hpp"
 
 int convert_to_int(double f)
 {
@@ -380,10 +381,18 @@ vector<ExistingPit> get_pit_details(GridSquare grid_square){
 	return gridsquare_pits;
 }
 
-void depression_volume_finding(GridSquare grid_square) {
-	Model<short>* DEM = read_DEM_with_borders(grid_square, border);
-	int min_elevation = 100000000;
-	int max_elevation = 0;
+ExistingPit get_pit_details(string pitname){
+	ExistingPit pit;
+	vector<ExistingPit> pits = read_existing_pit_data(convert_string(file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_csv));
+
+	for(ExistingPit p : pits){
+		if (p.reservoir.identifier==pitname)
+			pit = p;
+	}
+	return pit;
+}
+
+void depression_volume_finding(Model<short>* DEM) {
 	vector<vector<string> > csv_modified_lines;
 	vector<int> csv_modified_line_numbers;
 	string filename = file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv;
@@ -405,6 +414,7 @@ void depression_volume_finding(GridSquare grid_square) {
 		search_config.logger.debug("No file: " + filename);
 		throw(1);
 	}
+	
 	SHPHandle SHP = SHPOpen(convert_string(filename), "rb");
 	if (SHP != NULL) {
 		int nEntities;
@@ -415,7 +425,8 @@ void depression_volume_finding(GridSquare grid_square) {
 		for(int i = 0; i<nEntities; i++){
 			Model<bool>* extent = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 			extent->set_geodata(DEM->get_geodata());
-
+			short min_elevation = 32767;
+			short max_elevation = 0;
 			vector<string> csv_modified_line(2*num_altitude_volume_pairs+2);
 
 			shape = SHPReadObject(SHP, i);
@@ -434,7 +445,7 @@ void depression_volume_finding(GridSquare grid_square) {
 				
 			ExistingReservoir reservoir = reservoirs[idx];
 			GeographicCoordinate gc = GeographicCoordinate_init(reservoir.latitude, reservoir.longitude);
-			if(!check_within(gc, grid_square)) {
+			if(!check_within(gc, search_config.grid_square)) {
 				SHPDestroyObject(shape);
 				delete extent;
 				continue;
@@ -502,7 +513,7 @@ void depression_volume_finding(GridSquare grid_square) {
 		cout << "Could not read shapefile " << filename << endl;
 		throw(1);
 	}
-	SHPClose(SHP);				
+	SHPClose(SHP);			
 
 	// Write the altitude-volume pairs to the CSV
 	std::ifstream inputFile(file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv);

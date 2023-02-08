@@ -4,6 +4,7 @@
 #include "search_config.hpp"
 
 vector<ExistingPit> pit_details;
+ExistingPit single_pit_details;
 
 vector<int> pairs;
 
@@ -154,16 +155,21 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
       (max(lower->volumes) < required_volume)) {
     return NULL;
   }
+  ExistingPit single_pit;
 
   if (search_config.search_type == SearchType::BULK_PIT) {
-    ExistingPit single_pit = pit_details[0];
+    single_pit = pit_details[0];
     for (uint i = 0; i < pit_details.size(); i++) {
       if (upper->brownfield && pit_details[i].reservoir.identifier == upper->identifier)         
         single_pit = pit_details[i];
       else if (lower->brownfield && pit_details[i].reservoir.identifier == lower->identifier)
         single_pit = pit_details[i];
     }
+  } else if (search_config.search_type == SearchType::SINGLE_PIT) {
+    single_pit = single_pit_details;
+  }
 
+  if (search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT) {
     if (!determine_pit_elevation_and_volume(upper, lower, energy_capacity,
                                           single_pit, required_volume, head)) {
       return NULL;
@@ -183,17 +189,14 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
                                              dam_wall_heights,
                                              upper->dam_volumes);
   } else {
-    if (search_config.search_type == SearchType::BULK_PIT)
-      for (uint i = 0; i < pit_details.size(); i++) {
-        upper_dam_wall_height =
-          linear_interpolate(required_volume +
-                                 pit_volume(pit_details[i],
-                                            pit_details[i].reservoir.elevation,
+    if (search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT)
+      upper_dam_wall_height = linear_interpolate(required_volume +
+                                 pit_volume(single_pit,
+                                            single_pit.reservoir.elevation,
                                             upper->elevation),
-                             get_volumes(pit_details[i]),
-                             int_to_double_vector(get_altitudes(pit_details[i]))) -
+                             get_volumes(single_pit),
+                             int_to_double_vector(get_altitudes(single_pit))) -
           upper->elevation;
-      }
     else
       upper_dam_wall_height = dam_wall_heights[0];
     upper_water_rock_estimate = INF;
@@ -206,17 +209,15 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
                                              dam_wall_heights,
                                              lower->dam_volumes);
   } else {
-    if (search_config.search_type==SearchType::BULK_PIT)
-      for (uint i = 0; i < pit_details.size(); i++) {
-        lower_dam_wall_height =
+    if (search_config.search_type==SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT)
+      lower_dam_wall_height =
           linear_interpolate(required_volume +
-                                 pit_volume(pit_details[i],
-                                            pit_details[i].reservoir.elevation,
+                                 pit_volume(single_pit,
+                                            single_pit.reservoir.elevation,
                                             lower->elevation),
-                             get_volumes(pit_details[i]),
-                             int_to_double_vector(get_altitudes(pit_details[i]))) -
+                             get_volumes(single_pit),
+                             int_to_double_vector(get_altitudes(single_pit))) -
           lower->elevation;
-      }
     else
       lower_dam_wall_height = dam_wall_heights[0];
     lower_water_rock_estimate = INF;
@@ -362,7 +363,8 @@ void pairing(vector<unique_ptr<RoughReservoir>> &upper_reservoirs,
           temp_pairs[itest].insert(temp_pair);
 
           if ((int)temp_pairs[itest].size() > max_lowers_per_upper ||
-              (search_config.search_type == SearchType::BULK_PIT && temp_pairs[itest].size() > 1))
+              ((search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT)&& 
+              temp_pairs[itest].size() > 1))
             temp_pairs[itest].erase(prev(temp_pairs[itest].end()));
         }
       }
@@ -397,6 +399,8 @@ int main(int nargs, char **argv) {
                          search_config.filename() + "_reservoirs_data.csv"));
     if (search_config.search_type == SearchType::BULK_PIT) {
       pit_details = get_pit_details(search_config.grid_square);
+    } else if (search_config.search_type == SearchType::SINGLE_PIT) {
+      single_pit_details = get_pit_details(search_config.name);
     }
   } else
     upper_reservoirs = read_rough_reservoir_data(
