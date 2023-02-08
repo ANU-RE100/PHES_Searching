@@ -389,13 +389,15 @@ int main(int nargs, char **argv) {
   vector<unique_ptr<RoughReservoir>> upper_reservoirs;
   vector<unique_ptr<RoughReservoir>> lower_reservoirs;
   
-  if (search_config.search_type.single()) {
+  if (search_config.search_type.existing()) {
+    if (search_config.search_type.single()) 
       search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
-      upper_reservoirs = read_rough_reservoir_data(
+    upper_reservoirs = read_rough_reservoir_data(
           convert_string(file_storage_location + "processing_files/reservoirs/" +
                          search_config.filename() + "_reservoirs_data.csv"));
     if (search_config.search_type == SearchType::BULK_PIT) {
       pit_details = get_pit_details(search_config.grid_square);
+    }
   } else
     upper_reservoirs = read_rough_reservoir_data(
         convert_string(file_storage_location + "processing_files/reservoirs/" +
@@ -420,9 +422,10 @@ int main(int nargs, char **argv) {
           search_config.search_type.lowers_prefix() + str(neighbors[i]) + "_reservoirs_data.csv"));
 
       for (uint j = 0; j < temp.size(); j++) {
-        if (search_config.search_type == SearchType::BULK_EXISTING &&
-            lower_ids.contains(temp[j]->identifier))
+        if ((search_config.search_type == SearchType::BULK_EXISTING || search_config.search_type == SearchType::BULK_PIT) &&
+            lower_ids.contains(temp[j]->identifier)) 
           continue;
+        
         lower_ids.insert(temp[j]->identifier);
         lower_reservoirs.push_back(std::move(temp[j]));
       }
