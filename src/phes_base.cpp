@@ -331,6 +331,7 @@ RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r){
 	reservoir.latitude = r.latitude;
 	reservoir.longitude = r.longitude;
 	reservoir.elevation = r.elevation;
+	reservoir.bottom_elevation = r.elevation;
 	for(uint i = 0; i<dam_wall_heights.size(); i++){
 		reservoir.volumes.push_back(r.volume);
 		reservoir.dam_volumes.push_back(0);
@@ -344,12 +345,187 @@ RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r){
 	return reservoir;
 }
 
-ExistingPit get_pit_details(string pitname){
-	ExistingPit pit;
+vector<ExistingPit> get_pit_details(GridSquare grid_square){
+	vector<ExistingPit> gridsquare_pits;
+
 	vector<ExistingPit> pits = read_existing_pit_data(convert_string(file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_csv));
 
-	for(ExistingPit p : pits)
-		if(p.reservoir.identifier==pitname)
-			pit = p;
-	return pit;
+	for(ExistingPit p : pits){
+		if (check_within(GeographicCoordinate_init(p.reservoir.latitude, p.reservoir.longitude), grid_square))
+			gridsquare_pits.push_back(p);
+	}
+	return gridsquare_pits;
 }
+
+void depression_volume_finding(GridSquare grid_square) {
+	Model<short>* DEM = read_DEM_with_borders(grid_square, border);
+	int min_elevation = 100000000;
+	int max_elevation = 0;
+	vector<vector<string> > csv_modified_lines;
+	vector<int> csv_modified_line_numbers;
+	string filename = file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv;
+
+	if (!file_exists(convert_string(filename))) {
+		cout << "File " << filename << " does not exist." << endl;
+		throw 1;
+	}
+	vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(filename));
+
+	vector<string> names = read_names(convert_string(
+		file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_shp_names));
+
+	filename = file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_shp;
+
+	char *shp_filename = new char[filename.length() + 1];
+	strcpy(shp_filename, filename.c_str());
+	if (!file_exists(shp_filename)) {
+		search_config.logger.debug("No file: " + filename);
+		throw(1);
+	}
+	SHPHandle SHP = SHPOpen(convert_string(filename), "rb");
+	if (SHP != NULL) {
+		int nEntities;
+		SHPGetInfo(SHP, &nEntities, NULL, NULL, NULL);
+
+		SHPObject *shape;
+
+		for(int i = 0; i<nEntities; i++){
+			Model<bool>* extent = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
+			extent->set_geodata(DEM->get_geodata());
+
+			vector<string> csv_modified_line(2*num_altitude_volume_pairs+2);
+
+			shape = SHPReadObject(SHP, i);
+			if (shape == NULL) {
+				fprintf(stderr, "Unable to read shape %d, terminating object reading.\n", i);
+			}
+			int idx = -1;
+			for (uint r = 0; r < reservoirs.size(); r++) {
+				if (reservoirs[r].identifier == names[i]) {
+					idx = r;
+				}
+			}
+			if (idx < 0) {
+				search_config.logger.debug("Could not find reservoir with id " + names[i]);
+			}
+				
+			ExistingReservoir reservoir = reservoirs[idx];
+			GeographicCoordinate gc = GeographicCoordinate_init(reservoir.latitude, reservoir.longitude);
+			if(!check_within(gc, grid_square)) {
+				SHPDestroyObject(shape);
+				delete extent;
+				continue;
+			}
+			vector<GeographicCoordinate> temp_poly;
+			for (int j = 0; j < shape->nVertices; j++) {
+				GeographicCoordinate temp_point = GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
+				temp_poly.push_back(temp_point);
+					
+			}
+			polygon_to_raster(temp_poly, extent);
+			SHPDestroyObject(shape);
+
+			// Find lowest elevation within mine polygon (pour point)
+			for(int row = 0; row<extent->nrows(); row++)
+				for(int col = 0; col<extent->ncols(); col++){
+					if(extent->get(row, col)) {
+						min_elevation = MIN(DEM->get(row, col), min_elevation);
+						max_elevation = MAX(DEM->get(row,col), max_elevation);
+					}
+				}
+
+			double area_at_elevation[max_elevation + 1] = {0};
+			double volume_at_elevation[max_elevation + 1] = {0};
+			double cumulative_area_at_elevation[max_elevation + 1] = {0};
+			double pit_elevations[num_altitude_volume_pairs] = {0};
+
+			// Determine the elevations for altitude-volume pairs
+			for (int ih = 1; ih <= num_altitude_volume_pairs; ih++) {
+				pit_elevations[ih-1] = min_elevation + std::round(ih * (max_elevation - min_elevation)/num_altitude_volume_pairs);
+			}
+
+			// Find the area of cells within mine polygon at each elevation above the pour point
+			for(int row = 0; row<extent->nrows(); row++)
+				for(int col = 0; col<extent->ncols(); col++)
+					if(extent->get(row, col)){
+						area_at_elevation[min_elevation + 1] += find_area(ArrayCoordinate_init(row, col, DEM->get_origin()));
+					}
+
+			// Find the surface area and volume of reservoir at each elevation above pour point 
+			for (int ih=1; ih<max_elevation+1-min_elevation;ih++) {
+				cumulative_area_at_elevation[min_elevation + ih] = cumulative_area_at_elevation[min_elevation + ih-1] + area_at_elevation[min_elevation + ih];
+				volume_at_elevation[min_elevation + ih] = volume_at_elevation[min_elevation + ih-1] + 0.01*cumulative_area_at_elevation[min_elevation + ih]; // area in ha, vol in GL
+			}
+
+			// Find the altitude-volume pairs for the pit
+			csv_modified_line[0] = to_string(min_elevation);
+			csv_modified_line[1] = to_string(volume_at_elevation[max_elevation]);
+			for (int ih =0 ; ih < num_altitude_volume_pairs; ih++) {
+				int height = pit_elevations[ih];
+				csv_modified_line[2+2*ih] = to_string(height);
+				csv_modified_line[2+2*ih + 1] = to_string(volume_at_elevation[height]);
+			}
+
+			// Add the line to the vector to be written to the pits CSV
+			csv_modified_lines.push_back(csv_modified_line);
+			csv_modified_line_numbers.push_back(i+1);
+
+			//extent->write(file_storage_location+"debug/extent/"+str(search_config.grid_square)+"_extent.tif", GDT_Byte);
+
+			delete extent;
+			temp_poly.clear();
+		}
+	} else {
+		cout << "Could not read shapefile " << filename << endl;
+		throw(1);
+	}
+	SHPClose(SHP);				
+
+	// Write the altitude-volume pairs to the CSV
+	std::ifstream inputFile(file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv);
+	vector<string> lines;
+
+	if (!inputFile.is_open()) {
+		printf("Error opening pits CSV\n");
+	}
+
+	string line;
+	int line_number = 0;
+	while(std::getline(inputFile, line)) {
+		istringstream lineStream(line);
+		string cell;
+		int column = 1;
+		ostringstream modifiedLine;
+
+		while (std::getline(lineStream, cell, ',')) {
+			
+			if (column >= 4 && column <= 5 + 2*num_altitude_volume_pairs && std::count(csv_modified_line_numbers.begin(), csv_modified_line_numbers.end(), line_number)) {
+				std::vector<int>::iterator vector_index_itr = find(csv_modified_line_numbers.begin(), csv_modified_line_numbers.end(), line_number);
+				int vector_index = std::distance(csv_modified_line_numbers.begin(), vector_index_itr);
+				cell = string(csv_modified_lines[vector_index][column-4]); 
+			}
+
+			modifiedLine << cell;
+
+			if (column < 5 + 2*num_altitude_volume_pairs) {
+				modifiedLine << ",";
+			}
+
+			++column;
+		}
+
+		lines.push_back(modifiedLine.str());
+
+		line_number++;
+	}
+
+	inputFile.close();
+
+	std::ofstream outputFile(file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv);
+	for (const auto &line : lines) {
+		outputFile << line << std::endl;
+	}
+
+	outputFile.close();
+}
+
