@@ -28,7 +28,6 @@ double min_max_dam_height;			// Minimum maximum dam height (m) (Before overlappi
 
 vector<string> filter_filenames;
 vector<double> dam_wall_heights; 	//  Wall heights to test and export
-vector<double> pit_heights;			// Test heights within pits for brownfield search
 
 // Pairing
 int min_head;						// Minimum head (m) to be considered a potential pair
@@ -139,13 +138,6 @@ void parse_variables(char* filename){
 				}
 				sort(dam_wall_heights.begin(), dam_wall_heights.end());
 				max_wall_height = dam_wall_heights[dam_wall_heights.size()-1];
-			}
-			if(variable=="pit_heights"){
-				vector<string> heights_temp = read_from_csv_file(value);
-				for(string height_temp : heights_temp){
-					pit_heights.push_back(stod(height_temp));
-				}
-				sort(pit_heights.begin(), pit_heights.end());
 			}
 			if(variable=="test"){
 				vector<string> t = read_from_csv_file(value);

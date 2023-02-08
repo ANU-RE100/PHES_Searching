@@ -393,7 +393,7 @@ void depression_volume_finding(GridSquare grid_square) {
 			Model<bool>* extent = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 			extent->set_geodata(DEM->get_geodata());
 
-			vector<string> csv_modified_line(2*num_altitude_volume_pairs);
+			vector<string> csv_modified_line(2*num_altitude_volume_pairs+2);
 
 			shape = SHPReadObject(SHP, i);
 			if (shape == NULL) {
@@ -440,8 +440,8 @@ void depression_volume_finding(GridSquare grid_square) {
 			double pit_elevations[num_altitude_volume_pairs] = {0};
 
 			// Determine the elevations for altitude-volume pairs
-			for (int ih = 0; ih < num_altitude_volume_pairs; ih++) {
-				pit_elevations[ih] = min_elevation + std::round(ih * (max_elevation - min_elevation)/num_altitude_volume_pairs);
+			for (int ih = 1; ih <= num_altitude_volume_pairs; ih++) {
+				pit_elevations[ih-1] = min_elevation + std::round(ih * (max_elevation - min_elevation)/num_altitude_volume_pairs);
 			}
 
 			// Find the area of cells within mine polygon at each elevation above the pour point
@@ -458,18 +458,19 @@ void depression_volume_finding(GridSquare grid_square) {
 			}
 
 			// Find the altitude-volume pairs for the pit
+			csv_modified_line[0] = to_string(min_elevation);
+			csv_modified_line[1] = to_string(volume_at_elevation[max_elevation]);
 			for (int ih =0 ; ih < num_altitude_volume_pairs; ih++) {
 				int height = pit_elevations[ih];
-				csv_modified_line[2*ih] = to_string(height);
-				csv_modified_line[2*ih + 1] = to_string(volume_at_elevation[height]);
+				csv_modified_line[2+2*ih] = to_string(height);
+				csv_modified_line[2+2*ih + 1] = to_string(volume_at_elevation[height]);
 			}
 
 			// Add the line to the vector to be written to the pits CSV
 			csv_modified_lines.push_back(csv_modified_line);
 			csv_modified_line_numbers.push_back(i+1);
 
-			if (i+1 > 10)
-				extent->write(file_storage_location+"debug/extent/"+str(search_config.grid_square)+"_extent.tif", GDT_Int16); // DEBUG
+			//extent->write(file_storage_location+"debug/extent/"+str(search_config.grid_square)+"_extent.tif", GDT_Byte);
 
 			delete extent;
 			temp_poly.clear();
@@ -498,7 +499,7 @@ void depression_volume_finding(GridSquare grid_square) {
 
 		while (std::getline(lineStream, cell, ',')) {
 			
-			if (column >= 4 && column <= 3 + 2*num_altitude_volume_pairs && std::count(csv_modified_line_numbers.begin(), csv_modified_line_numbers.end(), line_number)) {
+			if (column >= 4 && column <= 5 + 2*num_altitude_volume_pairs && std::count(csv_modified_line_numbers.begin(), csv_modified_line_numbers.end(), line_number)) {
 				std::vector<int>::iterator vector_index_itr = find(csv_modified_line_numbers.begin(), csv_modified_line_numbers.end(), line_number);
 				int vector_index = std::distance(csv_modified_line_numbers.begin(), vector_index_itr);
 				cell = string(csv_modified_lines[vector_index][column-4]); 
@@ -506,7 +507,7 @@ void depression_volume_finding(GridSquare grid_square) {
 
 			modifiedLine << cell;
 
-			if (column < 3 + 2*num_altitude_volume_pairs) {
+			if (column < 5 + 2*num_altitude_volume_pairs) {
 				modifiedLine << ",";
 			}
 
