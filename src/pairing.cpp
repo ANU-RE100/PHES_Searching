@@ -159,6 +159,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
 
   if (search_config.search_type == SearchType::BULK_PIT) {
     single_pit = pit_details[0];
+    
     for (uint i = 0; i < pit_details.size(); i++) {
       if (upper->brownfield && pit_details[i].reservoir.identifier == upper->identifier)         
         single_pit = pit_details[i];
@@ -201,6 +202,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
       upper_dam_wall_height = dam_wall_heights[0];
     upper_water_rock_estimate = INF;
   }
+  
   if (!lower->brownfield && !lower->ocean) {
     lower_dam_wall_height =
         linear_interpolate(required_volume, lower->volumes, dam_wall_heights);
@@ -369,6 +371,7 @@ void pairing(vector<unique_ptr<RoughReservoir>> &upper_reservoirs,
         }
       }
     }
+    
     for (uint itest = 0; itest < tests.size(); itest++) {
       for (Pair pair : temp_pairs[itest]) {
         write_rough_pair_csv(csv_file, &pair);

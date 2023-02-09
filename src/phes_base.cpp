@@ -1,5 +1,6 @@
 #include "phes_base.h"
 #include "coordinates.h"
+#include "model2D.h"
 #include "search_config.hpp"
 
 int convert_to_int(double f)
@@ -329,12 +330,22 @@ vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square) {
             GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
         reservoir.polygon.push_back(temp_point);
       }
+	  // Coordinates in existing_reservoirs_csv are based on geometric centre. 
+	  // Require the same calculation of coordinates here to prevent
+	  // disconnect between reservoirs.csv and existing_reservoirs_csv
       bool overlaps_grid_cell = false;
-      for(GeographicCoordinate gc : reservoir.polygon)
-        if(check_within(gc, grid_square)){
-          overlaps_grid_cell = true;
-          break;
-        }
+	  double centre_gc_lat = 0;
+	  double centre_gc_lon = 0;
+	  
+      for(GeographicCoordinate gc : reservoir.polygon) {
+		centre_gc_lat += gc.lat;
+		centre_gc_lon += gc.lon;
+	  }
+	  GeographicCoordinate centre_gc = GeographicCoordinate_init(centre_gc_lat / reservoir.polygon.size(), centre_gc_lon / reservoir.polygon.size());
+	  if(check_within(centre_gc, grid_square)){
+        overlaps_grid_cell = true;
+      }
+
       SHPDestroyObject(shape);
       if(overlaps_grid_cell)
         to_return.push_back(reservoir);
@@ -373,7 +384,7 @@ vector<ExistingPit> get_pit_details(GridSquare grid_square){
 	vector<ExistingPit> gridsquare_pits;
 
 	vector<ExistingPit> pits = read_existing_pit_data(convert_string(file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_csv));
-
+	
 	for(ExistingPit p : pits){
 		if (check_within(GeographicCoordinate_init(p.reservoir.latitude, p.reservoir.longitude), grid_square))
 			gridsquare_pits.push_back(p);
