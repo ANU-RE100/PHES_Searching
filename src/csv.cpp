@@ -85,6 +85,7 @@ vector<ExistingPit> read_existing_pit_data(char *filename) {
       continue;
     }
     vector<string> line = read_from_csv_file(s);
+    //printf("%s\n",convert_string(line[0]));
     ExistingReservoir reservoir = ExistingReservoir_init(
         line[0], stod(line[1]), stod(line[2]), stod(line[3]), stod(line[4]));
     ExistingPit pit = ExistingPit_init(reservoir);

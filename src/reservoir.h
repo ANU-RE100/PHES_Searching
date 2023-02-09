@@ -20,11 +20,12 @@ class RoughReservoir{
     vector<double> water_rocks;
     double watershed_area;
     double max_dam_height;
+    int bottom_elevation;
 
     RoughReservoir() {};
     virtual ~RoughReservoir() = default;
     RoughReservoir(ArrayCoordinate pour_point, int elevation): brownfield(false),
-    pit(false), elevation(elevation), pour_point(pour_point), max_dam_height(max_wall_height){
+    pit(false), elevation(elevation), pour_point(pour_point), max_dam_height(max_wall_height), bottom_elevation(elevation){
       GeographicCoordinate geo_coordinate = convert_coordinates(pour_point);
       this->latitude = geo_coordinate.lat;
       this->longitude = geo_coordinate.lon;
@@ -67,6 +68,7 @@ struct ExistingReservoir {
   double latitude;
   double longitude;
   int elevation;
+  int bottom_elevation;
   double volume;
   vector<GeographicCoordinate> polygon;
 };

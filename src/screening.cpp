@@ -665,6 +665,23 @@ int main(int nargs, char **argv) {
 		search_config.logger.debug("Found " + to_string(count) + " reservoirs. Runtime: " + to_string(1.0e-6*(walltime_usec() - t_usec)) + " sec");
 		printf(convert_string("Screening finished for "+search_config.search_type.prefix()+str(search_config.grid_square)+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
   } else {
+	// Depression volume finding for pits
+	if (search_config.search_type == SearchType::BULK_PIT) {
+		t_usec = walltime_usec();
+		Model<short> *DEM = read_DEM_with_borders(search_config.grid_square, border);
+		Model<double>* DEM_filled_no_flat = fill(DEM);
+		Model<short>* DEM_filled = new Model<short>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
+		DEM_filled->set_geodata(DEM->get_geodata());
+		for(int row = 0; row<DEM->nrows();row++) {
+			for(int col = 0; col<DEM->ncols();col++) {
+				DEM_filled->set(row, col, convert_to_int(DEM_filled_no_flat->get(row, col)));
+			}
+		}
+
+		depression_volume_finding(DEM_filled);
+		printf(convert_string("Volume finding finished for "+str(search_config.grid_square)+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - t_usec) );
+	}
+
     FILE *csv_file = fopen(convert_string(file_storage_location + "output/reservoirs/" +
                                           search_config.filename() + "_reservoirs.csv"),
                            "w");
@@ -687,14 +704,20 @@ int main(int nargs, char **argv) {
     write_rough_reservoir_data_header(csv_data_file);
 
     vector<ExistingReservoir> existing_reservoirs;
+
     if(search_config.search_type.single())
       existing_reservoirs.push_back(get_existing_reservoir(search_config.name));
     else
       existing_reservoirs = get_existing_reservoirs(search_config.grid_square);
 
-    for(ExistingReservoir r : existing_reservoirs){
+	if (existing_reservoirs.size() < 1) {
+		printf("No existing reservoirs in %s\n",convert_string(str(search_config.grid_square)));
+		exit(0); 
+	}
+	
+	for(ExistingReservoir r : existing_reservoirs){
       RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
-      reservoir.pit = search_config.search_type == SearchType::PIT;
+      reservoir.pit = (search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT);
       write_rough_reservoir_csv(csv_file, reservoir);
       write_rough_reservoir_data(csv_data_file, &reservoir);
     }
