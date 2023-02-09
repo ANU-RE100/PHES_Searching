@@ -158,13 +158,26 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   ExistingPit single_pit;
 
   if (search_config.search_type == SearchType::BULK_PIT) {
-    single_pit = pit_details[0];
-    
     for (uint i = 0; i < pit_details.size(); i++) {
-      if (upper->brownfield && pit_details[i].reservoir.identifier == upper->identifier)         
+      if (upper->brownfield && pit_details[i].reservoir.identifier == upper->identifier) {       
         single_pit = pit_details[i];
-      else if (lower->brownfield && pit_details[i].reservoir.identifier == lower->identifier)
+        break;
+      }
+      else if (lower->brownfield && pit_details[i].reservoir.identifier == lower->identifier) {
         single_pit = pit_details[i];
+        break;
+      }
+      
+      // Throw error if there are no pit details assigned to single_pit
+      if (i == pit_details.size() - 1) {
+        string pit_id = "MISSING ID";
+        if (upper->brownfield)
+          pit_id = upper->identifier;
+        else
+          pit_id = lower->identifier;
+        search_config.logger.debug("No pit details in existing_reservoirs_csv for reservoir with ID: " + pit_id);
+        exit(1);  
+      }    
     }
   } else if (search_config.search_type == SearchType::SINGLE_PIT) {
     single_pit = single_pit_details;
