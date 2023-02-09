@@ -717,7 +717,7 @@ int main(int nargs, char **argv) {
 	
 	for(ExistingReservoir r : existing_reservoirs){
       RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
-      reservoir.pit = search_config.search_type == SearchType::BULK_PIT;
+      reservoir.pit = (search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT);
       write_rough_reservoir_csv(csv_file, reservoir);
       write_rough_reservoir_data(csv_data_file, &reservoir);
     }
