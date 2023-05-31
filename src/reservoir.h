@@ -68,7 +68,7 @@ struct ExistingReservoir {
   double latitude;
   double longitude;
   int elevation;
-  int bottom_elevation;
+  //int bottom_elevation;
   double volume;
   vector<GeographicCoordinate> polygon;
 };
@@ -79,6 +79,7 @@ struct AltitudeVolumePair {
   bool operator<(const AltitudeVolumePair &o) const { return altitude < o.altitude; }
 };
 
+// Delete individual pit functionality???
 struct ExistingPit {
   ExistingReservoir reservoir;
   vector<AltitudeVolumePair> volumes;
