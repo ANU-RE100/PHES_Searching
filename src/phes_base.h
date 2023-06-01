@@ -31,6 +31,11 @@ extern string existing_reservoirs_csv;
 extern string existing_reservoirs_shp;
 extern string existing_reservoirs_shp_names;
 
+// GPKG Tiling
+extern std::string gpkg_path;  // Path to the GPKG file containing global mining tenament polygons
+extern std::string gpkg_layer; // Name of the layer within the GPKG file that is used for tiling
+extern std::string gpkg_tiling_outputs;   // File path and naming convention used for the gpkg tiling output Shapefiles
+
 // General
 extern string file_storage_location; // Where to look for input files and store
                                      // output files

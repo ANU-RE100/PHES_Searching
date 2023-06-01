@@ -7,6 +7,7 @@
 
 using namespace std;
 
+std::string get_mining_tenament_path();
 void depression_volume_finding(Model<short>* DEM);
 double pit_area_calculator(int row, int col, Model<bool> *pit_mask, Model<bool> *seen, Model<bool> *individual_pit_mask, std::vector<GeographicCoordinate> &brownfield_polygon);
 ArrayCoordinate find_lowest_point_pit_lake(Model<bool> *individual_pit_mask);

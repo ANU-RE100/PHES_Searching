@@ -3,6 +3,37 @@
 #include "model2D.h"
 #include "search_config.hpp"
 
+std::string get_mining_tenament_path(){
+	std::string lat_prefix;
+    std::string lon_prefix;
+
+	if (search_config.grid_square.lat >= 0)
+        lat_prefix = "n";
+	else
+        lat_prefix = "s";
+    if (search_config.grid_square.lon >= 0)
+        lon_prefix = "e";
+    else
+        lon_prefix = "w";
+        
+    // Define the latitude/longitude string identifiers
+    std::stringstream ss_lat;
+    std::stringstream ss_lon;
+    ss_lat << std::setw(2) << std::setfill('0') << abs(search_config.grid_square.lat);
+    ss_lon << std::setw(3) << std::setfill('0') << abs(search_config.grid_square.lon);
+    std::string lat_leading = ss_lat.str();
+    std::string lon_leading = ss_lon.str();
+
+    std::string lat_str = lat_prefix + lat_leading;
+    std::string lon_str = lon_prefix + lon_leading;
+
+	string filename = mining_tenament_shp;
+	filename += lat_str + "_" + lon_str + ".shp";
+
+	return filename;
+}
+
+
 // Remove this deprecated functionality???
 void depression_volume_finding(Model<short>* DEM) {
 	vector<vector<string> > csv_modified_lines;
@@ -190,10 +221,10 @@ double pit_area_calculator(int row, int col, Model<bool> *pit_mask, Model<bool> 
 		bool edge_check = false;
 		q.pop();
 
-		if (!pit_mask->get(p.row,p.col)){
-			seen->set(p.row,p.col,1);
+		if (pit_mask->get(p.row,p.col)){
+			seen->set(p.row,p.col,true);
 			
-			individual_pit_mask->set(p.row,p.col,1);
+			individual_pit_mask->set(p.row,p.col,true);
 			pit_lake_area += 10000*find_area(p);
 
 			// Add all perpendicular neighbors to the queue. If at least one prependicular neighbor is outside the mask, p is on the pit edge
@@ -245,7 +276,7 @@ ArrayCoordinate find_lowest_point_pit_lake(Model<bool> *individual_pit_mask) {
 			ArrayCoordinate neighbor = ArrayCoordinate_init(p.row + directions[d].row, p.col + directions[d].col, individual_pit_mask->get_origin());
 			if (directions[d].row * directions[d].col == 0)
 				continue;
-			if ((individual_pit_mask->check_within(neighbor.row,neighbor.col)) || (!individual_pit_mask->get(neighbor.row,neighbor.col))) {
+			if ((!individual_pit_mask->check_within(neighbor.row,neighbor.col)) || (!individual_pit_mask->get(neighbor.row,neighbor.col))) {
 				continue;
 			}
 

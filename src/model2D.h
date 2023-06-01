@@ -106,9 +106,10 @@ public:
   }
 
   double get_slope(int row, int col) {
-    double to_return = 0;
-    double dz_dx = 0; // Change in elevation of the cell along the horizontal axis of the DEM
-    double dz_dy = 0; // Change in elevation of the cell along the vertical axis of the DEM
+    // Slope is calculated according to Horn's algorithm (1981)
+    double to_return = -1000;
+    double dz_dx = -1000; // Change in elevation of the cell along the horizontal axis of the DEM
+    double dz_dy = -1000; // Change in elevation of the cell along the vertical axis of the DEM
 
     // Define the cell horizontal and vertical lengths at this location
     ArrayCoordinate centre_cell = ArrayCoordinate_init(row, col, get_origin());
@@ -118,18 +119,26 @@ public:
     double x_cell_length = find_distance(centre_cell, right_cell, coslat)*1000; // meters
     double y_cell_length = find_distance(centre_cell, upper_cell, coslat)*1000; // meters
 
+    // Cells a - i define a 3x3 2D vector of doubles within the DEM
+    // a b c
+    // d e f
+    // g h i
+
     // Slope of the cell in three dimensions is calculated according to the 3rd order finite differences approach
-    if (row > 0 && col > 0 && row < nrows() - 1 && col < nrows() - 1) {
-      dz_dx = ((get(row - 1, col + 1) - get(row - 1, col - 1)) +
-               2 * (get(row, col + 1) - get(row, col - 1)) +
-               (get(row + 1, col + 1) - get(row + 1, col - 1))) /
-              (8.0 * x_cell_length);
-      dz_dy = ((get(row - 1, col - 1) - get(row + 1, col - 1)) +
-               2 * (get(row - 1, col) - get(row + 1, col)) +
-               (get(row - 1, col + 1) - get(row + 1, col + 1))) /
-              (8.0 * y_cell_length);
+    if ((row > 0) && (col > 0) && (row < nrows() - 1) && (col < nrows() - 1)) {
+      double a = get(row + 1, col - 1);
+      double b = get(row + 1, col);
+      double c = get(row + 1, col + 1);
+      double d = get(row, col - 1);
+      double f = get(row, col + 1);
+      double g = get(row - 1, col - 1);
+      double h = get(row - 1, col);
+      double i = get(row - 1, col + 1);
+      
+      dz_dx = ((c + 2.0*f + i) - (a + 2.0*d + g)) / (8.0 * x_cell_length);
+      dz_dy = ((g + 2.0*h + i) - (a + 2.0*b + c)) / (8.0 * y_cell_length);
       // Calculate the slope of the cell and convert from rads to degrees
-      to_return = atan(pow(dz_dx * dz_dx + dz_dy * dz_dy, 0.5)) * 180.0 / pi;
+      to_return = atan(std::sqrt(dz_dx * dz_dx + dz_dy * dz_dy)) * 180.0 / pi;
     }
 
     return to_return;

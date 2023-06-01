@@ -7,6 +7,12 @@ string existing_reservoirs_csv;
 string existing_reservoirs_shp;
 string existing_reservoirs_shp_names;
 
+// GPKG Tiling
+std::string gpkg_path;  // Path to the GPKG file containing global mining tenament polygons
+std::string gpkg_layer;             // Name of the layer within the GPKG file that is used for tiling
+std::string gpkg_tiling_outputs;   // File path and naming convention used for the gpkg tiling output Shapefiles
+
+
 // General
 string file_storage_location;		// Where to look for input files and store output files
 int border;							// Number of cells to add as border around DEM square
@@ -225,6 +231,12 @@ void parse_variables(char* filename){
 				existing_reservoirs_shp = value;
 			if(variable=="existing_reservoirs_shp_names")
 				existing_reservoirs_shp_names = value;
+			if(variable=="gpkg_path")
+				gpkg_path = value;
+			if(variable=="gpkg_layer")
+				gpkg_layer = value;
+			if(variable=="gpkg_tiling_outputs")
+				gpkg_tiling_outputs = value;
 			if(variable=="tolerance_on_FOM")
 				tolerance_on_FOM = stod(value);
 
