@@ -1,7 +1,10 @@
+#include "mining_pits.h"
 #include "phes_base.h"
 #include "coordinates.h"
 #include "model2D.h"
+#include "polygons.h"
 #include "search_config.hpp"
+#include "polygons.h"
 
 std::string get_mining_tenament_path(){
 	std::string lat_prefix;
@@ -33,183 +36,8 @@ std::string get_mining_tenament_path(){
 	return filename;
 }
 
-
-// Remove this deprecated functionality???
-void depression_volume_finding(Model<short>* DEM) {
-	vector<vector<string> > csv_modified_lines;
-	vector<int> csv_modified_line_numbers;
-	string filename = file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv;
-
-	if (!file_exists(convert_string(filename))) {
-		cout << "File " << filename << " does not exist." << endl;
-		throw 1;
-	}
-	vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(filename));
-
-	vector<string> names = read_names(convert_string(
-		file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_shp_names));
-
-	filename = file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_shp;
-
-	char *shp_filename = new char[filename.length() + 1];
-	strcpy(shp_filename, filename.c_str());
-	if (!file_exists(shp_filename)) {
-		search_config.logger.debug("No file: " + filename);
-		throw(1);
-	}
-	
-	SHPHandle SHP = SHPOpen(convert_string(filename), "rb");
-	if (SHP != NULL) {
-		int nEntities;
-		SHPGetInfo(SHP, &nEntities, NULL, NULL, NULL);
-
-		SHPObject *shape;
-
-		for(int i = 0; i<nEntities; i++){
-			Model<bool>* extent = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
-			extent->set_geodata(DEM->get_geodata());
-			short min_elevation = 32767;
-			short max_elevation = 0;
-			vector<string> csv_modified_line(2*num_altitude_volume_pairs+2);
-
-			shape = SHPReadObject(SHP, i);
-			if (shape == NULL) {
-				fprintf(stderr, "Unable to read shape %d, terminating object reading.\n", i);
-			}
-			int idx = -1;
-			for (uint r = 0; r < reservoirs.size(); r++) {
-				if (reservoirs[r].identifier == names[i]) {
-					idx = r;
-				}
-			}
-			if (idx < 0) {
-				search_config.logger.debug("Could not find reservoir with id " + names[i]);
-			}
-				
-			ExistingReservoir reservoir = reservoirs[idx];
-			GeographicCoordinate gc = GeographicCoordinate_init(reservoir.latitude, reservoir.longitude);
-			if(!check_within(gc, search_config.grid_square)) {
-				SHPDestroyObject(shape);
-				delete extent;
-				continue;
-			}
-			vector<GeographicCoordinate> temp_poly;
-			for (int j = 0; j < shape->nVertices; j++) {
-				GeographicCoordinate temp_point = GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
-				temp_poly.push_back(temp_point);
-					
-			}
-			polygon_to_raster(temp_poly, extent);
-			SHPDestroyObject(shape);
-
-			// Find lowest elevation within mine polygon (pour point)
-			for(int row = 0; row<extent->nrows(); row++)
-				for(int col = 0; col<extent->ncols(); col++){
-					if(extent->get(row, col)) {
-						min_elevation = MIN(DEM->get(row, col), min_elevation);
-						max_elevation = MAX(DEM->get(row,col), max_elevation);
-					}
-				}
-
-			double area_at_elevation[max_elevation + 1] = {0};
-			double volume_at_elevation[max_elevation + 1] = {0};
-			double cumulative_area_at_elevation[max_elevation + 1] = {0};
-			double pit_elevations[num_altitude_volume_pairs] = {0};
-
-			// Determine the elevations for altitude-volume pairs
-			for (int ih = 1; ih <= num_altitude_volume_pairs; ih++) {
-				pit_elevations[ih-1] = min_elevation + std::round(ih * (max_elevation - min_elevation)/num_altitude_volume_pairs);
-			}
-
-			// Find the area of cells within mine polygon at each elevation above the pour point
-			for(int row = 0; row<extent->nrows(); row++)
-				for(int col = 0; col<extent->ncols(); col++)
-					if(extent->get(row, col)){
-						area_at_elevation[min_elevation + 1] += find_area(ArrayCoordinate_init(row, col, DEM->get_origin()));
-					}
-
-			// Find the surface area and volume of reservoir at each elevation above pour point 
-			for (int ih=1; ih<max_elevation+1-min_elevation;ih++) {
-				cumulative_area_at_elevation[min_elevation + ih] = cumulative_area_at_elevation[min_elevation + ih-1] + area_at_elevation[min_elevation + ih];
-				volume_at_elevation[min_elevation + ih] = volume_at_elevation[min_elevation + ih-1] + 0.01*cumulative_area_at_elevation[min_elevation + ih]; // area in ha, vol in GL
-			}
-
-			// Find the altitude-volume pairs for the pit
-			csv_modified_line[0] = to_string(min_elevation);
-			// csv_modified_line[1] = to_string(volume_at_elevation[max_elevation]); // MAIN CODE USE THIS
-			csv_modified_line[1] = to_string(3 + volume_at_elevation[max_elevation]); // ASEAN CODE USE THIS
-			for (int ih =0 ; ih < num_altitude_volume_pairs; ih++) {
-				int height = pit_elevations[ih];
-				csv_modified_line[2+2*ih] = to_string(height);
-				// csv_modified_line[2+2*ih + 1] = to_string(volume_at_elevation[height]); MAIN CODE USE THIS
-				csv_modified_line[2+2*ih + 1] = to_string(3 + volume_at_elevation[height]); // ASEAN CODE USE THIS
-			}
-
-			// Add the line to the vector to be written to the pits CSV
-			csv_modified_lines.push_back(csv_modified_line);
-			csv_modified_line_numbers.push_back(i+1);
-
-			//extent->write(file_storage_location+"debug/extent/"+str(search_config.grid_square)+"_extent.tif", GDT_Byte);
-
-			delete extent;
-			temp_poly.clear();
-		}
-	} else {
-		cout << "Could not read shapefile " << filename << endl;
-		throw(1);
-	}
-	SHPClose(SHP);			
-
-	// Write the altitude-volume pairs to the CSV
-	std::ifstream inputFile(file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv);
-	vector<string> lines;
-
-	if (!inputFile.is_open()) {
-		printf("Error opening pits CSV\n");
-	}
-
-	string line;
-	int line_number = 0;
-	while(std::getline(inputFile, line)) {
-		istringstream lineStream(line);
-		string cell;
-		int column = 1;
-		ostringstream modifiedLine;
-
-		while (std::getline(lineStream, cell, ',')) {
-			
-			if (column >= 4 && column <= 5 + 2*num_altitude_volume_pairs && std::count(csv_modified_line_numbers.begin(), csv_modified_line_numbers.end(), line_number)) {
-				std::vector<int>::iterator vector_index_itr = find(csv_modified_line_numbers.begin(), csv_modified_line_numbers.end(), line_number);
-				int vector_index = std::distance(csv_modified_line_numbers.begin(), vector_index_itr);
-				cell = string(csv_modified_lines[vector_index][column-4]); 
-			}
-
-			modifiedLine << cell;
-
-			if (column < 5 + 2*num_altitude_volume_pairs) {
-				modifiedLine << ",";
-			}
-
-			++column;
-		}
-
-		lines.push_back(modifiedLine.str());
-
-		line_number++;
-	}
-
-	inputFile.close();
-
-	std::ofstream outputFile(file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv);
-	for (const auto &line : lines) {
-		outputFile << line << std::endl;
-	}
-
-	outputFile.close();
-}
-
-double pit_area_calculator(int row, int col, Model<bool> *pit_mask, Model<bool> *seen, Model<bool> *individual_pit_mask, std::vector<GeographicCoordinate> &brownfield_polygon){
-	double pit_lake_area = 0;
+double pit_area_calculator(int row, int col, Model<bool> *pit_mask, Model<bool> *overlap_mask, Model<bool> *seen, Model<bool> *individual_pit_mask, bool &pit_overlap, ArrayCoordinate &pit_new_seed){
+	double pit_area = 0;
 
 	// Find all cells interconnected to within the pit and add them to the individual mask
 	ArrayCoordinate c = ArrayCoordinate_init(row,col,pit_mask->get_origin());
@@ -218,36 +46,35 @@ double pit_area_calculator(int row, int col, Model<bool> *pit_mask, Model<bool> 
 
 	while (!q.empty()) {
 		ArrayCoordinate p = q.front();
-		bool edge_check = false;
 		q.pop();
 
-		if (pit_mask->get(p.row,p.col)){
-			seen->set(p.row,p.col,true);
-			
+		if(seen->get(p.row,p.col))
+			continue;
+
+		seen->set(p.row,p.col,true);
+
+		if(pit_mask->get(p.row,p.col)){			
 			individual_pit_mask->set(p.row,p.col,true);
-			pit_lake_area += 10000*find_area(p);
+			pit_area += find_area(p);
 
-			// Add all perpendicular neighbors to the queue. If at least one prependicular neighbor is outside the mask, p is on the pit edge
+			if(overlap_mask->get(row,col)){
+				pit_overlap = true;
+				pit_new_seed = {row,col,overlap_mask->get_origin()};
+			}
+
+			// Add all perpendicular neighbors to the queue
 			for (uint d=0; d<directions.size(); d++) {
-				if (!pit_mask->get(row,col))
-					edge_check = true;
-
 				ArrayCoordinate neighbor = {p.row+directions[d].row, p.col+directions[d].col, p.origin};
 				if (!pit_mask->check_within(neighbor.row,neighbor.col))
 					continue;
-				if ((directions[d].row * directions[d].col == 0) && !seen->get(neighbor.row,neighbor.col)) {
+				if ((directions[d].row * directions[d].col == 0) && (!seen->get(neighbor.row,neighbor.col))) {
 					q.push(neighbor);
 				}
-			}
-
-			if (edge_check){
-				GeographicCoordinate edge_point = pit_mask->get_coordinate(p.row,p.col);
-				brownfield_polygon.push_back(edge_point);
 			}
 		}
 	}
 
-	return pit_lake_area;
+	return pit_area;
 }
 
 ArrayCoordinate find_lowest_point_pit_lake(Model<bool> *individual_pit_mask) {
@@ -263,6 +90,7 @@ ArrayCoordinate find_lowest_point_pit_lake(Model<bool> *individual_pit_mask) {
             if (!individual_pit_mask->get(row,col)) {
 				ArrayCoordinate bc = ArrayCoordinate_init(row,col,individual_pit_mask->get_origin());
                 q.push(bc);
+				dist[row][col] = 0;
             }
         }
     }
@@ -294,7 +122,7 @@ ArrayCoordinate find_lowest_point_pit_lake(Model<bool> *individual_pit_mask) {
     for(int row = 0; row<individual_pit_mask->nrows();row++) {
 		for(int col = 0; col<individual_pit_mask->ncols();col++) {
             if (dist[row][col] > max_distance) {
-                max_distance = dist[row][col];
+				max_distance = dist[row][col];
                 lowest_point = {row, col, individual_pit_mask->get_origin()};
             }
         }
@@ -326,35 +154,6 @@ double find_volume_pit_lake(double pit_area, int pit_depth) {
 	return pit_volume;
 }
 
-void find_depression_attributes(Model<bool> *individual_pit_mask, Model<short> *DEM, ArrayCoordinate &lowest_point, double &pit_volume, int &depression_elevation, vector<GeographicCoordinate> brownfield_polygon){
-	int lowest_edge_elevation = INT_MAX;
-
-	// Find lowest point on pit edge
-	for (GeographicCoordinate point : brownfield_polygon) {
-		if (DEM->get(point) < lowest_edge_elevation)
-			lowest_edge_elevation = DEM->get(point);
-	}
-	
-	for(int row = 0; row<individual_pit_mask->nrows();row++) {
-		for(int col = 0; col<individual_pit_mask->ncols();col++) {
-            if (!individual_pit_mask->get(row,col)) {
-                continue;
-            }
-			// Find lowest point in depression
-			if (DEM->get(row,col) < depression_elevation){
-				depression_elevation = DEM->get(row,col) < depression_elevation;
-				lowest_point = ArrayCoordinate_init(row,col,DEM->get_origin());
-			}
-			// Calculate volume of depression
-			if (DEM->get(row,col) < lowest_edge_elevation) {
-				ArrayCoordinate c = {row,col,DEM->get_origin()};
-				pit_volume += find_area(c) * (lowest_edge_elevation - DEM->get(row,col));
-			}
-        }
-    }
-	return;
-}
-
 double determine_circularity(Model<bool> *individual_pit_mask, ArrayCoordinate lowest_point, double pit_area){
 	double pit_radius = sqrt(pit_area / pi);
 	double area_in_circle = 0;
@@ -375,4 +174,86 @@ double determine_circularity(Model<bool> *individual_pit_mask, ArrayCoordinate l
 	pit_circularity = area_in_circle / pit_area;
 
 	return pit_circularity;
+}
+
+void model_pit_lakes(PitCharacteristics &pit, Model<bool> *pit_lake_mask, Model<bool> *depression_mask, 
+						Model<bool> *seen_pl, Model<bool> *individual_pit_mask, Model<short> *DEM){
+	int seed_row = pit.seed_point.row;
+	int seed_col = pit.seed_point.col;	
+
+	double pit_lake_area = pit_area_calculator(seed_row, seed_col, pit_lake_mask, depression_mask, seen_pl, individual_pit_mask, pit.pit_overlap, pit.seed_point);
+	pit.pit_area = MAX(pit_lake_area,pit.pit_area);
+	pit.pit_lake_area = pit_lake_area;
+
+	// Estimate the lowest point of the pit lake
+	ArrayCoordinate pit_lake_lowest_point = find_lowest_point_pit_lake(individual_pit_mask);
+
+	// Estimate maximum depth of the pit lake
+	double pit_lake_min_elevation = DEM->get(seed_row,seed_col) - pit_lake_relative_depth * 2*sqrt(pit_lake_area / pi); // Relative depth assumpion x diameter of pit, assuming it is a circle. DEM has equal elevation across entire pit lake.
+	if (pit_lake_min_elevation < pit.pit_min_elevation){
+		pit.lowest_point = pit_lake_lowest_point;
+		pit.pit_min_elevation = pit_lake_min_elevation;
+	}
+	
+	// Estimate the pit volume
+	double pit_lake_depth = DEM->get(seed_row,seed_col) - pit_lake_min_elevation;
+	double pit_lake_volume = find_volume_pit_lake(pit_lake_area, pit_lake_depth);
+	pit.pit_depth = MAX(pit.pit_depth,pit_lake_depth);
+	pit.pit_volume += pit_lake_volume;
+
+	return;
+}
+
+void model_depression(PitCharacteristics &pit, Model<bool> *pit_lake_mask, Model<bool> *depression_mask, 
+						Model<bool> *seen_d, Model<bool> *individual_pit_mask, Model<short> *DEM) {
+
+	int seed_row = pit.seed_point.row;
+	int seed_col = pit.seed_point.col;	
+				
+	double depression_area = pit_area_calculator(seed_row, seed_col, depression_mask, pit_lake_mask, seen_d, individual_pit_mask, pit.pit_overlap, pit.seed_point);
+	pit.pit_area = MAX(depression_area, pit.pit_area);
+				
+	std::vector<GeographicCoordinate> depression_polygon = mask_to_polygon(individual_pit_mask);
+
+	// Find lowest point on pit edge
+	int lowest_edge_elevation = INT_MAX;
+	ArrayCoordinate edge_lowest_point = {-1, -1, DEM->get_origin()};
+
+	for (GeographicCoordinate point : depression_polygon) {
+		if (DEM->get(point) < lowest_edge_elevation){
+			lowest_edge_elevation = DEM->get(point);
+			edge_lowest_point = DEM->get_array_coord(point.lat, point.lon);
+		}
+	}
+	
+	double depression_elevation_sum = 0;
+	double depression_volume = 0;
+	int cell_count = 0;
+
+	for(int row = 0; row<individual_pit_mask->nrows();row++) {
+		for(int col = 0; col<individual_pit_mask->ncols();col++) {
+            if (!individual_pit_mask->get(row,col)) {
+                continue;
+            }
+
+			// Average elevation is used for pit altitude due to sinks in unfilled DEM
+			depression_elevation_sum += DEM->get(row,col);
+			cell_count++;
+
+			// Calculate volume of depression
+			if (DEM->get(row,col) < lowest_edge_elevation) {
+				ArrayCoordinate c = {row,col,DEM->get_origin()};
+				depression_volume += 0.01*find_area(c) * (lowest_edge_elevation - DEM->get(row,col));
+			}
+        }
+    }
+
+	if(depression_elevation_sum / cell_count < pit.pit_min_elevation){
+		pit.pit_min_elevation = depression_elevation_sum / cell_count;
+		pit.lowest_point = edge_lowest_point;
+	}
+	
+	pit.pit_volume += depression_volume;
+
+	return;
 }

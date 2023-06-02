@@ -6,5 +6,6 @@
 vector<double> find_polygon_intersections(int row, vector<GeographicCoordinate> &polygon, Model<bool>* filter);
 void polygon_to_raster(vector<GeographicCoordinate> &polygon, Model<bool>* raster);
 void read_shp_filter(string filename, Model<bool>* filter);
+std::vector<GeographicCoordinate> mask_to_polygon(Model<bool> *mask);
 
 #endif

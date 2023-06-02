@@ -1,4 +1,5 @@
 #include "polygons.h"
+#include "model2D.h"
 
 // find_polygon_intersections returns an array containing the longitude of all line. Assumes last coordinate is same as first
 vector<double> find_polygon_intersections(int row, vector<GeographicCoordinate> &polygon, Model<bool>* filter){
@@ -74,4 +75,25 @@ void read_shp_filter(string filename, Model<bool>* filter){
     	throw(1);
     }
     SHPClose(SHP);
+}
+
+std::vector<GeographicCoordinate> mask_to_polygon(Model<bool> *mask) {
+	std::vector<GeographicCoordinate> polygon;
+
+	for(int row = 0; row<mask->nrows();row++) {
+		for(int col = 0; col<mask->ncols();col++) {
+			if (!mask->get(row,col))
+				continue;
+			for (uint d=0; d<directions.size(); d++) {
+				ArrayCoordinate neighbor = {row+directions[d].row, col+directions[d].col, mask->get_origin()};
+				if (!mask->check_within(neighbor.row,neighbor.col))
+					continue;
+				if ((directions[d].row * directions[d].col == 0) && (!mask->get(neighbor.row,neighbor.col))) {
+					polygon.push_back(mask->get_coordinate(neighbor.row,neighbor.col));
+				}
+			}
+		}
+	}
+
+	return polygon;
 }

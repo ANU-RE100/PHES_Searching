@@ -1,12 +1,14 @@
 #include "coordinates.h"
 #include "model2D.h"
 #include "phes_base.h"
+#include "polygons.h"
 #include "reservoir.h"
 #include "mining_pits.h"
 #include "search_config.hpp"
+#include <array>
 #include <gdal/gdal.h>
 
-bool debug_output = true;
+bool debug_output = false;
 
 void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_to_filter){
 	try{
@@ -288,7 +290,6 @@ static Model<int>* find_flow_accumulation(Model<char>* flow_directions, Model<do
 		ArrayCoordinateWithHeight p = to_check[i];
 		ArrayCoordinateWithHeight downstream = ArrayCoordinateWithHeight_init(p.row+directions[flow_directions->get(p.row,p.col)].row, p.col+directions[flow_directions->get(p.row,p.col)].col,0);
 		if (flow_accumulation->check_within( downstream.row, downstream.col) ){
-			//printf("%4d %4d %3d %3d %2d %2d %1d\n", downstream.row,downstream.col,flow_accumulation->get(p.row,p.col), flow_accumulation->get(p.row,p.col)+1, directions[flow_directions->get(p.row,p.col)].row, directions[flow_directions->get(p.row,p.col)].col, flow_directions->get(p.row,p.col));
 			flow_accumulation->set(downstream.row,downstream.col, flow_accumulation->get(p.row,p.col)+flow_accumulation->get(downstream.row,downstream.col)+1);
 		}
 	}
@@ -534,6 +535,7 @@ model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_points,
 Model<bool> *find_pit_lakes(Model<short> *DEM, Model<bool> *filter){		
 	Model<bool> *pit_lake_mask = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 	pit_lake_mask->set_geodata(DEM->get_geodata());
+
 	for(int row = 1; row<DEM->nrows()-1; row++){
 		for(int col = 1; col<DEM->ncols()-1; col++){
 			if ((DEM->get_slope(row, col) == 0) && (!filter->get(row,col)))
@@ -557,29 +559,76 @@ Model<bool> *find_pit_lakes(Model<short> *DEM, Model<bool> *filter){
 Model<bool> *find_depressions(Model<short> *DEM, Model<short> *DEM_filled, Model<bool> *filter){		
 	Model<bool> *depression_mask = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 	depression_mask->set_geodata(DEM->get_geodata());
+
+	// Build a queue of all neighboring points at same elevation as other points in depressions
+	queue<ArrayCoordinate> q;
+	
 	for(int row = 0; row<DEM->nrows(); row++){
 		for(int col = 0; col<DEM->ncols(); col++){
-			if ((DEM_filled->get(row,col) - DEM->get(row, col) >= depression_depth_min) && (!filter->get(row,col)))
+			if ((DEM_filled->get(row,col) - DEM->get(row, col) >= depression_depth_min) && (!filter->get(row,col))){
 				depression_mask->set(row,col,true);
+
+				for (uint d=0; d<directions.size(); d++) {
+					ArrayCoordinate neighbor = {row+directions[d].row, col+directions[d].col, DEM->get_origin()};
+					if (!depression_mask->check_within(neighbor.row,neighbor.col))
+						continue;
+					if ((directions[d].row * directions[d].col == 0) && (!depression_mask->get(neighbor.row,neighbor.col))
+							&& (DEM->get(neighbor.row,neighbor.col) == DEM->get(row,col))) {
+						q.push(neighbor);
+					}
+				}
+			}
 		}
 	}
+
+	// Add all neighbors that have the same elevation as the rest of the depression to the mask
+	Model<bool> *seen = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
+	seen->set_geodata(DEM->get_geodata());
+
+	while (!q.empty()){
+		ArrayCoordinate p = q.front();
+		q.pop();
+
+		depression_mask->set(p.row,p.col,true);
+
+		for (uint d=0; d<directions.size(); d++) {
+			ArrayCoordinate neighbor = {p.row+directions[d].row, p.col+directions[d].col, DEM->get_origin()};
+			if ((!depression_mask->check_within(neighbor.row,neighbor.col)))
+				continue;
+			if ((directions[d].row * directions[d].col == 0) && (!depression_mask->get(neighbor.row,neighbor.col))
+					&& (DEM->get(neighbor.row,neighbor.col) == DEM->get(p.row,p.col))
+					&& (!seen->get(neighbor.row,neighbor.col))) {
+				q.push(neighbor);
+				seen->set(neighbor.row,neighbor.col,true);
+			}
+		}
+	}
+
+	delete seen;
 
 	return depression_mask;
 }
 
 static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *depression_mask, Model<short> *DEM){
+	Model<bool> *pit_mask_debug = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
+	pit_mask_debug->set_geodata(DEM->get_geodata());
+
 	int res_count = 0;
 	int i = 0;
-	Model <bool>* seen;
+	Model <bool>* seen_pl;
+	Model <bool>* seen_d;
 	FILE *csv_file;
 	FILE *csv_data_file;
 
-	seen = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
-	seen->set_geodata(DEM->get_geodata());
+	seen_pl = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
+	seen_pl->set_geodata(DEM->get_geodata());
+
+	seen_d = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
+	seen_d->set_geodata(DEM->get_geodata());
 
 	// Prepare the reservoir CSV file
 	csv_file =
-			fopen(convert_string(file_storage_location + "output/reservoirs/brownfield_" +
+			fopen(convert_string(file_storage_location + "output/reservoirs/pit_" +
 					str(search_config.grid_square) + "_reservoirs.csv"),
 				"w");
 	if (!csv_file) {
@@ -590,7 +639,7 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 
 	// Prepare the reservoir data CSV file
 	csv_data_file = fopen(
-			convert_string(file_storage_location + "processing_files/reservoirs/brownfield_" +
+			convert_string(file_storage_location + "processing_files/reservoirs/pit_" +
 				str(search_config.grid_square) + "_reservoirs_data.csv"),
 			"w");
 	if (!csv_data_file) {
@@ -602,99 +651,118 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 	// Locate pit lakes based upon interconnected cells on the mask
 	for(int row = 0; row<DEM->nrows();row++) {
 		for(int col = 0; col<DEM->ncols();col++) {	
-			if ((!pit_lake_mask->get(row,col)) || (!depression_mask->get(row,col)) || (seen->get(row,col))) {
+			if ((!pit_lake_mask->get(row,col)) || (!depression_mask->get(row,col))) {
 				continue;
 			}
 			
 			Model<bool> *individual_pit_mask = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 			individual_pit_mask->set_geodata(DEM->get_geodata());
 
-			double pit_area = 0;
-			int pit_min_elevation = INT_MAX;
-			double pit_volume = 0;
-			int pit_depth = 0;
-			double pit_circularity = 0;
-			ArrayCoordinate lowest_point;
-			std::string res_identifier;
-			std::vector<GeographicCoordinate> brownfield_polygon;
+			Model<bool> *individual_pit_lake_mask = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
+			individual_pit_lake_mask->set_geodata(DEM->get_geodata());
+			
+			Model<bool> *individual_depression_mask = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
+			individual_depression_mask->set_geodata(DEM->get_geodata());
+
+			PitCharacteristics pit(row,col,DEM->get_origin());
 
 			i++;
-
-			if (pit_lake_mask->get(row,col)) {
-				printf("Success 1, %.2f\n", pit_area);
-				// Determine surface area of the pit lake
-				pit_area = pit_area_calculator(row, col, pit_lake_mask, seen, individual_pit_mask, brownfield_polygon);
-
-				// If the pit is too small, skip modelling
-				if (pit_area < min_watershed_area) {
-					delete individual_pit_mask;
-					continue;
-				}
-
-				printf("Success 2, %.2f\n", pit_area);
-				// Estimate the lowest point of the pit lake
-				lowest_point = find_lowest_point_pit_lake(individual_pit_mask);
-
-				printf("Success 3, %.2f\n", pit_area);
-				// Remove mining pits with a low pit-to-circle ratio (e.g. rivers with mining operations)
-				pit_circularity = determine_circularity(individual_pit_mask, lowest_point, pit_area);
-				if(pit_circularity < min_pit_circularity){
-					delete individual_pit_mask;
-					continue;
-				}
-
-				// Estimate maximum depth of the pit lake
-				pit_min_elevation = DEM->get(row,col) - pit_lake_relative_depth * 2*sqrt(pit_area / pi); // Relative depth assumpion x diameter of pit, assuming it is a circle. DEM has equal elevation across entire pit lake.
+			
+			if ((pit_lake_mask->get(row,col)) && (!seen_pl->get(row,col))) {
+				model_pit_lakes(pit, pit_lake_mask, depression_mask, seen_pl, individual_pit_lake_mask, DEM);
 				
-				printf("Success 4, %.2f\n", pit_area);
-				// Estimate the pit volume
-				pit_depth = DEM->get(row,col) - pit_min_elevation;
-				pit_volume = find_volume_pit_lake(pit_area, pit_depth);
-
-				// Define other attributes
-				res_identifier = str(search_config.grid_square) + "_PITL" + str(i);	
-
-			} else if (depression_mask->get(row,col)) {
-				// Determine surface area of depression
-				pit_area = pit_area_calculator(row, col, depression_mask, seen, individual_pit_mask, brownfield_polygon);
-				printf("Success 6, %.2f\n", pit_area);
-					
-				// If the pit is too small, skip modelling
-				if (pit_area < min_watershed_area){
-					delete individual_pit_mask;
-					continue;
+				if (pit.pit_overlap) {
+					model_depression(pit, pit_lake_mask, depression_mask, seen_d, individual_depression_mask, DEM);
 				}
 
-				// Find the maximum depth, volume, and lowest point of the depression
-				printf("Success 7\n");
-				find_depression_attributes(individual_pit_mask, DEM, lowest_point, pit_volume, pit_min_elevation, brownfield_polygon);
-				printf("Success 8\n");
-				// Define other attributes
-				res_identifier = str(search_config.grid_square) + "_PITD" + str(i);
+			} else if ((depression_mask->get(row,col)) && (!seen_d->get(row,col))) {
+				model_depression(pit, pit_lake_mask, depression_mask, seen_d, individual_depression_mask, DEM);
+				
+				if (pit.pit_overlap) {					
+					model_pit_lakes(pit, pit_lake_mask, depression_mask, seen_pl, individual_pit_lake_mask, DEM);
+				}
+
+			} else {
+				delete individual_pit_mask;
+				delete individual_depression_mask;
+				delete individual_pit_lake_mask;
+				continue;
 			}
-			printf("Success 5, %.2f\n", pit_area);
+			// If the pit is too small, skip modelling
+			if ((pit.pit_area < min_watershed_area) || (pit.pit_volume < min_reservoir_volume)){
+				delete individual_pit_mask;
+				delete individual_depression_mask;
+				delete individual_pit_lake_mask;
+				continue;
+			}
+
+			// Find overall mining pit mask
+			for(int row = 0; row<individual_pit_mask->nrows();row++) {
+				for(int col = 0; col<individual_pit_mask->ncols();col++) {
+					if((individual_pit_lake_mask->get(row,col)) || (individual_depression_mask->get(row,col)))
+						individual_pit_mask->set(row,col,true);
+				}
+			}
+
+			// Remove pits with a low pit-to-circle ratio (e.g. rivers with mining operations)
+			pit.pit_circularity = determine_circularity(individual_pit_mask, pit.lowest_point, pit.pit_area);
+			if(pit.pit_circularity < min_pit_circularity){
+				delete individual_pit_mask;
+				delete individual_depression_mask;
+				delete individual_pit_lake_mask;
+				continue;
+			}
+			
+			if(pit.pit_lake_area / pit.pit_area > 0.5)
+				pit.res_identifier = str(search_config.grid_square) + "_PITL" + str(i);
+			else
+			 pit.res_identifier = str(search_config.grid_square) + "_PITD" + str(i);
+
+			// Find polygon for the combined depression/pit lake
+			pit.brownfield_polygon = mask_to_polygon(individual_pit_mask);
+			
+			if(debug_output){
+				for(int row = 0; row<individual_pit_mask->nrows();row++) {
+					for(int col = 0; col<individual_pit_mask->ncols();col++) {
+						if(individual_pit_mask->get(row,col))
+							pit_mask_debug->set(row,col,true);
+					}
+				}
+			}
 
 			// Model the brownfield reservoir
-			GeographicCoordinate lowest_point_geo = DEM->get_coordinate(lowest_point.row, lowest_point.col);
-			ExistingReservoir existing_reservoir = ExistingReservoir_init(res_identifier,lowest_point_geo.lat,lowest_point_geo.lon,pit_min_elevation,pit_volume);
-			existing_reservoir.polygon = brownfield_polygon;
+			GeographicCoordinate lowest_point_geo = DEM->get_coordinate(pit.lowest_point.row, pit.lowest_point.col);
+			ExistingReservoir existing_reservoir = ExistingReservoir_init(pit.res_identifier,lowest_point_geo.lat,lowest_point_geo.lon,pit.pit_min_elevation,pit.pit_volume);
+			existing_reservoir.polygon = pit.brownfield_polygon;
 
 			res_count++;
 
 			RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(existing_reservoir);
 			reservoir.pit = true;
 			for(uint i = 0; i<dam_wall_heights.size(); i++){
-				reservoir.areas[i] = pit_area;
+				reservoir.areas[i] = pit.pit_area;
 			}
 
 			write_rough_reservoir_csv(csv_file, reservoir);
 			write_rough_reservoir_data(csv_data_file, &reservoir);
 
 			delete individual_pit_mask;
+			delete individual_depression_mask;
+			delete individual_pit_lake_mask;
 		}
 	}	
 	fclose(csv_file);
     fclose(csv_data_file);
+
+	if(debug_output){
+		mkdir(convert_string(file_storage_location+"debug/pit_mask_debug"),0777);
+    	pit_mask_debug->write(file_storage_location+"debug/pit_mask_debug/"+str(search_config.grid_square)+"_pit_mask_debug.tif", GDT_Byte);
+	}
+
+	delete seen_pl;
+	delete seen_d;
+	delete pit_mask_debug;
+
 	return res_count;
 }
 
@@ -901,17 +969,15 @@ int main(int nargs, char **argv) {
 		std:: string mining_shp_gs = get_mining_tenament_path();
 		read_shp_filter(mining_shp_gs, mining_tenament_mask);
 
-		// If there are no mining tenaments, end the screening
+		// If there are no mining tenaments, end the screening. Filter out all cells that aren't in a mining tenament
 		bool mining_cells = false;
 		for(int row = 0; row<DEM->nrows(); row++){
 			for(int col = 0; col<DEM->ncols(); col++){
 				if(mining_tenament_mask->get(row,col)==1)
 					mining_cells = true;
-				if(mining_cells)
-					break;
+				else
+					filter->set(row,col,true);
 			}
-			if(mining_cells)
-				break;
 		}
 
 		if(!mining_cells) {
@@ -965,12 +1031,11 @@ int main(int nargs, char **argv) {
 			DEM_filled_no_flat->write(file_storage_location+"debug/DEM_filled/"+str(search_config.grid_square)+"_DEM_filled_no_flat.tif",GDT_Float64);
 		}
 
+		delete DEM_filled_no_flat;
+
 		// Create a mask for all depressions > threshold depth
 		t_usec = walltime_usec();
 		depression_mask = find_depressions(DEM, DEM_filled, filter);
-		
-		new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
-		depression_mask->set_geodata(DEM->get_geodata());
 		for(int row = 0; row<DEM->nrows(); row++){
 			for(int col = 0; col<DEM->ncols(); col++){
 				if ((DEM_filled->get(row,col) - DEM->get(row, col) >= depression_depth_min) && (!filter->get(row,col)))

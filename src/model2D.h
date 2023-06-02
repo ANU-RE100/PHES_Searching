@@ -98,6 +98,14 @@ public:
         geodata.geotransform[0] + ((double)col + 0.5) * geodata.geotransform[1]};
     return to_return;
   }
+
+  ArrayCoordinate get_array_coord(double lat, double lon){
+    ArrayCoordinate to_return = {
+      int(((lat - geodata.geotransform[3]) / geodata.geotransform[5]) - 0.5),
+      int(((lon - geodata.geotransform[0]) / geodata.geotransform[1]) - 0.5),
+      get_origin()};
+      return to_return;
+  }
   std::vector<GeographicCoordinate> get_corners() {
     std::vector<GeographicCoordinate> to_return = {get_origin(), get_coordinate(0, ncols()),
                                               get_coordinate(nrows(), ncols()),
