@@ -2,8 +2,8 @@
 #define MINING_PITS_H
 
 #include <bits/stdc++.h>
-#include "model2D.h"
 #include "coordinates.h"
+#include "model2D.h"
 
 using namespace std;
 

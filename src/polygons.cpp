@@ -1,4 +1,5 @@
 #include "polygons.h"
+#include "coordinates.h"
 #include "model2D.h"
 
 // find_polygon_intersections returns an array containing the longitude of all line. Assumes last coordinate is same as first
@@ -77,23 +78,27 @@ void read_shp_filter(string filename, Model<bool>* filter){
     SHPClose(SHP);
 }
 
-std::vector<GeographicCoordinate> mask_to_polygon(Model<bool> *mask) {
-	std::vector<GeographicCoordinate> polygon;
+ArrayCoordinate find_edge(ArrayCoordinate seed_point, Model<bool> *mask){
+	int row = seed_point.row;
+	int col = seed_point.col;
 
-	for(int row = 0; row<mask->nrows();row++) {
-		for(int col = 0; col<mask->ncols();col++) {
-			if (!mask->get(row,col))
-				continue;
-			for (uint d=0; d<directions.size(); d++) {
-				ArrayCoordinate neighbor = {row+directions[d].row, col+directions[d].col, mask->get_origin()};
-				if (!mask->check_within(neighbor.row,neighbor.col))
-					continue;
-				if ((directions[d].row * directions[d].col == 0) && (!mask->get(neighbor.row,neighbor.col))) {
-					polygon.push_back(mask->get_coordinate(neighbor.row,neighbor.col));
-				}
+	int direction = -1;
+	ArrayCoordinate last_point = seed_point;
+	while (true){
+		if(!mask->get(row,col)) {
+			break;
+		} else {
+			last_point = {row,col,mask->get_origin()};
+			if (mask->check_within(row,col+direction))
+				col+=direction;
+			else if (mask->check_within(row-1,col+direction))
+				row+=direction;
+			else {
+			 	direction*=-1;
+				col+=direction;
 			}
 		}
 	}
 
-	return polygon;
+	return last_point;
 }

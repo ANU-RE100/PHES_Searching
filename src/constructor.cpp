@@ -1,6 +1,10 @@
+#include "csv.h"
+#include "mining_pits.h"
+#include "model2D.h"
 #include "phes_base.h"
 #include "constructor_helpers.hpp"
 #include "kml.h"
+#include "search_config.hpp"
 
 vector<vector<Pair>> pairs;
 
@@ -29,24 +33,35 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
                 bool *non_overlap, int max_FOM, BigModel big_model,
                 Model<char> *full_cur_model,
                 vector<vector<vector<GeographicCoordinate>>> &countries,
-                vector<string> &country_names) {
+                vector<string> &country_names, std::vector<PitCharacteristics> pit_shapes) {
 
   vector<ArrayCoordinate> used_points;
   *non_overlap = true;
 
-  if (pair->upper.brownfield) {
+  if (pair->upper.brownfield && (search_config.search_type != SearchType::BULK_PIT)) {
     if (!model_existing_reservoir(&pair->upper, &pair_kml->upper, countries,
                                   country_names))
       return false;
+  } else if (pair->upper.brownfield && (search_config.search_type == SearchType::BULK_PIT)) {
+    if (!model_bulk_pit(&pair->upper, &pair_kml->upper,
+                              countries, country_names, pit_shapes)){
+      return false;
+    }
   } else if (!model_reservoir(&pair->upper, &pair_kml->upper, seen, non_overlap,
                               &used_points, big_model, full_cur_model,
                               countries, country_names))
     return false;
 
-  if (pair->lower.brownfield) {
+  if (pair->lower.brownfield && (search_config.search_type != SearchType::BULK_PIT)) {
     if (!model_existing_reservoir(&pair->lower, &pair_kml->lower, countries,
                                   country_names))
       return false;
+  } else if (pair->lower.brownfield && (search_config.search_type == SearchType::BULK_PIT)){
+    if (!model_bulk_pit(&pair->lower, &pair_kml->lower, 
+                              countries, country_names, pit_shapes)){
+      return false;
+    }
+  
   } else if (!pair->lower.ocean &&
              !model_reservoir(&pair->lower, &pair_kml->lower, seen, non_overlap,
                               &used_points, big_model, full_cur_model,
@@ -137,6 +152,13 @@ int main(int nargs, char **argv)
     if(search_config.search_type.single())
         search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
 
+    // Extract bulk pit shape bounds found during screening
+    std::vector<PitCharacteristics> pit_shapes;
+    if (search_config.search_type == SearchType::BULK_PIT) {     
+      pit_shapes =  read_pit_polygons(convert_string(file_storage_location + "processing_files/reservoirs/pit_" +
+                       str(search_config.grid_square) + "_reservoirs_data.csv"));
+    }
+
     BigModel big_model = BigModel_init(search_config.grid_square);
     vector<string> country_names;
     vector<vector<vector<GeographicCoordinate>>> countries = read_countries(file_storage_location+"input/countries/countries.txt", country_names);
@@ -162,7 +184,7 @@ int main(int nargs, char **argv)
         KML_Holder kml_holder;
 
         sort(pairs[i].begin(), pairs[i].end());
-	    set<string> lowers;
+	      set<string> lowers;
         set<string> uppers;
         bool keep_lower;
         bool keep_upper;
@@ -170,7 +192,8 @@ int main(int nargs, char **argv)
             Pair_KML pair_kml;
             bool non_overlap;
             int max_FOM = category_cutoffs[0].storage_cost*tests[i].storage_time+category_cutoffs[0].power_cost;
-            if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, max_FOM, big_model, full_cur_model, countries, country_names)){
+
+            if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, max_FOM, big_model, full_cur_model, countries, country_names, pit_shapes)){
                 write_pair_csv(csv_file_classes, &pairs[i][j], false);
                 write_pair_csv(csv_file_FOM, &pairs[i][j], true);
                 keep_lower = !lowers.contains(pairs[i][j].lower.identifier);

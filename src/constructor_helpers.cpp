@@ -1,4 +1,6 @@
 #include "constructor_helpers.hpp"
+#include "mining_pits.h"
+#include "model2D.h"
 
 /*
  * Returns sorted vector containing the longitude of all polgon boundary interections at certain
@@ -166,6 +168,7 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
             for(int id = 0; id<3; id++){
                 int d = dir_to_do[last_dir][id];
                 ArrayCoordinate next = ArrayCoordinate_init(last.row+dir_def[d][0],last.col+dir_def[d][1], pour_point.origin);
+                
                 if(is_edge(last, next, model, offset, threshold)){
                     temp_to_return.push_back(next);
                     last = next;
@@ -174,8 +177,10 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
                     break;
                 }
             }
-            if(!found_path)
+            if(!found_path){
                 break;
+            }
+            
             if(last.row==initial.row && last.col == initial.col){
                 succesful_path = true;
                 break;
@@ -196,6 +201,24 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
       throw 1;
     }
     return to_return;
+}
+
+vector<ArrayCoordinate> convert_to_polygon(Model<bool>* model, ArrayCoordinate offset, ArrayCoordinate pour_point, int threshold){
+  Model<char>* char_model = new Model<char>(model->nrows(), model->ncols(), MODEL_UNSET);
+  char_model->set_geodata(model->get_geodata());
+
+  for (int row=1; row<model->nrows()-1;row++){
+		for (int col=1; col<model->ncols()-1; col++){
+      if (model->get(row,col))
+        char_model->set(row,col,1);
+      else
+        char_model->set(row,col,0);
+    }
+  }
+  
+  std::vector<ArrayCoordinate> to_return = convert_to_polygon(char_model, offset, pour_point, threshold);
+
+  return to_return;
 }
 
 /*
@@ -472,5 +495,35 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
     }
   }
 
+  return true;
+}
+
+bool model_bulk_pit(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates,
+                     vector<vector<vector<GeographicCoordinate>>> &countries,
+                     vector<string> &country_names, std::vector<PitCharacteristics> pit_shapes) {
+  
+  vector<GeographicCoordinate> pit_polygon;
+  
+  for (uint i = 0; i < pit_shapes.size(); i++) {
+    if (reservoir->identifier == pit_shapes[i].res_identifier)
+      pit_polygon = pit_shapes[i].brownfield_polygon;
+  }
+
+  string polygon_string = str(compress_poly(corner_cut_poly(pit_polygon)), reservoir->elevation);
+  coordinates->reservoir = polygon_string;
+  
+  GeographicCoordinate origin = get_origin(reservoir->latitude, reservoir->longitude, border);
+  reservoir->shape_bound.clear();
+  for(GeographicCoordinate p : pit_polygon)
+    reservoir->shape_bound.push_back(convert_coordinates(p, origin));
+  
+  //KML
+  for(uint i = 0; i< countries.size();i++){
+      if(check_within(GeographicCoordinate_init(reservoir->latitude, reservoir->longitude), countries[i])){
+          reservoir->country = country_names[i];
+          break;
+      }
+  }
+  
   return true;
 }

@@ -1,3 +1,4 @@
+#include "constructor_helpers.hpp"
 #include "coordinates.h"
 #include "model2D.h"
 #include "phes_base.h"
@@ -719,7 +720,9 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 			 pit.res_identifier = str(search_config.grid_square) + "_PITD" + str(i);
 
 			// Find polygon for the combined depression/pit lake
-			pit.brownfield_polygon = mask_to_polygon(individual_pit_mask);
+			ArrayCoordinate offset = {0,0,individual_pit_mask->get_origin()};
+			ArrayCoordinate edge_point = find_edge(pit.seed_point, individual_pit_mask);
+			pit.brownfield_polygon = convert_poly(convert_to_polygon(individual_pit_mask, offset,edge_point,1));
 			
 			if(debug_output){
 				for(int row = 0; row<individual_pit_mask->nrows();row++) {

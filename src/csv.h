@@ -2,6 +2,7 @@
 #define CSV_H
 
 #include "phes_base.h"
+#include "mining_pits.h"
 
 void write_to_csv_file(FILE *csv_file, vector<string> cols);
 vector<string> read_from_csv_file(string line);
@@ -29,5 +30,6 @@ void write_summary_csv_header(FILE *csv_file);
 void write_summary_csv(FILE *csv_file, string square_name, string test, 
                       int non_overlapping_sites, int num_sites, 
                       int energy_capacity);
+std::vector<PitCharacteristics> read_pit_polygons(std::string filename);
 
 #endif

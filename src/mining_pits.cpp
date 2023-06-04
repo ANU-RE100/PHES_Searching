@@ -1,10 +1,11 @@
-#include "mining_pits.h"
 #include "phes_base.h"
 #include "coordinates.h"
 #include "model2D.h"
 #include "polygons.h"
 #include "search_config.hpp"
 #include "polygons.h"
+#include "mining_pits.h"
+#include "constructor_helpers.hpp"
 
 std::string get_mining_tenament_path(){
 	std::string lat_prefix;
@@ -57,9 +58,9 @@ double pit_area_calculator(int row, int col, Model<bool> *pit_mask, Model<bool> 
 			individual_pit_mask->set(p.row,p.col,true);
 			pit_area += find_area(p);
 
-			if(overlap_mask->get(row,col)){
+			if(overlap_mask->get(p.row,p.col)){
 				pit_overlap = true;
-				pit_new_seed = {row,col,overlap_mask->get_origin()};
+				pit_new_seed = {p.row,p.col,overlap_mask->get_origin()};
 			}
 
 			// Add all perpendicular neighbors to the queue
@@ -212,8 +213,11 @@ void model_depression(PitCharacteristics &pit, Model<bool> *pit_lake_mask, Model
 				
 	double depression_area = pit_area_calculator(seed_row, seed_col, depression_mask, pit_lake_mask, seen_d, individual_pit_mask, pit.pit_overlap, pit.seed_point);
 	pit.pit_area = MAX(depression_area, pit.pit_area);
-				
-	std::vector<GeographicCoordinate> depression_polygon = mask_to_polygon(individual_pit_mask);
+	
+	ArrayCoordinate offset = ArrayCoordinate_init(0,0,DEM->get_origin());
+	ArrayCoordinate edge_point = find_edge(pit.seed_point, individual_pit_mask);
+	
+	std::vector<GeographicCoordinate> depression_polygon = convert_poly(convert_to_polygon(depression_mask, offset, edge_point, 1));
 
 	// Find lowest point on pit edge
 	int lowest_edge_elevation = INT_MAX;

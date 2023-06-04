@@ -2,6 +2,7 @@
 #include "kml.h"
 #include "phes_base.h"
 #include "reservoir.h"
+#include "mining_pits.h"
 
 string ReplaceAll(string str, const string &from, const string &to) {
   size_t start_pos = 0;
@@ -601,4 +602,39 @@ void write_summary_csv(FILE *csv_file, string square_name, string test,
   vector<string> line = {square_name, test, to_string(non_overlapping_sites),
                          str_num_sites, to_string(energy_capacity)};
   write_to_csv_file(csv_file, line);
+}
+
+std::vector<PitCharacteristics> read_pit_polygons(std::string filename){ 
+  vector<PitCharacteristics> pits;
+  ifstream inputFile(filename);
+  string s;
+  bool header = true;
+  
+  while (getline(inputFile, s)) {
+    if (header) {
+      header = false;
+      vector<string> line = read_from_csv_file(s);
+      continue;
+    }
+    vector<string> line = read_from_csv_file(s);
+    GeographicCoordinate gc =
+        GeographicCoordinate_init(stod(line[1]), stod(line[2]));
+    GeographicCoordinate origin = get_origin(
+        GridSquare_init(convert_to_int(FLOOR(gc.lat)), convert_to_int(FLOOR(gc.lon))),
+        border);
+    ArrayCoordinate ac = convert_coordinates(gc,origin,1.0/3600.0,1.0/3600.0);
+    PitCharacteristics pit(ac.row,ac.col,origin);
+
+    pit.res_identifier = line[0];
+
+    int point_len = stoi(line[9+3*dam_wall_heights.size()]);
+    for(int i = 0; i<point_len; i++){
+      ArrayCoordinate array_point = ArrayCoordinate_init(stoi(line[10+3*dam_wall_heights.size()+i*2]), stoi(line[10+3*dam_wall_heights.size()+i*2+1]), origin);
+      GeographicCoordinate geo_point = convert_coordinates(array_point);
+      pit.brownfield_polygon.push_back(geo_point);
+    }    
+    pits.push_back(pit);
+  }
+
+  return pits;
 }
