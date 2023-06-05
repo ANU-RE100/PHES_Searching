@@ -545,6 +545,8 @@ Model<bool> *find_pit_lakes(Model<short> *DEM, Model<bool> *filter){
 				// Check if neighbours have slope of zero and a height equal to the current cell. If yes, set mask to true too
 				for (uint d=0; d<directions.size(); d++) {
 					ArrayCoordinateWithHeight neighbor = ArrayCoordinateWithHeight_init(row+directions[d].row,col+directions[d].col,DEM->get(row+directions[d].row,col+directions[d].col));
+					if (filter->get(neighbor.row,neighbor.col))
+						continue;
 					if ((neighbor.row == 1) || (neighbor.col == 1) || (neighbor.row == DEM->nrows()-1) || (neighbor.col == DEM->ncols() - 1))
 						continue;
 					if ((DEM->get_slope(neighbor.row,neighbor.col) == 0) && (neighbor.h == DEM->get(row,col)))
@@ -700,8 +702,9 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 			// Find overall mining pit mask
 			for(int row = 0; row<individual_pit_mask->nrows();row++) {
 				for(int col = 0; col<individual_pit_mask->ncols();col++) {
-					if((individual_pit_lake_mask->get(row,col)) || (individual_depression_mask->get(row,col)))
-						individual_pit_mask->set(row,col,true);
+					if((individual_pit_lake_mask->get(row,col)) || (individual_depression_mask->get(row,col))){
+						individual_pit_mask->set(row,col,true);						
+					}
 				}
 			}
 
@@ -727,8 +730,9 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 			if(debug_output){
 				for(int row = 0; row<individual_pit_mask->nrows();row++) {
 					for(int col = 0; col<individual_pit_mask->ncols();col++) {
-						if(individual_pit_mask->get(row,col))
+						if(individual_pit_mask->get(row,col)){
 							pit_mask_debug->set(row,col,true);
+						}
 					}
 				}
 			}
@@ -996,6 +1000,7 @@ int main(int nargs, char **argv) {
 		if(debug_output){
 			mkdir(convert_string(file_storage_location+"debug/mining_tenament_mask"),0777);
 			mining_tenament_mask->write(file_storage_location+"debug/mining_tenament_mask/"+str(search_config.grid_square)+"_mining_tenament_mask.tif", GDT_Byte);
+			filter->write(file_storage_location+"debug/filter/"+str(search_config.grid_square)+"_filter.tif", GDT_Byte);
 		}
 
 		// Create a mask for all regions with 0% slope (i.e. pits filled with water)
