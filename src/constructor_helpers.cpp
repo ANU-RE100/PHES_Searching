@@ -203,7 +203,7 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
     return to_return;
 }
 
-vector<ArrayCoordinate> convert_to_polygon(Model<bool>* model, ArrayCoordinate offset, ArrayCoordinate pour_point, int threshold){
+vector<ArrayCoordinate> convert_to_polygon(Model<bool>* model, ArrayCoordinate offset, ArrayCoordinate edge_point){
   Model<char>* char_model = new Model<char>(model->nrows(), model->ncols(), MODEL_UNSET);
   char_model->set_geodata(model->get_geodata());
 
@@ -216,7 +216,7 @@ vector<ArrayCoordinate> convert_to_polygon(Model<bool>* model, ArrayCoordinate o
     }
   }
   
-  std::vector<ArrayCoordinate> to_return = convert_to_polygon(char_model, offset, pour_point, threshold);
+  std::vector<ArrayCoordinate> to_return = convert_to_polygon(char_model, offset, edge_point, 1);
 
   return to_return;
 }

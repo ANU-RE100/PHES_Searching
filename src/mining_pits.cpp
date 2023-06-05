@@ -217,7 +217,7 @@ void model_depression(PitCharacteristics &pit, Model<bool> *pit_lake_mask, Model
 	ArrayCoordinate offset = ArrayCoordinate_init(0,0,DEM->get_origin());
 	ArrayCoordinate edge_point = find_edge(pit.seed_point, individual_pit_mask);
 	
-	std::vector<GeographicCoordinate> depression_polygon = convert_poly(convert_to_polygon(depression_mask, offset, edge_point, 1));
+	std::vector<GeographicCoordinate> depression_polygon = convert_poly(convert_to_polygon(depression_mask, offset, edge_point));
 
 	// Find lowest point on pit edge
 	int lowest_edge_elevation = INT_MAX;
