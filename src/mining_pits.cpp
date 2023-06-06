@@ -103,7 +103,7 @@ ArrayCoordinate find_lowest_point_pit_lake(Model<bool> *individual_pit_mask) {
 
 		for (uint d=0; d<directions.size(); d++) {
 			ArrayCoordinate neighbor = ArrayCoordinate_init(p.row + directions[d].row, p.col + directions[d].col, individual_pit_mask->get_origin());
-			if (directions[d].row * directions[d].col == 0)
+			if (directions[d].row * directions[d].col != 0)
 				continue;
 			if ((!individual_pit_mask->check_within(neighbor.row,neighbor.col)) || (!individual_pit_mask->get(neighbor.row,neighbor.col))) {
 				continue;
@@ -216,8 +216,24 @@ void model_depression(PitCharacteristics &pit, Model<bool> *pit_lake_mask, Model
 	
 	ArrayCoordinate offset = ArrayCoordinate_init(0,0,DEM->get_origin());
 	ArrayCoordinate edge_point = find_edge(pit.seed_point, individual_pit_mask);
-	
-	std::vector<GeographicCoordinate> depression_polygon = convert_poly(convert_to_polygon(depression_mask, offset, edge_point));
+
+	// Check that there is at least one connected cell
+	bool single_point = true;
+	for (uint d=0; d<directions.size(); d++) {
+		ArrayCoordinate neighbor = ArrayCoordinate_init(edge_point.row + directions[d].row, edge_point.col + directions[d].col, individual_pit_mask->get_origin());
+		if (directions[d].row * directions[d].col != 0)
+			continue;
+		if ((!individual_pit_mask->check_within(neighbor.row,neighbor.col)) || (!individual_pit_mask->get(neighbor.row,neighbor.col))) {
+			continue;
+		}
+		single_point = false;
+	}
+
+	std::vector<GeographicCoordinate> depression_polygon;
+	if (single_point)
+		depression_polygon.push_back(convert_coordinates(edge_point));
+	else
+	 	depression_polygon = convert_poly(convert_to_polygon(depression_mask, offset, edge_point));
 
 	// Find lowest point on pit edge
 	int lowest_edge_elevation = INT_MAX;

@@ -9,7 +9,7 @@
 #include <array>
 #include <gdal/gdal.h>
 
-bool debug_output = false;
+bool debug_output = true;
 
 void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_to_filter){
 	try{
