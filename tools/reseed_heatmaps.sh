@@ -12,3 +12,12 @@ for htype in solar wind; do
     done
   done
 done
+
+for htype in solar wind; do
+    ttype=overhead
+    hcost=low
+    curl -v -u admin:"$password" \
+      "https://re100.anu.edu.au/geoserver/gwc/rest/seed/heatmaps:tas_${ttype}_${htype}_${hcost}-cost_heatmap" \
+  --data-raw 'threadCount=01&type=seed&gridSetId=WebMercatorQuad&tileFormat=image%2Fpng&zoomStart=00&zoomStop=10&parameter_STYLES=heatmaps%3AHeatmap&minX=&minY=&maxX=&maxY=&tileFailureRetryCount=1&tileFailureRetryWaitTime=100&totalFailuresBeforeAborting=1000' \
+  --compressed
+done

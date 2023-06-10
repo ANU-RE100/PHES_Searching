@@ -3,7 +3,7 @@
 password="$1"
 
 sizes="2gwh_6h 5gwh_18h 15gwh_18h 50gwh_50h 150gwh_50h 500gwh_168h 1500gwh_504h"
-types="global_greenfield australia_bluefield global_ocean indonesia_bluefield philippines_bluefield bhutan_bluefield"
+types="global_greenfield australia_bluefield global_ocean indonesia_bluefield philippines_bluefield bhutan_bluefield asean_bluefield"
 
 for type in $types; do
   for size in $sizes; do
