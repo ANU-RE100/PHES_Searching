@@ -108,7 +108,7 @@ bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
     greenfield = lower;
     pit = upper;
   }
-  
+
   while (pit->elevation < max_altitude(pit_details_single.volumes)) {
     pit->max_dam_height = max_altitude(pit_details_single.volumes) - pit->elevation;
     int pit_depth = 0;
@@ -133,7 +133,7 @@ bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
       if (head_ratio > (1 + max_head_variability)) {
         break;
       }
-      
+
       if (volume < find_required_volume(energy_capacity, head)) {
         continue;
       }
@@ -159,7 +159,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
 
   if (search_config.search_type == SearchType::BULK_PIT) {
     for (uint i = 0; i < pit_details.size(); i++) {
-      if (upper->brownfield && pit_details[i].reservoir.identifier == upper->identifier) {       
+      if (upper->brownfield && pit_details[i].reservoir.identifier == upper->identifier) {
         single_pit = pit_details[i];
         break;
       }
@@ -167,7 +167,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
         single_pit = pit_details[i];
         break;
       }
-      
+
       // Throw error if there are no pit details assigned to single_pit
       if (i == pit_details.size() - 1) {
         string pit_id = "MISSING ID";
@@ -176,8 +176,8 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
         else
           pit_id = lower->identifier;
         search_config.logger.debug("No pit details in existing_reservoirs_csv for reservoir with ID: " + pit_id);
-        exit(1);  
-      }    
+        exit(1);
+      }
     }
   } else if (search_config.search_type == SearchType::SINGLE_PIT) {
     single_pit = single_pit_details;
@@ -215,7 +215,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
       upper_dam_wall_height = dam_wall_heights[0];
     upper_water_rock_estimate = INF;
   }
-  
+
   if (!lower->brownfield && !lower->ocean) {
     lower_dam_wall_height =
         linear_interpolate(required_volume, lower->volumes, dam_wall_heights);
@@ -270,12 +270,14 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
 
   upper_reservoir.identifier = upper->identifier;
   upper_reservoir.volume = required_volume;
-  
+
   if (!upper->brownfield) {
     upper_reservoir.dam_volume = linear_interpolate(
         upper_dam_wall_height, dam_wall_heights, upper->dam_volumes);
     upper_reservoir.area = linear_interpolate(upper_dam_wall_height,
                                               dam_wall_heights, upper->areas);
+  } else {
+    upper_reservoir.area = upper->areas[0];
   }
   upper_reservoir.water_rock = upper_water_rock_estimate;
   upper_reservoir.dam_height = upper_dam_wall_height;
@@ -285,12 +287,14 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
 
   lower_reservoir.identifier = lower->identifier;
   lower_reservoir.volume = required_volume;
-  
+
   if (!lower->brownfield) {
     lower_reservoir.dam_volume = linear_interpolate(
         lower_dam_wall_height, dam_wall_heights, lower->dam_volumes);
     lower_reservoir.area = linear_interpolate(lower_dam_wall_height,
                                               dam_wall_heights, lower->areas);
+  } else {
+    lower_reservoir.area = lower->areas[0];
   }
   lower_reservoir.water_rock = lower_water_rock_estimate;
   lower_reservoir.dam_height = lower_dam_wall_height;
@@ -322,7 +326,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
 
 void pairing(vector<unique_ptr<RoughReservoir>> &upper_reservoirs,
              vector<unique_ptr<RoughReservoir>> &lower_reservoirs, FILE *csv_file,
-             FILE *csv_data_file) {
+             FILE *csv_data_file, bool existing_existing_allowed=false) {
   vector<set<Pair>> temp_pairs;
   for (uint itest = 0; itest < tests.size(); itest++) {
     pairs.push_back(0);
@@ -337,6 +341,9 @@ void pairing(vector<unique_ptr<RoughReservoir>> &upper_reservoirs,
       RoughReservoir* lower_reservoir = lower_reservoirs[ilower].get();
       int head = upper_reservoir->elevation - lower_reservoir->elevation;
       if (head < min_head || head > max_head)
+        continue;
+
+      if (!existing_existing_allowed && upper_reservoir->brownfield && lower_reservoir->brownfield)
         continue;
 
       // Pour point separation
@@ -354,10 +361,6 @@ void pairing(vector<unique_ptr<RoughReservoir>> &upper_reservoirs,
         for(ArrayCoordinate ac: lr->shape_bound){
           distance_sqd =
               MIN(find_distance_sqd(ac, upper_reservoir->pour_point, coslat), distance_sqd);
-          if(distance_sqd<0)
-            cout << distance_sqd << " " << ac.row << " " << ac.col << " "
-                 << upper_reservoir->pour_point.row << " " << upper_reservoir->pour_point.col << " "
-                 << coslat << endl;
         }
       }
 
@@ -371,20 +374,20 @@ void pairing(vector<unique_ptr<RoughReservoir>> &upper_reservoirs,
             (category_cutoffs[0].storage_cost * tests[itest].storage_time +
              category_cutoffs[0].power_cost) *
             (1 + tolerance_on_FOM);
-        
+
         if (check_good_pair(upper_reservoir, lower_reservoir,
                             tests[itest].energy_capacity,
                             tests[itest].storage_time, &temp_pair, max_FOM)) {
           temp_pairs[itest].insert(temp_pair);
 
           if ((int)temp_pairs[itest].size() > max_lowers_per_upper ||
-              ((search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT)&& 
+              ((search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT)&&
               temp_pairs[itest].size() > 1))
             temp_pairs[itest].erase(prev(temp_pairs[itest].end()));
         }
       }
     }
-    
+
     for (uint itest = 0; itest < tests.size(); itest++) {
       for (Pair pair : temp_pairs[itest]) {
         write_rough_pair_csv(csv_file, &pair);
@@ -406,13 +409,22 @@ int main(int nargs, char **argv) {
 
   vector<unique_ptr<RoughReservoir>> upper_reservoirs;
   vector<unique_ptr<RoughReservoir>> lower_reservoirs;
-  
+
   if (search_config.search_type.existing()) {
-    if (search_config.search_type.single()) 
+    if (search_config.search_type.single())
       search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
     upper_reservoirs = read_rough_reservoir_data(
+        convert_string(file_storage_location + "processing_files/reservoirs/" +
+                       search_config.filename() + "_reservoirs_data.csv"));
+    if (search_config.search_type == SearchType::BULK_EXISTING){
+
+      vector<unique_ptr<RoughReservoir>> greenfield_reservoirs = read_rough_reservoir_data(
           convert_string(file_storage_location + "processing_files/reservoirs/" +
-                         search_config.filename() + "_reservoirs_data.csv"));
+                         str(search_config.grid_square) + "_reservoirs_data.csv"));
+      for(size_t i = 0; i<greenfield_reservoirs.size(); i++){
+        upper_reservoirs.push_back(std::move(greenfield_reservoirs[i]));
+      }
+    }
     if (search_config.search_type == SearchType::BULK_PIT) {
       pit_details = get_pit_details(search_config.grid_square);
     } else if (search_config.search_type == SearchType::SINGLE_PIT) {
@@ -443,9 +455,9 @@ int main(int nargs, char **argv) {
 
       for (uint j = 0; j < temp.size(); j++) {
         if ((search_config.search_type == SearchType::BULK_EXISTING || search_config.search_type == SearchType::BULK_PIT) &&
-            lower_ids.contains(temp[j]->identifier)) 
+            lower_ids.contains(temp[j]->identifier))
           continue;
-        
+
         lower_ids.insert(temp[j]->identifier);
         lower_reservoirs.push_back(std::move(temp[j]));
       }
@@ -481,7 +493,7 @@ int main(int nargs, char **argv) {
   }
   write_rough_pair_data_header(csv_data_file);
 
-  pairing(upper_reservoirs, lower_reservoirs, csv_file, csv_data_file);
+  pairing(upper_reservoirs, lower_reservoirs, csv_file, csv_data_file, true);
   if (search_config.search_type.existing())
     pairing(lower_reservoirs, upper_reservoirs, csv_file, csv_data_file);
 

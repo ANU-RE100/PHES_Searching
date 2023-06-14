@@ -274,6 +274,8 @@ ExistingReservoir get_existing_reservoir(string name) {
   }
   SHPClose(SHP);
 
+  to_return.area = geographic_polygon_area(to_return.polygon);
+
   return to_return;
 }
 
@@ -330,13 +332,13 @@ vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square) {
             GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
         reservoir.polygon.push_back(temp_point);
       }
-	  // Coordinates in existing_reservoirs_csv are based on geometric centre. 
+	  // Coordinates in existing_reservoirs_csv are based on geometric centre.
 	  // Require the same calculation of coordinates here to prevent
 	  // disconnect between reservoirs.csv and existing_reservoirs_csv
       bool overlaps_grid_cell = false;
 	  double centre_gc_lat = 0;
 	  double centre_gc_lon = 0;
-	  
+
       for(GeographicCoordinate gc : reservoir.polygon) {
 		centre_gc_lat += gc.lat;
 		centre_gc_lon += gc.lon;
@@ -347,8 +349,10 @@ vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square) {
       }
 
       SHPDestroyObject(shape);
-      if(overlaps_grid_cell)
+      if(overlaps_grid_cell){
+        reservoir.area = geographic_polygon_area(reservoir.polygon);
         to_return.push_back(reservoir);
+      }
     }
   } else {
     cout << "Could not read shapefile " << filename << endl;
@@ -370,7 +374,7 @@ RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r){
 	for(uint i = 0; i<dam_wall_heights.size(); i++){
 		reservoir.volumes.push_back(r.volume);
 		reservoir.dam_volumes.push_back(0);
-		reservoir.areas.push_back(0);
+		reservoir.areas.push_back(r.area);
 		reservoir.water_rocks.push_back(1000000000);
   }
 
@@ -384,7 +388,7 @@ vector<ExistingPit> get_pit_details(GridSquare grid_square){
 	vector<ExistingPit> gridsquare_pits;
 
 	vector<ExistingPit> pits = read_existing_pit_data(convert_string(file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_csv));
-	
+
 	for(ExistingPit p : pits){
 		if (check_within(GeographicCoordinate_init(p.reservoir.latitude, p.reservoir.longitude), grid_square))
 			gridsquare_pits.push_back(p);
@@ -425,7 +429,7 @@ void depression_volume_finding(Model<short>* DEM) {
 		search_config.logger.debug("No file: " + filename);
 		throw(1);
 	}
-	
+
 	SHPHandle SHP = SHPOpen(convert_string(filename), "rb");
 	if (SHP != NULL) {
 		int nEntities;
@@ -452,8 +456,9 @@ void depression_volume_finding(Model<short>* DEM) {
 			}
 			if (idx < 0) {
 				search_config.logger.debug("Could not find reservoir with id " + names[i]);
+        exit(1);
 			}
-				
+
 			ExistingReservoir reservoir = reservoirs[idx];
 			GeographicCoordinate gc = GeographicCoordinate_init(reservoir.latitude, reservoir.longitude);
 			if(!check_within(gc, search_config.grid_square)) {
@@ -465,7 +470,7 @@ void depression_volume_finding(Model<short>* DEM) {
 			for (int j = 0; j < shape->nVertices; j++) {
 				GeographicCoordinate temp_point = GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
 				temp_poly.push_back(temp_point);
-					
+
 			}
 			polygon_to_raster(temp_poly, extent);
 			SHPDestroyObject(shape);
@@ -479,10 +484,14 @@ void depression_volume_finding(Model<short>* DEM) {
 					}
 				}
 
-			double area_at_elevation[max_elevation + 1] = {0};
-			double volume_at_elevation[max_elevation + 1] = {0};
-			double cumulative_area_at_elevation[max_elevation + 1] = {0};
-			double pit_elevations[num_altitude_volume_pairs] = {0};
+			double area_at_elevation[max_elevation + 1];
+			double volume_at_elevation[max_elevation + 1];
+			double cumulative_area_at_elevation[max_elevation + 1];
+			double pit_elevations[num_altitude_volume_pairs];
+      std::memset(area_at_elevation, 0, (max_elevation+1)*sizeof(double));
+      std::memset(volume_at_elevation, 0, (max_elevation+1)*sizeof(double));
+      std::memset(cumulative_area_at_elevation, 0, (max_elevation+1)*sizeof(double));
+      std::memset(pit_elevations, 0, (num_altitude_volume_pairs)*sizeof(double));
 
 			// Determine the elevations for altitude-volume pairs
 			for (int ih = 1; ih <= num_altitude_volume_pairs; ih++) {
@@ -496,7 +505,7 @@ void depression_volume_finding(Model<short>* DEM) {
 						area_at_elevation[min_elevation + 1] += find_area(ArrayCoordinate_init(row, col, DEM->get_origin()));
 					}
 
-			// Find the surface area and volume of reservoir at each elevation above pour point 
+			// Find the surface area and volume of reservoir at each elevation above pour point
 			for (int ih=1; ih<max_elevation+1-min_elevation;ih++) {
 				cumulative_area_at_elevation[min_elevation + ih] = cumulative_area_at_elevation[min_elevation + ih-1] + area_at_elevation[min_elevation + ih];
 				volume_at_elevation[min_elevation + ih] = volume_at_elevation[min_elevation + ih-1] + 0.01*cumulative_area_at_elevation[min_elevation + ih]; // area in ha, vol in GL
@@ -524,7 +533,7 @@ void depression_volume_finding(Model<short>* DEM) {
 		cout << "Could not read shapefile " << filename << endl;
 		throw(1);
 	}
-	SHPClose(SHP);			
+	SHPClose(SHP);
 
 	// Write the altitude-volume pairs to the CSV
 	std::ifstream inputFile(file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv);
@@ -543,11 +552,11 @@ void depression_volume_finding(Model<short>* DEM) {
 		ostringstream modifiedLine;
 
 		while (std::getline(lineStream, cell, ',')) {
-			
+
 			if (column >= 4 && column <= 5 + 2*num_altitude_volume_pairs && std::count(csv_modified_line_numbers.begin(), csv_modified_line_numbers.end(), line_number)) {
 				std::vector<int>::iterator vector_index_itr = find(csv_modified_line_numbers.begin(), csv_modified_line_numbers.end(), line_number);
 				int vector_index = std::distance(csv_modified_line_numbers.begin(), vector_index_itr);
-				cell = string(csv_modified_lines[vector_index][column-4]); 
+				cell = string(csv_modified_lines[vector_index][column-4]);
 			}
 
 			modifiedLine << cell;

@@ -40,6 +40,7 @@ double tolerance_on_FOM;
 double max_head_variability;		// Maximum amount the head can vary during water transfer (Default 0.35)
 int num_altitude_volume_pairs;		// Number of altitude-volume pairs provided with an existing pit
 int pit_height_resolution;			// Height resolution of top and bottom of pit in metres
+double max_bluefield_surface_area_ratio;
 
 // Common
 double gravity;						// Acceleration due to gravity (m/s/s)
@@ -228,6 +229,8 @@ void parse_variables(char* filename){
 				num_altitude_volume_pairs = stoi(value);
 			if(variable=="pit_height_resolution")
 				pit_height_resolution = stoi(value);
+			if(variable=="max_bluefield_surface_area_ratio")
+				max_bluefield_surface_area_ratio = stod(value);
 		}
 	}
 }

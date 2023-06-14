@@ -1,4 +1,5 @@
 #include "polygons.h"
+#include "model2D.h"
 
 // find_polygon_intersections returns an array containing the longitude of all line. Assumes last coordinate is same as first
 vector<double> find_polygon_intersections(int row, vector<GeographicCoordinate> &polygon, Model<bool>* filter){
@@ -74,4 +75,15 @@ void read_shp_filter(string filename, Model<bool>* filter){
     	throw(1);
     }
     SHPClose(SHP);
+}
+
+double geographic_polygon_area(vector<GeographicCoordinate> polygon) {
+    double area = 0;
+    for (size_t i = 0; i < polygon.size() - 1; i++) {
+        GeographicCoordinate g1 = polygon[i];
+        GeographicCoordinate g2 = polygon[i + 1];
+        area += RADIANS(g2.lon - g1.lon) * (sin(RADIANS(g1.lat)) + sin(RADIANS(g2.lat)));
+    }
+    area = 0.5 * area * EARTH_RADIUS_KM * EARTH_RADIUS_KM * SQ_KM_TO_HA;
+    return abs(area);
 }

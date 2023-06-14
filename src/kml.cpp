@@ -1,6 +1,6 @@
 #include "kml.h"
 
-string kml_start = 
+string kml_start =
 "<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n"
 "  <Document id=\"Layers\">\n"
 "    <Style id=\"reservoir_style\">\n"
@@ -29,7 +29,7 @@ string kml_start =
 "      </LabelStyle>\n"
 "    </Style>\n";
 
-string kml_end = 
+string kml_end =
 "  </Document>\n"
 "</kml>\n";
 
@@ -64,7 +64,8 @@ string get_html(Reservoir* reservoir, Pair* pair){
 "              <tr bgcolor=\"#D4E4F3\"><td>Elevation (m)</td><td>"+to_string(reservoir->elevation)+"</td></tr>"+newline+
 "              <tr><td>Latitude</td><td>"+dtos(reservoir->latitude,4)+"</td></tr>"+newline+
 "              <tr bgcolor=\"#D4E4F3\"><td>Longitude</td><td>"+dtos(reservoir->longitude,4)+"</td></tr>"+newline+
-"              <tr><td>Country</td><td>"+reservoir->country+"</td></tr>"+newline+
+"              <tr><td>Area (ha)</td><td>"+dtos(reservoir->area,0)+"</td></tr>"+newline+
+"              <tr bgcolor=\"#D4E4F3\"><td>Country</td><td>"+reservoir->country+"</td></tr>"+newline+
 "              </table></td></tr></table></body></html>\n";
 	}else{
 		return
@@ -106,8 +107,9 @@ string get_html(Pair* pair){
 "              <tr bgcolor=\"#D4E4F3\"><td>Head (m)</td><td>"+to_string(pair->head)+"</td></tr>"+newline+
 "              <tr><td>Separation (km)</td><td>"+dtos(pair->distance,1)+"</td></tr>"+newline+
 "              <tr bgcolor=\"#D4E4F3\"><td>Average Slope (%)</td><td>"+dtos(pair->slope*100,0)+"</td></tr>"+newline+
-"              <tr><td>Volume (GL)</td><td>"+dtos(pair->volume,1)+"</td></tr>"+newline+
-"              <tr bgcolor=\"#D4E4F3\"><td>Water to Rock (Pair)</td><td>"+dtos(pair->water_rock,1)+"</td></tr>"+newline+
+((!pair->upper.brownfield || !pair->lower.brownfield) ? (
+    "              <tr><td>Volume (GL)</td><td>"+dtos(pair->volume,1)+"</td></tr>"+newline+
+"              <tr bgcolor=\"#D4E4F3\"><td>Water to Rock (Pair)</td><td>"+dtos(pair->water_rock,1)+"</td></tr>"+newline) : " ") +
 "              <tr><td>Energy (GWh)</td><td>"+energy_capacity_to_string(pair->energy_capacity)+"</td></tr>"+newline+
 "              <tr bgcolor=\"#D4E4F3\"><td>Storage time (h)</td><td>"+to_string(pair->storage_time)+"</td></tr>"+newline+
 "              <tr><td>Country</td><td>"+pair->country+"</td></tr>"+newline+
@@ -401,7 +403,7 @@ string get_point_kml(Pair* pair, string coordinates){
 }
 
 string generate_folder(string name, vector<string> records){
-	string to_return = 
+	string to_return =
 "    <Folder>\n"
 "      <name>"+name+"</name>\n";
 	for(uint i = 0; i<records.size();i++)
