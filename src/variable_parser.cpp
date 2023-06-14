@@ -13,6 +13,7 @@ int border;							// Number of cells to add as border around DEM square
 double dambatter;					// Slope on sides of dam
 double cwidth;						// Width of top of dam
 double freeboard;            		// Freeboard on dam
+string dem_type;         // The digital elevation model to be used (SRTM or FABDEM)
 
 // Shapefile tiling
 vector<string> filter_filenames_to_tile; // Shapefiles to split into tiles
@@ -101,6 +102,8 @@ void parse_variables(char* filename){
 				filter_filenames.push_back(value);
 			if(variable=="filter_to_tile")
 				filter_filenames_to_tile.push_back(value);
+			if(variable=="dem_type")
+				dem_type=value;
 			if(variable=="min_watershed_area"){
 				min_watershed_area = stod(value);
 				stream_threshold = (int)(11.1*min_watershed_area);

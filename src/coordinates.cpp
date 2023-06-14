@@ -11,8 +11,8 @@ GeographicCoordinate GeographicCoordinate_init(double latitude, double longitude
 GeographicCoordinate get_origin(GridSquare square, int border)
 {
 	GeographicCoordinate geographic_coordinate;
-	geographic_coordinate.lat = square.lat+(1+((border-1)+0.5)/3600.0);
-	geographic_coordinate.lon = square.lon-((border+0.5)/3600.0);
+	geographic_coordinate.lat = square.lat+(1+((border-1)+0.5)/(double((model_size-1))));
+	geographic_coordinate.lon = square.lon-((border+0.5)/(double((model_size-1))));
 	return geographic_coordinate;
 }
 
@@ -84,6 +84,19 @@ string str(GridSquare square)
 	return to_return;
 }
 
+string str_fabdem(GridSquare square)
+{
+	char buf[24];
+	square.lon = (square.lon+180)%360-180;
+	char c1 = (square.lat<0)?'S':'N';
+	int lat = abs(square.lat);
+	char c2 = (square.lon<0)?'W':'E';
+	int lon = abs(square.lon);
+	sprintf(buf, "%c%02d%c%03d", c1, lat, c2, lon);
+	string to_return(buf);
+	return to_return;
+}
+
 // area of single cell in ha
 double find_area(ArrayCoordinate c)
 {
@@ -134,17 +147,17 @@ double find_distance(GeographicCoordinate c1, GeographicCoordinate c2, double co
 
 double find_distance_sqd(GeographicCoordinate c1, GeographicCoordinate c2)
 {
-	return (SQ(c2.lat-c1.lat)+SQ((c2.lon-c1.lon)*COS(RADIANS(0.5*(c1.lat+c2.lat)))))*SQ(3600*resolution*0.001);
+	return (SQ(c2.lat-c1.lat)+SQ((c2.lon-c1.lon)*COS(RADIANS(0.5*(c1.lat+c2.lat)))))*SQ((model_size-1)*resolution*0.001);
 }
 
 double find_distance_sqd(GeographicCoordinate c1, GeographicCoordinate c2, double coslat)
 {
-	return (SQ(c2.lat-c1.lat)+SQ((c2.lon-c1.lon)*coslat))*SQ(3600*resolution*0.001);
+	return (SQ(c2.lat-c1.lat)+SQ((c2.lon-c1.lon)*coslat))*SQ((model_size-1)*resolution*0.001);
 }
 
 ArrayCoordinate convert_coordinates(GeographicCoordinate c, GeographicCoordinate origin)
 {
-	return ArrayCoordinate_init(convert_to_int((origin.lat-c.lat)*3600-0.5), convert_to_int((c.lon-origin.lon)*3600-0.5), origin);
+	return ArrayCoordinate_init(convert_to_int((origin.lat-c.lat)*(model_size-1)-0.5), convert_to_int((c.lon-origin.lon)*(model_size-1)-0.5), origin);
 }
 
 ArrayCoordinate convert_coordinates(GeographicCoordinate c, GeographicCoordinate origin, double lat_res, double lon_res){
@@ -153,7 +166,7 @@ ArrayCoordinate convert_coordinates(GeographicCoordinate c, GeographicCoordinate
 
 GeographicCoordinate convert_coordinates(ArrayCoordinate c, double offset)
 {
-	return GeographicCoordinate_init(c.origin.lat-(c.row+offset)/3600.0, c.origin.lon+(c.col+offset)/3600.0);
+	return GeographicCoordinate_init(c.origin.lat-(c.row+offset)/(double((model_size-1))), c.origin.lon+(c.col+offset)/(double((model_size-1))));
 }
 
 
