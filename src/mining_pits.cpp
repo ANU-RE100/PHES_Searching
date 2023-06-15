@@ -7,36 +7,6 @@
 #include "mining_pits.h"
 #include "constructor_helpers.hpp"
 
-std::string get_mining_tenament_path(){
-	std::string lat_prefix;
-    std::string lon_prefix;
-
-	if (search_config.grid_square.lat >= 0)
-        lat_prefix = "n";
-	else
-        lat_prefix = "s";
-    if (search_config.grid_square.lon >= 0)
-        lon_prefix = "e";
-    else
-        lon_prefix = "w";
-        
-    // Define the latitude/longitude string identifiers
-    std::stringstream ss_lat;
-    std::stringstream ss_lon;
-    ss_lat << std::setw(2) << std::setfill('0') << abs(search_config.grid_square.lat);
-    ss_lon << std::setw(3) << std::setfill('0') << abs(search_config.grid_square.lon);
-    std::string lat_leading = ss_lat.str();
-    std::string lon_leading = ss_lon.str();
-
-    std::string lat_str = lat_prefix + lat_leading;
-    std::string lon_str = lon_prefix + lon_leading;
-
-	string filename = mining_tenament_shp;
-	filename += lat_str + "_" + lon_str + ".shp";
-
-	return filename;
-}
-
 double pit_area_calculator(int row, int col, Model<bool> *pit_mask, Model<bool> *overlap_mask, Model<bool> *seen, Model<bool> *individual_pit_mask, bool &pit_overlap, ArrayCoordinate &pit_new_seed){
 	double pit_area = 0;
 
@@ -79,7 +49,7 @@ double pit_area_calculator(int row, int col, Model<bool> *pit_mask, Model<bool> 
 }
 
 ArrayCoordinate find_lowest_point_pit_lake(Model<bool> *individual_pit_mask) {
-	// The lowest point is assumed to be at the Point of Inaccessibility (POI) for the pit polygon
+	// The lowest point is assumed to be at the Pole of Inaccessibility (POI) for the pit polygon
 	// For a perfect circle, the POI would be the centre of the circle
 	
 	queue<ArrayCoordinate> q;
@@ -116,7 +86,7 @@ ArrayCoordinate find_lowest_point_pit_lake(Model<bool> *individual_pit_mask) {
 		}
     }
 	
-	// Determine the Point of Inaccessibility based on the maximum distance between any cell and the polygon boundary
+	// Determine the Pole of Inaccessibility based on the maximum distance between any cell and the polygon boundary
 	int max_distance = -1;
     ArrayCoordinate lowest_point = {-1, -1, individual_pit_mask->get_origin()};
     

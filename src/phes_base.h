@@ -34,7 +34,7 @@ extern string existing_reservoirs_shp_names;
 // GPKG Tiling
 extern std::string gpkg_path;  // Path to the GPKG file containing global mining tenament polygons
 extern std::string gpkg_layer; // Name of the layer within the GPKG file that is used for tiling
-extern std::string gpkg_tiling_outputs;   // File path and naming convention used for the gpkg tiling output Shapefiles
+extern std::string mining_tenament_shp; // File path and naming convention used for the gpkg tiling output Shapefiles containing mining tenaments
 
 // General
 extern string file_storage_location; // Where to look for input files and store
@@ -67,7 +67,6 @@ extern double
 extern vector<string> filter_filenames;
 extern vector<double> dam_wall_heights; //  Wall heights to test and export
 
-extern std::string mining_tenament_shp; // Shapefile containing the mining tenaments
 extern int depression_depth_min; // Minimum depth of depressions (m) for mining pit and turkey's nest screenings
 extern double pit_lake_relative_depth;  // Pit lakes typically have a relative depth (maximum depth : diameter of circle with surface area) of between 10% - 40%
 extern double pit_lake_relative_area;    // The ratio of surface area at the bottom of the pit vs the surface of the lake

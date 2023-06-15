@@ -9,7 +9,7 @@
 #include <array>
 #include <gdal/gdal.h>
 
-bool debug_output = true;
+bool debug_output = false;
 
 void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_to_filter){
 	try{
@@ -973,7 +973,7 @@ int main(int nargs, char **argv) {
 		mining_tenament_mask = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 		mining_tenament_mask->set_geodata(DEM->get_geodata());
 
-		std:: string mining_shp_gs = get_mining_tenament_path();
+		std:: string mining_shp_gs = mining_tenament_shp + str(search_config.grid_square) + ".shp";
 		read_shp_filter(mining_shp_gs, mining_tenament_mask);
 
 		// If there are no mining tenaments, end the screening. Filter out all cells that aren't in a mining tenament

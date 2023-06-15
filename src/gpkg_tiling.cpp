@@ -3,20 +3,7 @@ Data for mining tenaments is obtained from the following 2 sources:
     1. Global-scale mining polygons v2 (https://doi.pangaea.de/10.1594/PANGAEA.942325)
     2. Open Street Maps landuse=quarry, industrial=mine, historical=mine (./tools/osm_mine_downloader.py)
 
-The OSM shapefiles can be merged into a single GPKG using GDAL. An example shell script is given below:
-
-    # create a new GeoPackage
-    ogr2ogr -f "GPKG" -nlt PROMOTE_TO_MULTI merged.gpkg input1.shp
-
-    # append each additional shapefile as a new layer in the GeoPackage
-    for file in *.shp; do
-    if [ "$file" != "input1.shp" ]
-    then
-        ogr2ogr -f "GPKG" -update -append -nlt PROMOTE_TO_MULTI merged.gpkg $file -nln merged
-    fi
-    done
-
-Note that merged.gpkg will be apprxomiately 13GB in size.
+The OSM shapefiles can be merged into a single GPKG using GDAL. An example shell script is given in ./tools/merge_shp_to_gpkg.sh
 
 The gpkg_tiling program will take merged_gpkg and split it into Shapefiles containing polygons that overlap with each
 1 degree latitude by 1 degree longitude gridsquare. This will allow the brownfield screening to only access polygons
@@ -113,7 +100,7 @@ int main()
         poDriver = GetGDALDriverManager()->GetDriverByName(pszDriverName);
 
         GDALDataset *poDS_s;
-        string filename = gpkg_tiling_outputs;
+        string filename = mining_tenament_shp;
 
         if (lat >= 0)
             lat_prefix = "n";

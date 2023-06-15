@@ -36,7 +36,6 @@ struct PitCharacteristics {
     }
 };
 
-std::string get_mining_tenament_path();
 double pit_area_calculator(int row, int col, Model<bool> *pit_mask, Model<bool> *seen, Model<bool> *individual_pit_mask, std::vector<GeographicCoordinate> &brownfield_polygon);
 ArrayCoordinate find_lowest_point_pit_lake(Model<bool> *individual_pit_mask);
 double find_volume_pit_lake(double pit_area, int pit_depth);

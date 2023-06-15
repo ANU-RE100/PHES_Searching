@@ -4,8 +4,8 @@ import requests
 import json
 
 # Bounding boxes
-lat_bounds = [-90 + x for x in range(0,180)]
-long_bounds = [-180 + 5*x for x in range(0,360)]
+lat_bounds = range(-90,90)
+long_bounds = range(-180,180,5)
 
 count = 0
 # Iterate over each region
@@ -73,5 +73,9 @@ for lat_lb in lat_bounds:
 
     # Save to Shapefile
     print("Saving data to Shapefile...")
-    final_gdf.to_file(f"/home/tim/Documents/Projects/Turkey Nests/Brownfield Data/OSM_minesAndQuarries_{lat_lb}.shp")
-    print("Shapefile saved successfully!")
+    if (len(final_gdf.index) != 0):
+        final_gdf.to_file(f"./preprocessing_files/osm_download/OSM_minesAndQuarries_{lat_lb}.shp")
+        print("Shapefile saved successfully!")
+    else:
+        print(f"No polygons between latitudes {lat_lb} and {lat_ub}.")
+    
