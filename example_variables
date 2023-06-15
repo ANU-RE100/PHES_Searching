@@ -22,16 +22,16 @@ min_reservoir_volume = 1.0;		// Minimum reservoir volume (GL) at maximum dam wal
 min_reservoir_water_rock = 3.0;	// Minimum reservoir water to rock ratio at optimal dam wall height
 min_max_dam_height = 5.0;		// Minimum maximum dam height (m) (Before overlapping filters) to be considered a potential reservoir
 
-// filter = use_world_urban;						// Use world urban data from tiffs stored in fileformat input/WORLD_URBAN/55H_hbase_human_built_up_and_settlement_extent_geographic_30m
-// filter = use_tiled_filter;						// Use shapefile filters output from shapefile_tiling
-filter = input/CLUM/CLUM_541-550-552_WGS84_2020_cleaned.shp;	// Location of shapefile to be tiled
-filter = input/CAPAD/CAPAD2022_marine.shp;
-filter = input/CAPAD/CAPAD2022_terrestrial.shp;
-filter = input/WPAD/WDPA_Jun2023_Public_shp-polygons0.shp; 	
-filter = input/WPAD/WDPA_Jun2023_Public_shp-polygons1.shp;
-filter = input/WPAD/WDPA_Jun2023_Public_shp-polygons2.shp;
+filter = use_world_urban;						// Use world urban data from tiffs stored in fileformat input/WORLD_URBAN/55H_hbase_human_built_up_and_settlement_extent_geographic_30m
+filter = use_tiled_filter;						// Use shapefile filters output from shapefile_tiling
+filter_to_tile = input/CLUM/CLUM_541-550-552_WGS84_2020_cleaned.shp;	// Location of shapefile to be tiled
+filter_to_tile = input/CAPAD/CAPAD2022_marine.shp;
+filter_to_tile = input/CAPAD/CAPAD2022_terrestrial.shp;
+filter_to_tile = input/WPAD/WDPA_Jun2023_Public_shp-polygons0.shp; 	
+filter_to_tile = input/WPAD/WDPA_Jun2023_Public_shp-polygons1.shp;
+filter_to_tile = input/WPAD/WDPA_Jun2023_Public_shp-polygons2.shp;
 
-dam_wall_heights = 10, 20, 30, 40, 50, 60, 70, 80, 90, 100;			//  Wall heights to test and export in greenfield search
+dam_wall_heights = 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150;			//  Wall heights to test and export in greenfield search
 
 // Pairing
 min_head = 100;					// Minimum head (m) to be considered a potential pair
@@ -44,6 +44,7 @@ tolerance_on_FOM = 0.1;
 max_head_variability = 0.35		// Maximum amount the head can vary during water transfer (Default 0.35)
 num_altitude_volume_pairs = 10;	// Number of altitude-volume pairs provided with an existing pit
 pit_height_resolution = 1;		// Height resolution of top and bottom of pit in metres
+max_bluefield_surface_area_ratio = 0.5;  // Maximum surface area of new reservoir relative to existing reservoir
 
 // Common
 gravity = 9.8;					// Acceleration due to gravity (m/s/s)
