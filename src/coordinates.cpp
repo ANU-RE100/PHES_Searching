@@ -11,8 +11,8 @@ GeographicCoordinate GeographicCoordinate_init(double latitude, double longitude
 GeographicCoordinate get_origin(GridSquare square, int border)
 {
 	GeographicCoordinate geographic_coordinate;
-	geographic_coordinate.lat = square.lat+(1+((border-1)+0.5)/(double((model_size-1))));
-	geographic_coordinate.lon = square.lon-((border+0.5)/(double((model_size-1))));
+	geographic_coordinate.lat = square.lat+(1+((border-tile_overlap)+0.5)/(double((model_size-tile_overlap))));
+	geographic_coordinate.lon = square.lon-((border+0.5)/(double((model_size-tile_overlap))));
 	return geographic_coordinate;
 }
 
@@ -147,17 +147,17 @@ double find_distance(GeographicCoordinate c1, GeographicCoordinate c2, double co
 
 double find_distance_sqd(GeographicCoordinate c1, GeographicCoordinate c2)
 {
-	return (SQ(c2.lat-c1.lat)+SQ((c2.lon-c1.lon)*COS(RADIANS(0.5*(c1.lat+c2.lat)))))*SQ((model_size-1)*resolution*0.001);
+	return (SQ(c2.lat-c1.lat)+SQ((c2.lon-c1.lon)*COS(RADIANS(0.5*(c1.lat+c2.lat)))))*SQ((model_size-tile_overlap)*resolution*0.001);
 }
 
 double find_distance_sqd(GeographicCoordinate c1, GeographicCoordinate c2, double coslat)
 {
-	return (SQ(c2.lat-c1.lat)+SQ((c2.lon-c1.lon)*coslat))*SQ((model_size-1)*resolution*0.001);
+	return (SQ(c2.lat-c1.lat)+SQ((c2.lon-c1.lon)*coslat))*SQ((model_size-tile_overlap)*resolution*0.001);
 }
 
 ArrayCoordinate convert_coordinates(GeographicCoordinate c, GeographicCoordinate origin)
 {
-	return ArrayCoordinate_init(convert_to_int((origin.lat-c.lat)*(model_size-1)-0.5), convert_to_int((c.lon-origin.lon)*(model_size-1)-0.5), origin);
+	return ArrayCoordinate_init(convert_to_int((origin.lat-c.lat)*(model_size-tile_overlap)-0.5), convert_to_int((c.lon-origin.lon)*(model_size-tile_overlap)-0.5), origin);
 }
 
 ArrayCoordinate convert_coordinates(GeographicCoordinate c, GeographicCoordinate origin, double lat_res, double lon_res){
@@ -166,7 +166,7 @@ ArrayCoordinate convert_coordinates(GeographicCoordinate c, GeographicCoordinate
 
 GeographicCoordinate convert_coordinates(ArrayCoordinate c, double offset)
 {
-	return GeographicCoordinate_init(c.origin.lat-(c.row+offset)/(double((model_size-1))), c.origin.lon+(c.col+offset)/(double((model_size-1))));
+	return GeographicCoordinate_init(c.origin.lat-(c.row+offset)/(double((model_size-tile_overlap))), c.origin.lon+(c.col+offset)/(double((model_size-tile_overlap))));
 }
 
 

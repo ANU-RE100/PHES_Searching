@@ -97,16 +97,16 @@ std::string get_dem_filename(GridSquare gs){
 Model<short>* read_DEM_with_borders(GridSquare sc, int border){
 	Model<short>* DEM = new Model<short>(0, 0, MODEL_UNSET);
 	const int neighbors[9][4][2] = {
-		//[(Tile coordinates) , (Tile base)		 		  , (Tile limit)				  , (Tile offset)	 	       ]
-		{ {sc.lat  ,sc.lon  } , {border,      			border	 			}, {border+model_size-1,  	model_size-1+border	 	}, {border-1,    			border     } },
-		{ {sc.lat+1,sc.lon-1} , {0,			  			0		 			}, {border, 	    		border	 	 			}, {border-model_size, 		border-model_size-1} },
-		{ {sc.lat+1,sc.lon  } , {0,	      	  			border	 			}, {border,	    			model_size-1+border	 	}, {border-model_size, 		border     } },
-		{ {sc.lat+1,sc.lon+1} , {0,	      	  			model_size-1+border }, {border,        			model_size-1+2*border	}, {border-model_size, 		border+model_size-1} },
-		{ {sc.lat  ,sc.lon+1} , {border-1,    			model_size-1+border }, {model_size-1+border,   	model_size-1+2*border	}, {border-1,    			border+model_size-1} },
-		{ {sc.lat-1,sc.lon+1} , {model_size-1+border, 	model_size-1+border }, {model_size-1+2*border, 	model_size-1+2*border	}, {border+model_size-2,	border+model_size-1} },
-		{ {sc.lat-1,sc.lon  } , {model_size-1+border, 	border				}, {model_size-1+2*border, 	model_size+border	 	}, {border+model_size-2, 	border     } },
-		{ {sc.lat-1,sc.lon-1} , {model_size-1+border, 	0		 	 		}, {model_size-1+2*border, 	border	 				}, {border+model_size-2, 	border-model_size-1} },
-		{ {sc.lat  ,sc.lon-1} , {border-1,    			0		 	 		}, {model_size-1+border,   	border	 	 			}, {border-1,    			border-model_size-1} }
+		//[(Tile coordinates) , 				(Tile base)		 		  									, (Tile limit)				  																				, (Tile offset)	 	       ]
+		{ {sc.lat  ,sc.lon  } , {border,      						border	 						}, {border+model_size-tile_overlap, 	model_size+border-tile_overlap		}, {border-tile_overlap,    			border  		  				 	} },
+		{ {sc.lat+1,sc.lon-1} , {0,			  						0		 						}, {border, 	    					border	 	 						}, {border-model_size, 	   				border-(model_size-tile_overlap)	} },
+		{ {sc.lat+1,sc.lon  } , {0,	      	  						border	 						}, {border,	    						model_size+border-tile_overlap		}, {border-model_size, 					border     							} },
+		{ {sc.lat+1,sc.lon+1} , {0,	      	  						model_size+border-tile_overlap	}, {border,        						model_size+2*border-tile_overlap	}, {border-model_size, 					border+(model_size-tile_overlap)	} },
+		{ {sc.lat  ,sc.lon+1} , {border-tile_overlap,    			model_size+border-tile_overlap	}, {model_size+border-tile_overlap,   	model_size+2*border-tile_overlap	}, {border-tile_overlap,   				border+(model_size-tile_overlap)	} },
+		{ {sc.lat-1,sc.lon+1} , {model_size+border-tile_overlap,	model_size+border-tile_overlap	}, {model_size+2*border-tile_overlap, 	model_size+2*border-tile_overlap	}, {border+(model_size-2*tile_overlap),	border+(model_size-tile_overlap)	} },
+		{ {sc.lat-1,sc.lon  } , {model_size+border-tile_overlap,	border							}, {model_size+2*border-tile_overlap, 	model_size+border					}, {border+(model_size-2*tile_overlap), border     							} },
+		{ {sc.lat-1,sc.lon-1} , {model_size+border-tile_overlap,	0		 	 					}, {model_size+2*border-tile_overlap, 	border	 							}, {border+(model_size-2*tile_overlap), border-(model_size-tile_overlap)	} },
+		{ {sc.lat  ,sc.lon-1} , {border-tile_overlap,    			0		 	 					}, {model_size+border-tile_overlap,   	border	 	 						}, {border-tile_overlap,    			border-(model_size-tile_overlap)	} }
 	};
 	for (int i=0; i<9; i++) {
 		GridSquare gs = GridSquare_init(neighbors[i][0][0], neighbors[i][0][1]);
@@ -116,7 +116,7 @@ Model<short>* read_DEM_with_borders(GridSquare sc, int border){
 		try{
 			Model<short>* DEM_temp = new Model<short>(get_dem_filename(gs), GDT_Int16);
 			if (i==0) {
-				DEM = new Model<short>(DEM_temp->nrows()+2*border-1,DEM_temp->ncols()+2*border-1, MODEL_SET_ZERO);
+				DEM = new Model<short>(DEM_temp->nrows()+2*border-tile_overlap,DEM_temp->ncols()+2*border-tile_overlap, MODEL_SET_ZERO);
 				DEM->set_geodata(DEM_temp->get_geodata());
 				GeographicCoordinate origin = get_origin(gs, border);
 				DEM->set_origin(origin.lat, origin.lon);
@@ -151,7 +151,7 @@ BigModel BigModel_init(GridSquare sc){
 	for(int i = 0; i<9; i++){
 		big_model.neighbors[i] = neighbors[i];
 	}
-	big_model.DEM = read_DEM_with_borders(sc, (model_size-1));
+	big_model.DEM = read_DEM_with_borders(sc, (model_size-tile_overlap));
 	for(int i = 0; i<9; i++){
 		GridSquare gs = big_model.neighbors[i];
 		try{
@@ -229,7 +229,7 @@ bool file_exists (string name) {
 
 
 GeographicCoordinate get_origin(double latitude, double longitude, int border){
-	return GeographicCoordinate_init(FLOOR(latitude)+1+(border/(double(model_size-1))),FLOOR(longitude)-(border/(double(model_size-1))));
+	return GeographicCoordinate_init(FLOOR(latitude)+1+(border/(double(model_size-tile_overlap))),FLOOR(longitude)-(border/(double(model_size-tile_overlap))));
 }
 
 ExistingReservoir get_existing_reservoir(string name) {

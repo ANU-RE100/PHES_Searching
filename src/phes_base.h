@@ -146,6 +146,7 @@ struct CategoryCutoff {
 };
 
 const int model_size = (dem_type=="SRTM") ? 3601 : 3600;
+const int tile_overlap = (dem_type=="SRTM") ? 1 : 0;
 
 extern vector<CategoryCutoff> category_cutoffs;
 
