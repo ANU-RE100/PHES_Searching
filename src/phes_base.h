@@ -191,6 +191,7 @@ struct BigModel {
 #include "model2D.h"
 #include "polygons.h"
 #include "reservoir.h"
+#include "mining_pits.h"
 
 #include "csv.h"
 
@@ -218,5 +219,6 @@ vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square);
 RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r);
 vector<ExistingPit> get_pit_details(GridSquare grid_square);
 ExistingPit get_pit_details(string pitname);
+RoughBfieldReservoir pit_to_rough_reservoir(BulkPit pit, GeographicCoordinate lowest_point);
 
 #endif

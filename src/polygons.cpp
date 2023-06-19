@@ -78,27 +78,22 @@ void read_shp_filter(string filename, Model<bool>* filter){
     SHPClose(SHP);
 }
 
-ArrayCoordinate find_edge(ArrayCoordinate seed_point, Model<bool> *mask){
-	int row = seed_point.row;
-	int col = seed_point.col;
+std::vector<ArrayCoordinate> find_edge(std::vector<ArrayCoordinate> polygon_points){
+	std::vector<ArrayCoordinate> edge_points;
 
-	int direction = -1;
-	ArrayCoordinate last_point = seed_point;
-	while (true){
-		if(!mask->get(row,col)) {
-			break;
-		} else {
-			last_point = {row,col,mask->get_origin()};
-			if (mask->check_within(row,col+direction))
-				col+=direction;
-			else if (mask->check_within(row-1,col+direction))
-				row+=direction;
-			else {
-			 	direction*=-1;
-				col+=direction;
+	for (const auto& point : polygon_points) {
+		for (uint d=0; d<directions.size(); d++) {
+			ArrayCoordinate neighbor = ArrayCoordinate_init(point.row + directions[d].row, point.col + directions[d].col, point.origin);
+			if (directions[d].row * directions[d].col != 0)
+				continue;
+			
+
+			if(std::find(polygon_points.begin(), polygon_points.end(), neighbor) != polygon_points.end()){
+				edge_points.push_back(point);
+				break;
 			}
 		}
 	}
 
-	return last_point;
+	return edge_points;
 }

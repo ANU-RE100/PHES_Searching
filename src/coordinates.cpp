@@ -1,3 +1,4 @@
+#include "model2D.h"
 #include "phes_base.h"
 
 GeographicCoordinate GeographicCoordinate_init(double latitude, double longitude)
@@ -156,6 +157,13 @@ GeographicCoordinate convert_coordinates(ArrayCoordinate c, double offset)
 	return GeographicCoordinate_init(c.origin.lat-(c.row+offset)/3600.0, c.origin.lon+(c.col+offset)/3600.0);
 }
 
+std::vector<GeographicCoordinate> convert_coordinates(std::vector<ArrayCoordinate> vector_c, double offset)
+{
+	std::vector<GeographicCoordinate> to_return;
+	for (ArrayCoordinate c : vector_c)
+		to_return.push_back(convert_coordinates(c,offset));
+	return to_return;
+}
 
 double find_orthogonal_nn_distance(ArrayCoordinate c1, ArrayCoordinate c2)
 {
@@ -166,3 +174,20 @@ double find_orthogonal_nn_distance(ArrayCoordinate c1, ArrayCoordinate c2)
 	GeographicCoordinate p2 = convert_coordinates(c2);
 	return (COS(RADIANS(0.5*(p1.lat+p2.lat)))*resolution);
 }
+
+void pushback_non_duplicate_points(std::vector<ArrayCoordinate> &main_vector, std::vector<ArrayCoordinate> check_vector) {
+	for(const auto& point2 : check_vector) {
+        auto iterator = std::find_if(main_vector.begin(), main_vector.end(),
+            [&point2](const ArrayCoordinate& point1) {
+                return point1 == point2;
+            });
+
+        // If the point was not found in the first vector, add it
+        if(iterator == main_vector.end()) {
+            main_vector.push_back(point2);
+        }
+    }
+
+	return;
+}
+

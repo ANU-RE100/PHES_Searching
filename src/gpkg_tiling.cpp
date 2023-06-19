@@ -100,31 +100,10 @@ int main()
         poDriver = GetGDALDriverManager()->GetDriverByName(pszDriverName);
 
         GDALDataset *poDS_s;
-        string filename = mining_tenament_shp;
+        string filename = mining_tenament_shp + str(search_config.grid_square) + ".shp";        
 
-        if (lat >= 0)
-            lat_prefix = "n";
-        else
-            lat_prefix = "s";
-        if (lon >= 0)
-            lon_prefix = "e";
-        else
-            lon_prefix = "w";
+        printf("Started tiling grid square %i %i with feature count %i...\n", search_config.grid_square.lat, search_config.grid_square.lon, (int) poLayer_g->GetFeatureCount());
         
-        // Define the latitude/longitude string identifiers
-        std::stringstream ss_lat;
-        std::stringstream ss_lon;
-        ss_lat << std::setw(2) << std::setfill('0') << abs(lat);
-        ss_lon << std::setw(3) << std::setfill('0') << abs(lon);
-        std::string lat_leading = ss_lat.str();
-        std::string lon_leading = ss_lon.str();
-
-        std::string lat_str = lat_prefix + lat_leading;
-        std::string lon_str = lon_prefix + lon_leading;
-        
-
-        printf("Started tiling grid square %s %s with feature count %i...\n", lat_str.c_str(), lon_str.c_str(), (int) poLayer_g->GetFeatureCount());
-        filename += lat_str + "_" + lon_str + ".shp";
         poDS_s = poDriver->Create(filename.c_str(), 0, 0, 0, GDT_Unknown, NULL);
         if( poDS_s == NULL ){
             printf( "Creation of output file failed.\n" );

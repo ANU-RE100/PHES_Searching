@@ -25,6 +25,6 @@ bool model_reservoir(Reservoir *reservoir,
                      vector<string> &country_names);
 bool model_bulk_pit(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates,
                      vector<vector<vector<GeographicCoordinate>>> &countries,
-                     vector<string> &country_names, std::vector<PitCharacteristics> pit_shapes);
+                     vector<string> &country_names, std::vector<BulkPit> pit_shapes);
 
 #endif

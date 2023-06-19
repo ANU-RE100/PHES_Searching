@@ -500,7 +500,7 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
 
 bool model_bulk_pit(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates,
                      vector<vector<vector<GeographicCoordinate>>> &countries,
-                     vector<string> &country_names, std::vector<PitCharacteristics> pit_shapes) {
+                     vector<string> &country_names, std::vector<BulkPit> pit_shapes) {
   
   vector<GeographicCoordinate> pit_polygon;
   

@@ -658,104 +658,112 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 				continue;
 			}
 			
-			Model<bool> *individual_pit_mask = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
+			/* Model<bool> *individual_pit_mask = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 			individual_pit_mask->set_geodata(DEM->get_geodata());
 
 			Model<bool> *individual_pit_lake_mask = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 			individual_pit_lake_mask->set_geodata(DEM->get_geodata());
 			
 			Model<bool> *individual_depression_mask = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
-			individual_depression_mask->set_geodata(DEM->get_geodata());
+			individual_depression_mask->set_geodata(DEM->get_geodata()); */
 
-			PitCharacteristics pit(row,col,DEM->get_origin());
+			std::vector<ArrayCoordinate> individual_pit_points;
+			std::vector<ArrayCoordinate> individual_pit_lake_points;
+			std::vector<ArrayCoordinate> individual_depression_points;
+
+			BulkPit pit(row,col,DEM->get_origin());
 
 			i++;
 			
 			if ((pit_lake_mask->get(row,col)) && (!seen_pl->get(row,col))) {
-				model_pit_lakes(pit, pit_lake_mask, depression_mask, seen_pl, individual_pit_lake_mask, DEM);
+				model_pit_lakes(pit, pit_lake_mask, depression_mask, seen_pl, individual_pit_lake_points, DEM);
+				individual_pit_points = individual_pit_lake_points;
 				
-				if (pit.pit_overlap) {
-					model_depression(pit, pit_lake_mask, depression_mask, seen_d, individual_depression_mask, DEM);
+				if (pit.overlap) {
+					model_depression(pit, pit_lake_mask, depression_mask, seen_d, individual_depression_points, DEM);
+					pushback_non_duplicate_points(individual_pit_points,individual_depression_points);
 				}
 
 			} else if ((depression_mask->get(row,col)) && (!seen_d->get(row,col))) {
-				model_depression(pit, pit_lake_mask, depression_mask, seen_d, individual_depression_mask, DEM);
+				model_depression(pit, pit_lake_mask, depression_mask, seen_d, individual_depression_points, DEM);
+				individual_pit_points = individual_depression_points;
 				
-				if (pit.pit_overlap) {					
-					model_pit_lakes(pit, pit_lake_mask, depression_mask, seen_pl, individual_pit_lake_mask, DEM);
+				if (pit.overlap) {					
+					model_pit_lakes(pit, pit_lake_mask, depression_mask, seen_pl, individual_pit_lake_points, DEM);
+					pushback_non_duplicate_points(individual_pit_points,individual_pit_lake_points);
 				}
 
 			} else {
-				delete individual_pit_mask;
+				/* delete individual_pit_mask;
 				delete individual_depression_mask;
-				delete individual_pit_lake_mask;
+				delete individual_pit_lake_mask; */
 				continue;
 			}
 			// If the pit is too small, skip modelling
-			if ((pit.pit_area < min_watershed_area) || (pit.pit_volume < min_reservoir_volume)){
-				delete individual_pit_mask;
+			if ((max(pit.areas) < min_watershed_area) || (max(pit.volumes) < min_reservoir_volume)){
+				/* delete individual_pit_mask;
 				delete individual_depression_mask;
-				delete individual_pit_lake_mask;
+				delete individual_pit_lake_mask; */
 				continue;
 			}
 
-			// Find overall mining pit mask
-			for(int row = 0; row<individual_pit_mask->nrows();row++) {
+			// Find overall mining pit shape
+
+			/* for(int row = 0; row<individual_pit_mask->nrows();row++) {
 				for(int col = 0; col<individual_pit_mask->ncols();col++) {
 					if((individual_pit_lake_mask->get(row,col)) || (individual_depression_mask->get(row,col))){
 						individual_pit_mask->set(row,col,true);						
 					}
 				}
-			}
+			} */
 
 			// Remove pits with a low pit-to-circle ratio (e.g. rivers with mining operations)
-			pit.pit_circularity = determine_circularity(individual_pit_mask, pit.lowest_point, pit.pit_area);
-			if(pit.pit_circularity < min_pit_circularity){
-				delete individual_pit_mask;
+			pit.circularity = determine_circularity(individual_pit_points, pit.lowest_point, max(pit.areas));
+			if(pit.circularity < min_pit_circularity){
+				/* delete individual_pit_mask;
 				delete individual_depression_mask;
-				delete individual_pit_lake_mask;
+				delete individual_pit_lake_mask; */
 				continue;
 			}
 			
-			if(pit.pit_lake_area / pit.pit_area > 0.5)
+			if(pit.pit_lake_area / max(pit.areas) > 0.5)
 				pit.res_identifier = str(search_config.grid_square) + "_PITL" + str(i);
 			else
 			 pit.res_identifier = str(search_config.grid_square) + "_PITD" + str(i);
 
 			// Find polygon for the combined depression/pit lake
-			ArrayCoordinate offset = {0,0,individual_pit_mask->get_origin()};
-			ArrayCoordinate edge_point = find_edge(pit.seed_point, individual_pit_mask);
-			pit.brownfield_polygon = convert_poly(convert_to_polygon(individual_pit_mask, offset,edge_point));
+			/* ArrayCoordinate offset = {0,0,individual_pit_mask->get_origin()};
+			ArrayCoordinate edge_point = find_edge(pit.seed_point, individual_pit_mask); */
+			pit.brownfield_polygon = convert_coordinates(find_edge(individual_pit_points),0);
 			
 			if(debug_output){
-				for(int row = 0; row<individual_pit_mask->nrows();row++) {
+				for (ArrayCoordinate point : individual_pit_points)
+					pit_mask_debug->set(point.row,point.col,true);
+
+				/* for(int row = 0; row<individual_pit_mask->nrows();row++) {
 					for(int col = 0; col<individual_pit_mask->ncols();col++) {
 						if(individual_pit_mask->get(row,col)){
 							pit_mask_debug->set(row,col,true);
 						}
 					}
-				}
+				} */
 			}
 
 			// Model the brownfield reservoir
 			GeographicCoordinate lowest_point_geo = DEM->get_coordinate(pit.lowest_point.row, pit.lowest_point.col);
-			ExistingReservoir existing_reservoir = ExistingReservoir_init(pit.res_identifier,lowest_point_geo.lat,lowest_point_geo.lon,pit.pit_min_elevation,pit.pit_volume);
-			existing_reservoir.polygon = pit.brownfield_polygon;
+			//ExistingReservoir existing_reservoir = ExistingReservoir_init(pit.res_identifier,lowest_point_geo.lat,lowest_point_geo.lon,pit.min_elevation,pit.volume);
+			//existing_reservoir.polygon = pit.brownfield_polygon;
 
 			res_count++;
 
-			RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(existing_reservoir);
-			reservoir.pit = true;
-			for(uint i = 0; i<dam_wall_heights.size(); i++){
-				reservoir.areas[i] = pit.pit_area;
-			}
+			RoughBfieldReservoir reservoir = pit_to_rough_reservoir(pit, lowest_point_geo);
 
 			write_rough_reservoir_csv(csv_file, reservoir);
 			write_rough_reservoir_data(csv_data_file, &reservoir);
 
-			delete individual_pit_mask;
+			/* delete individual_pit_mask;
 			delete individual_depression_mask;
-			delete individual_pit_lake_mask;
+			delete individual_pit_lake_mask; */
 		}
 	}	
 	fclose(csv_file);
@@ -790,33 +798,33 @@ int main(int nargs, char **argv) {
   mkdir(convert_string(file_storage_location + "processing_files"), 0777);
   mkdir(convert_string(file_storage_location + "processing_files/reservoirs"), 0777);
 
-  // Create the DEM and filter model
-  Model<bool> *filter;
-  Model<short> *DEM = read_DEM_with_borders(search_config.grid_square, border);
-
-  if (search_config.logger.output_debug()) {
-    printf("\nAfter border added:\n");
-    DEM->print();
-  }
-  if (debug_output) {
-    mkdir(convert_string("debug"), 0777);
-    mkdir(convert_string("debug/input"), 0777);
-    DEM->write("debug/input/" + str(search_config.grid_square) + "_input.tif", GDT_Int16);
-  }
-
-  t_usec = walltime_usec();
-  filter = read_filter(DEM, filter_filenames);
-  if (search_config.logger.output_debug()) {
-    printf("\nFilter:\n");
-    filter->print();
-    printf("Filter Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - t_usec) );
-  }
-  if(debug_output){
-    mkdir(convert_string(file_storage_location+"debug/filter"),0777);
-    filter->write(file_storage_location+"debug/filter/"+str(search_config.grid_square)+"_filter.tif", GDT_Byte);
-  }
-
   if (search_config.search_type.not_existing()) {
+	// Create the DEM and filter model
+	Model<bool> *filter;
+	Model<short> *DEM = read_DEM_with_borders(search_config.grid_square, border);
+
+	if (search_config.logger.output_debug()) {
+		printf("\nAfter border added:\n");
+		DEM->print();
+	}
+	if (debug_output) {
+		mkdir(convert_string("debug"), 0777);
+		mkdir(convert_string("debug/input"), 0777);
+		DEM->write("debug/input/" + str(search_config.grid_square) + "_input.tif", GDT_Int16);
+	}
+
+	t_usec = walltime_usec();
+	filter = read_filter(DEM, filter_filenames);
+	if (search_config.logger.output_debug()) {
+		printf("\nFilter:\n");
+		filter->print();
+		printf("Filter Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - t_usec) );
+	}
+	if(debug_output){
+		mkdir(convert_string(file_storage_location+"debug/filter"),0777);
+		filter->write(file_storage_location+"debug/filter/"+str(search_config.grid_square)+"_filter.tif", GDT_Byte);
+	}
+
     Model<char> *flow_directions;
     Model<bool> *pour_points;
     Model<int> *flow_accumulation;
@@ -960,6 +968,33 @@ int main(int nargs, char **argv) {
 
 	// New Brownfield reservoir screening based on mining tenaments in grid square rather than individual pit shapefiles
 	} else if (search_config.search_type == SearchType::BULK_PIT) {
+		// Create the DEM and filter model
+		Model<bool> *filter;
+		Model<short> *DEM = read_DEM_with_borders(search_config.grid_square, border);
+
+		if (search_config.logger.output_debug()) {
+			printf("\nAfter border added:\n");
+			DEM->print();
+		}
+		if (debug_output) {
+			mkdir(convert_string("debug"), 0777);
+			mkdir(convert_string("debug/input"), 0777);
+			DEM->write("debug/input/" + str(search_config.grid_square) + "_input.tif", GDT_Int16);
+		}
+
+		t_usec = walltime_usec();
+		filter = read_filter(DEM, filter_filenames);
+		if (search_config.logger.output_debug()) {
+			printf("\nFilter:\n");
+			filter->print();
+			printf("Filter Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - t_usec) );
+		}
+		if(debug_output){
+			mkdir(convert_string(file_storage_location+"debug/filter"),0777);
+			filter->write(file_storage_location+"debug/filter/"+str(search_config.grid_square)+"_filter.tif", GDT_Byte);
+		}
+
+		// Create the masks and model mining pit reservoirs
 		t_usec = walltime_usec();
 		
 		Model<bool> *mining_tenament_mask;

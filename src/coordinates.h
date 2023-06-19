@@ -2,6 +2,7 @@
 #define COORDINATES_H
 
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -49,6 +50,8 @@ ArrayCoordinate convert_coordinates(GeographicCoordinate c,
 ArrayCoordinate convert_coordinates(GeographicCoordinate c,
                                     GeographicCoordinate origin, double lat_res,
                                     double lon_res);
+std::vector<GeographicCoordinate> convert_coordinates(std::vector<ArrayCoordinate> vector_c, double offset);
 double find_orthogonal_nn_distance(ArrayCoordinate c1, ArrayCoordinate c2);
+void pushback_non_duplicate_points(std::vector<ArrayCoordinate> &main_vector, std::vector<ArrayCoordinate> check_vector);
 
 #endif

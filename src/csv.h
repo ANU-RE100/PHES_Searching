@@ -30,6 +30,6 @@ void write_summary_csv_header(FILE *csv_file);
 void write_summary_csv(FILE *csv_file, string square_name, string test, 
                       int non_overlapping_sites, int num_sites, 
                       int energy_capacity);
-std::vector<PitCharacteristics> read_pit_polygons(std::string filename);
+std::vector<BulkPit> read_pit_polygons(std::string filename);
 
 #endif

@@ -33,7 +33,7 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
                 bool *non_overlap, int max_FOM, BigModel big_model,
                 Model<char> *full_cur_model,
                 vector<vector<vector<GeographicCoordinate>>> &countries,
-                vector<string> &country_names, std::vector<PitCharacteristics> pit_shapes) {
+                vector<string> &country_names, std::vector<BulkPit> pit_shapes) {
 
   vector<ArrayCoordinate> used_points;
   *non_overlap = true;
@@ -153,7 +153,7 @@ int main(int nargs, char **argv)
         search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
 
     // Extract bulk pit shape bounds found during screening
-    std::vector<PitCharacteristics> pit_shapes;
+    std::vector<BulkPit> pit_shapes;
     if (search_config.search_type == SearchType::BULK_PIT) {     
       pit_shapes =  read_pit_polygons(convert_string(file_storage_location + "processing_files/reservoirs/pit_" +
                        str(search_config.grid_square) + "_reservoirs_data.csv"));

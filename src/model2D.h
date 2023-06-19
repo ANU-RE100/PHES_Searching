@@ -33,6 +33,24 @@ struct GeographicCoordinate {
 struct ArrayCoordinate {
   int row, col;
   GeographicCoordinate origin;
+
+  bool operator==(const ArrayCoordinate& other_ac) const{
+    return row == other_ac.row && col == other_ac.col;
+  }
+
+  bool operator!=(const ArrayCoordinate& other_ac) const{
+    return row != other_ac.row || col != other_ac.col;
+  }
+};
+
+struct Circle {
+  ArrayCoordinate centre_point;
+  double radius;
+
+  Circle(ArrayCoordinate point, double r){
+    centre_point = point;
+    radius = r;
+  }
 };
 
 #include "phes_base.h"

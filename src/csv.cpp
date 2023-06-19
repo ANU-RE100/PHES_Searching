@@ -604,8 +604,8 @@ void write_summary_csv(FILE *csv_file, string square_name, string test,
   write_to_csv_file(csv_file, line);
 }
 
-std::vector<PitCharacteristics> read_pit_polygons(std::string filename){ 
-  vector<PitCharacteristics> pits;
+std::vector<BulkPit> read_pit_polygons(std::string filename){ 
+  vector<BulkPit> pits;
   ifstream inputFile(filename);
   string s;
   bool header = true;
@@ -623,7 +623,7 @@ std::vector<PitCharacteristics> read_pit_polygons(std::string filename){
         GridSquare_init(convert_to_int(FLOOR(gc.lat)), convert_to_int(FLOOR(gc.lon))),
         border);
     ArrayCoordinate ac = convert_coordinates(gc,origin,1.0/3600.0,1.0/3600.0);
-    PitCharacteristics pit(ac.row,ac.col,origin);
+    BulkPit pit(ac.row,ac.col,origin);
 
     pit.res_identifier = line[0];
 
