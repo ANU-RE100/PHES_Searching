@@ -6,6 +6,7 @@ string processes_file;				// File with list of processes to complete
 string existing_reservoirs_csv;
 string existing_reservoirs_shp;
 string existing_reservoirs_shp_names;
+bool use_tiled_bluefield;
 
 // General
 string file_storage_location;		// Where to look for input files and store output files
@@ -40,7 +41,6 @@ double tolerance_on_FOM;
 double max_head_variability;		// Maximum amount the head can vary during water transfer (Default 0.35)
 int num_altitude_volume_pairs;		// Number of altitude-volume pairs provided with an existing pit
 int pit_height_resolution;			// Height resolution of top and bottom of pit in metres
-double max_bluefield_surface_area_ratio;
 
 // Common
 double gravity;						// Acceleration due to gravity (m/s/s)
@@ -80,6 +80,8 @@ double ref_head;
 // Reservoir Sizings
 vector<Test> tests;					// Test in format {Volume (GL), Storage time (h), Maximum FOM}
 vector<CategoryCutoff> category_cutoffs;
+
+double max_bluefield_surface_area_ratio;
 
 void parse_variables(char* filename){
     if(!file_exists(filename)){
@@ -229,8 +231,10 @@ void parse_variables(char* filename){
 				num_altitude_volume_pairs = stoi(value);
 			if(variable=="pit_height_resolution")
 				pit_height_resolution = stoi(value);
-			if(variable=="max_bluefield_surface_area_ratio")
+      if(variable=="max_bluefield_surface_area_ratio")
 				max_bluefield_surface_area_ratio = stod(value);
+			if(variable=="use_tiled_bluefield")
+				use_tiled_bluefield = stoi(value);
 		}
 	}
 }
