@@ -31,6 +31,7 @@ extern string existing_reservoirs_csv;
 extern string existing_reservoirs_shp;
 extern string existing_reservoirs_shp_names;
 extern bool use_tiled_bluefield;
+extern bool use_tiled_rivers;
 
 // General
 extern string file_storage_location; // Where to look for input files and store
@@ -197,7 +198,7 @@ double linear_interpolate(double value, vector<double> x_values,
 string str(int i);
 unsigned long walltime_usec();
 double find_required_volume(int energy, int head);
-char *convert_string(string str);
+char *convert_string(const string& str);
 void write_to_csv_file(FILE *csv_file, vector<string> cols);
 vector<string> read_from_csv_file(string line);
 string dtos(double f, int nd);

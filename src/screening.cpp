@@ -3,6 +3,7 @@
 #include "phes_base.h"
 #include "reservoir.h"
 #include "search_config.hpp"
+#include <climits>
 
 bool debug_output = false;
 
@@ -714,16 +715,42 @@ int main(int nargs, char **argv) {
     else
       existing_reservoirs = get_existing_reservoirs(search_config.grid_square);
 
-	if (existing_reservoirs.size() < 1) {
-		printf("No existing reservoirs in %s\n",convert_string(str(search_config.grid_square)));
-		exit(0);
-	}
-
-	for(ExistingReservoir r : existing_reservoirs){
-      RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
-      reservoir.pit = (search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT);
-      write_rough_reservoir_csv(csv_file, reservoir);
-      write_rough_reservoir_data(csv_data_file, &reservoir);
+    if (existing_reservoirs.size() < 1) {
+      printf("No existing reservoirs in %s\n", convert_string(str(search_config.grid_square)));
+      exit(0);
+    }
+    if (search_config.search_type == SearchType::BULK_EXISTING && use_tiled_rivers) {
+      Model<short> *DEM = read_DEM_with_borders(search_config.grid_square, border);
+      Model<double> *DEM_filled_no_flat = fill(DEM);
+      for (ExistingReservoir r : existing_reservoirs) {
+        RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
+        reservoir.pit = (search_config.search_type == SearchType::BULK_PIT ||
+                         search_config.search_type == SearchType::SINGLE_PIT);
+        if (reservoir.river) {
+          for (ArrayCoordinate ac : reservoir.shape_bound) {
+            int temp_elevation = INT_MAX;
+            for (int dx = -5; dx < 6; dx++)
+              for (int dy = -5; dy < 6; dy++) {
+                temp_elevation =
+                    MIN(temp_elevation,
+                        (int)DEM_filled_no_flat->get(convert_coordinates(
+                            ArrayCoordinate_init(ac.row + dy, ac.col + dx, ac.origin))));
+              }
+            reservoir.elevations.push_back(temp_elevation);
+          }
+          reservoir.elevation = reservoir.elevations[0];
+        }
+        write_rough_reservoir_csv(csv_file, reservoir);
+        write_rough_reservoir_data(csv_data_file, &reservoir);
+      }
+    } else {
+      for (ExistingReservoir r : existing_reservoirs) {
+        RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
+        reservoir.pit = (search_config.search_type == SearchType::BULK_PIT ||
+                         search_config.search_type == SearchType::SINGLE_PIT);
+        write_rough_reservoir_csv(csv_file, reservoir);
+        write_rough_reservoir_data(csv_data_file, &reservoir);
+      }
     }
 
     fclose(csv_file);

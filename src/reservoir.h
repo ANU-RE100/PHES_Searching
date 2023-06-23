@@ -7,6 +7,7 @@ class RoughReservoir{
   public:
     string identifier;
     bool brownfield = false;
+    bool river = false;
     bool ocean;
     bool pit;
     bool turkey;
@@ -60,6 +61,7 @@ public:
 class RoughBfieldReservoir : public RoughReservoir {
 public:
   vector<ArrayCoordinate> shape_bound;
+  vector<int> elevations;
   RoughBfieldReservoir() {};
   explicit RoughBfieldReservoir(const RoughReservoir &r) : RoughReservoir(r) {}
 };
@@ -72,6 +74,7 @@ struct ExistingReservoir {
   int bottom_elevation;
   double volume;
   double area;
+  bool river = false;
   vector<GeographicCoordinate> polygon;
 };
 

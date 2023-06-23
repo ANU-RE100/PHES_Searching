@@ -7,6 +7,7 @@ string existing_reservoirs_csv;
 string existing_reservoirs_shp;
 string existing_reservoirs_shp_names;
 bool use_tiled_bluefield;
+bool use_tiled_rivers;
 
 // General
 string file_storage_location;		// Where to look for input files and store output files
@@ -235,6 +236,8 @@ void parse_variables(char* filename){
 				max_bluefield_surface_area_ratio = stod(value);
 			if(variable=="use_tiled_bluefield")
 				use_tiled_bluefield = stoi(value);
+			if(variable=="use_tiled_rivers")
+				use_tiled_rivers = stoi(value);
 		}
 	}
 }

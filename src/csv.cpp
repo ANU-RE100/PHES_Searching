@@ -51,7 +51,7 @@ vector<string> read_from_csv_file(string line, char delimeter) {
   return cols;
 }
 
-vector<ExistingReservoir> read_existing_reservoir_data(char *filename) {
+vector<ExistingReservoir> read_existing_reservoir_data(const char *filename) {
   vector<ExistingReservoir> reservoirs;
   ifstream inputFile(filename);
   bool header = true;
@@ -191,7 +191,9 @@ void write_rough_reservoir_data(FILE *csv_file, RoughReservoir *reservoir) {
     line.push_back(dtos(reservoir->areas[i], 2));
   for (uint i = 0; i < dam_wall_heights.size(); i++)
     line.push_back(dtos(reservoir->dam_volumes[i], 5));
-  if (reservoir->pit)
+  if (reservoir->river)
+    line.push_back("3");
+  else if (reservoir->pit)
     line.push_back("2");
   else if (reservoir->brownfield)
     line.push_back("1");
@@ -212,6 +214,9 @@ void write_rough_reservoir_data(FILE *csv_file, RoughReservoir *reservoir) {
       line.push_back(to_string(c.row));
       line.push_back(to_string(c.col));
     }
+    if(br->river)
+      for(int e : br->elevations)
+        line.push_back(to_string(e));
   }
   write_to_csv_file(csv_file, line);
 }
