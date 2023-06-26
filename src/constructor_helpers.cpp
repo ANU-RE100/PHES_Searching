@@ -203,24 +203,6 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
     return to_return;
 }
 
-vector<ArrayCoordinate> convert_to_polygon(Model<bool>* model, ArrayCoordinate offset, ArrayCoordinate edge_point){
-  Model<char>* char_model = new Model<char>(model->nrows(), model->ncols(), MODEL_UNSET);
-  char_model->set_geodata(model->get_geodata());
-
-  for (int row=1; row<model->nrows()-1;row++){
-		for (int col=1; col<model->ncols()-1; col++){
-      if (model->get(row,col))
-        char_model->set(row,col,1);
-      else
-        char_model->set(row,col,0);
-    }
-  }
-  
-  std::vector<ArrayCoordinate> to_return = convert_to_polygon(char_model, offset, edge_point, 1);
-
-  return to_return;
-}
-
 /*
  * Convert polygon of grid vertices to polygon of geographic coordinates
  */
@@ -375,6 +357,8 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
     }
   }
 
+  reservoir->fill_depth = reservoir->dam_height;
+
   if (reservoir->dam_height < minimum_dam_height) {
     return false;
   }
@@ -500,24 +484,11 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
 
 bool model_bulk_pit(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates,
                      vector<vector<vector<GeographicCoordinate>>> &countries,
-                     vector<string> &country_names, std::vector<BulkPit> pit_shapes) {
-  
-  vector<GeographicCoordinate> pit_polygon;
-  
-  for (uint i = 0; i < pit_shapes.size(); i++) {
-    if (reservoir->identifier == pit_shapes[i].res_identifier)
-      pit_polygon = pit_shapes[i].brownfield_polygon;
-  }
-
-  string polygon_string = str(compress_poly(corner_cut_poly(pit_polygon)), reservoir->elevation);
+                     vector<string> &country_names) {
+  printf("Size %i\n",(int)reservoir->shape_bound.size());
+  string polygon_string = str(compress_poly(corner_cut_poly(convert_poly(reservoir->shape_bound))), reservoir->elevation);
   coordinates->reservoir = polygon_string;
   
-  GeographicCoordinate origin = get_origin(reservoir->latitude, reservoir->longitude, border);
-  reservoir->shape_bound.clear();
-  for(GeographicCoordinate p : pit_polygon)
-    reservoir->shape_bound.push_back(convert_coordinates(p, origin));
-  
-  //KML
   for(uint i = 0; i< countries.size();i++){
       if(check_within(GeographicCoordinate_init(reservoir->latitude, reservoir->longitude), countries[i])){
           reservoir->country = country_names[i];

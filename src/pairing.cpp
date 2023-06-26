@@ -258,6 +258,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   upper_reservoir.water_rock = upper_water_rock_estimate;
   upper_reservoir.dam_height = upper_dam_wall_height;
   upper_reservoir.max_dam_height = upper->max_dam_height;
+  upper_reservoir.fill_depth = linear_interpolate(required_volume, upper->volumes, int_to_double_vector(upper->fill_depths));
   upper_reservoir.brownfield = upper->brownfield;
   upper_reservoir.pit = upper->pit;
 
@@ -273,6 +274,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   lower_reservoir.water_rock = lower_water_rock_estimate;
   lower_reservoir.dam_height = lower_dam_wall_height;
   lower_reservoir.max_dam_height = lower->max_dam_height;
+  lower_reservoir.fill_depth = linear_interpolate(required_volume, lower->volumes, int_to_double_vector(lower->fill_depths));
   lower_reservoir.brownfield = lower->brownfield;
   lower_reservoir.pit = lower->pit;
   lower_reservoir.ocean = lower->ocean;

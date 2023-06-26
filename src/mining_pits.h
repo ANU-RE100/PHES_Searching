@@ -40,7 +40,7 @@ double pit_area_calculator(int row, int col, Model<bool> *pit_mask, Model<bool> 
 ArrayCoordinate find_lowest_point_pit_lake(Model<bool> *individual_pit_mask);
 double find_volume_pit_lake(double pit_area, int pit_depth);
 double determine_circularity(std::vector<ArrayCoordinate> individual_pit_points, ArrayCoordinate lowest_point, double pit_area);
-void model_pit_lakes(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *depression_mask, Model<bool> *seen_pl, vector<ArrayCoordinate> &individual_pit_lake_points, Model<short> *DEM);
-void model_depression(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *depression_mask, Model<bool> *seen_d, std::vector<ArrayCoordinate> &individual_depression_points, Model<short> *DEM);
+void model_pit_lakes(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *depression_mask, Model<bool> *seen_pl, Model<bool> *seen_d, vector<ArrayCoordinate> &individual_pit_lake_points, Model<short> *DEM);
+void model_depression(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *depression_mask, Model<bool> *seen_d, Model<bool> *seen_pl, std::vector<ArrayCoordinate> &individual_depression_points, Model<short> *DEM);
 
 #endif

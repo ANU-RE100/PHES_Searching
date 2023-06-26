@@ -33,7 +33,7 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
                 bool *non_overlap, int max_FOM, BigModel big_model,
                 Model<char> *full_cur_model,
                 vector<vector<vector<GeographicCoordinate>>> &countries,
-                vector<string> &country_names, std::vector<BulkPit> pit_shapes) {
+                vector<string> &country_names) {
 
   vector<ArrayCoordinate> used_points;
   *non_overlap = true;
@@ -44,7 +44,7 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
       return false;
   } else if (pair->upper.brownfield && (search_config.search_type == SearchType::BULK_PIT)) {
     if (!model_bulk_pit(&pair->upper, &pair_kml->upper,
-                              countries, country_names, pit_shapes)){
+                              countries, country_names)){
       return false;
     }
   } else if (!model_reservoir(&pair->upper, &pair_kml->upper, seen, non_overlap,
@@ -58,7 +58,7 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
       return false;
   } else if (pair->lower.brownfield && (search_config.search_type == SearchType::BULK_PIT)){
     if (!model_bulk_pit(&pair->lower, &pair_kml->lower, 
-                              countries, country_names, pit_shapes)){
+                              countries, country_names)){
       return false;
     }
   
@@ -152,13 +152,6 @@ int main(int nargs, char **argv)
     if(search_config.search_type.single())
         search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
 
-    // Extract bulk pit shape bounds found during screening
-    std::vector<BulkPit> pit_shapes;
-    if (search_config.search_type == SearchType::BULK_PIT) {     
-      pit_shapes =  read_pit_polygons(convert_string(file_storage_location + "processing_files/reservoirs/pit_" +
-                       str(search_config.grid_square) + "_reservoirs_data.csv"));
-    }
-
     BigModel big_model = BigModel_init(search_config.grid_square);
     vector<string> country_names;
     vector<vector<vector<GeographicCoordinate>>> countries = read_countries(file_storage_location+"input/countries/countries.txt", country_names);
@@ -174,6 +167,12 @@ int main(int nargs, char **argv)
       int count = 0;
       int non_overlapping_count = 0;
       if (pairs[i].size() != 0) {
+        // Extract bulk pit shape bounds found during screening
+        if (search_config.search_type == SearchType::BULK_PIT) {     
+          read_pit_polygons(convert_string(file_storage_location + "processing_files/reservoirs/pit_" +
+                          str(search_config.grid_square) + "_reservoirs_data.csv"), pairs[i]);
+        }
+
         FILE *csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+search_config.filename()+"/"+search_config.filename()+"_"+str(tests[i])+".csv"), "w");
         write_pair_csv_header(csv_file_classes, false);
         FILE *csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+search_config.filename()+"/"+search_config.filename()+"_"+str(tests[i])+".csv"), "w");
@@ -189,11 +188,14 @@ int main(int nargs, char **argv)
         bool keep_lower;
         bool keep_upper;
         for(uint j=0; j<pairs[i].size(); j++){
+            if(pairs[i][j].lower.pit)
+              printf("SizeL %i\n",(int)pairs[i][j].lower.shape_bound.size());
+
             Pair_KML pair_kml;
             bool non_overlap;
             int max_FOM = category_cutoffs[0].storage_cost*tests[i].storage_time+category_cutoffs[0].power_cost;
 
-            if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, max_FOM, big_model, full_cur_model, countries, country_names, pit_shapes)){
+            if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, max_FOM, big_model, full_cur_model, countries, country_names)){
                 write_pair_csv(csv_file_classes, &pairs[i][j], false);
                 write_pair_csv(csv_file_FOM, &pairs[i][j], true);
                 keep_lower = !lowers.contains(pairs[i][j].lower.identifier);

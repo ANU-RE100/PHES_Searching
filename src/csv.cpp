@@ -141,6 +141,8 @@ void write_rough_reservoir_csv_header(FILE *csv_file) {
     header.push_back(dtos(dam_wall_heights[i], 0) + "m dam volume (GL)");
   for (uint i = 0; i < dam_wall_heights.size(); i++)
     header.push_back(dtos(dam_wall_heights[i], 0) + "m water to rock");
+  for (uint i = 0; i < dam_wall_heights.size(); i++)
+    header.push_back("Test " + str(i+1) + " fill depth");
   write_to_csv_file(csv_file, header);
 }
 
@@ -154,6 +156,8 @@ void write_rough_reservoir_data_header(FILE *csv_file) {
     header.push_back(dtos(dam_wall_heights[i], 0) + "m reservoir area (ha)");
   for (uint i = 0; i < dam_wall_heights.size(); i++)
     header.push_back(dtos(dam_wall_heights[i], 0) + "m dam volume (GL)");
+  for (uint i = 0; i < dam_wall_heights.size(); i++)
+    header.push_back("Test " + str(i+1) + " fill depth (m)");
   header.push_back("Brownfield");
   header.push_back("Ocean");
   header.push_back("Turkey");
@@ -161,21 +165,25 @@ void write_rough_reservoir_data_header(FILE *csv_file) {
   write_to_csv_file(csv_file, header);
 }
 
-void write_rough_reservoir_csv(FILE *csv_file, RoughReservoir reservoir) {
-  vector<string> line = {reservoir.identifier,
-                         dtos(reservoir.latitude, 4),
-                         dtos(reservoir.longitude, 4),
-                         to_string(reservoir.elevation),
-                         dtos(reservoir.max_dam_height, 0),
-                         dtos(reservoir.watershed_area, 1)};
+void write_rough_reservoir_csv(FILE *csv_file, RoughReservoir *reservoir) {
+  vector<string> line = {reservoir->identifier,
+                         dtos(reservoir->latitude, 4),
+                         dtos(reservoir->longitude, 4),
+                         to_string(reservoir->elevation),
+                         dtos(reservoir->max_dam_height, 0),
+                         dtos(reservoir->watershed_area, 1)};
   for (uint i = 0; i < dam_wall_heights.size(); i++)
-    line.push_back(dtos(reservoir.volumes[i], 2));
+    line.push_back(dtos(reservoir->volumes[i], 2));
   for (uint i = 0; i < dam_wall_heights.size(); i++)
-    line.push_back(dtos(reservoir.areas[i], 2));
+    line.push_back(dtos(reservoir->areas[i], 2));
   for (uint i = 0; i < dam_wall_heights.size(); i++)
-    line.push_back(dtos(reservoir.dam_volumes[i], 2));
+    line.push_back(dtos(reservoir->dam_volumes[i], 2));
   for (uint i = 0; i < dam_wall_heights.size(); i++)
-    line.push_back(dtos(reservoir.water_rocks[i], 1));
+    line.push_back(dtos(reservoir->water_rocks[i], 1));
+  for (uint i = 0; i < dam_wall_heights.size(); i++) {
+    line.push_back(to_string(reservoir->fill_depths[i]));
+  }
+    
   write_to_csv_file(csv_file, line);
 }
 
@@ -192,6 +200,9 @@ void write_rough_reservoir_data(FILE *csv_file, RoughReservoir *reservoir) {
     line.push_back(dtos(reservoir->areas[i], 2));
   for (uint i = 0; i < dam_wall_heights.size(); i++)
     line.push_back(dtos(reservoir->dam_volumes[i], 5));
+  for (uint i = 0; i < dam_wall_heights.size(); i++) {
+    line.push_back(to_string(reservoir->fill_depths[i]));
+  }
   if (reservoir->pit)
     line.push_back("2");
   else if (reservoir->brownfield)
@@ -227,7 +238,7 @@ vector<unique_ptr<RoughReservoir>> read_rough_reservoir_data(char *filename) {
     if (header) {
       header = false;
       vector<string> line = read_from_csv_file(s);
-      compressed_format = line[6+3*dam_wall_heights.size()+1] == "Ocean";
+      compressed_format = line[6+4*dam_wall_heights.size()+1] == "Ocean";
       continue;
     }
     vector<string> line = read_from_csv_file(s);
@@ -244,27 +255,29 @@ vector<unique_ptr<RoughReservoir>> read_rough_reservoir_data(char *filename) {
     for (uint i = 0; i < dam_wall_heights.size(); i++)
       reservoir->dam_volumes.push_back(
           stod(line[6 + 2 * dam_wall_heights.size() + i]));
+    for (uint i = 0; i < dam_wall_heights.size(); i++)
+      reservoir->fill_depths.push_back(stoi(line[6 + 3 * dam_wall_heights.size() + i]));
     reservoir->max_dam_height = stod(line[4]);
     reservoir->watershed_area = stod(line[5]);
     reservoir->identifier = line[0];
     if(compressed_format){
       reservoir->brownfield =
-          stoi(line[6 + 3 * dam_wall_heights.size()]) > 0;
+          stoi(line[6 + 4 * dam_wall_heights.size()]) > 0;
       reservoir->pit =
-          stoi(line[6 + 3 * dam_wall_heights.size()]) > 1;
+          stoi(line[6 + 4 * dam_wall_heights.size()]) > 1;
       reservoir->ocean =
-          stoi(line[6 + 3 * dam_wall_heights.size() + 1]) > 0;
+          stoi(line[6 + 4 * dam_wall_heights.size() + 1]) > 0;
       reservoir->turkey =
-          stoi(line[6 + 3 * dam_wall_heights.size() + 2]) > 0;
+          stoi(line[6 + 4 * dam_wall_heights.size() + 2]) > 0;
     }else{
       reservoir->brownfield =
-          stoi(line[6 + 3 * dam_wall_heights.size() +
+          stoi(line[6 + 4 * dam_wall_heights.size() +
                     (dam_wall_heights.size() * directions.size()) * 2]) > 0;
       reservoir->pit =
-          stoi(line[6 + 3 * dam_wall_heights.size() +
+          stoi(line[6 + 4 * dam_wall_heights.size() +
                     (dam_wall_heights.size() * directions.size()) * 2]) > 1;
       reservoir->ocean =
-          stoi(line[6 + 3 * dam_wall_heights.size() +
+          stoi(line[6 + 4 * dam_wall_heights.size() +
                     (dam_wall_heights.size() * directions.size()) * 2 + 1]) > 0;
     }
 
@@ -273,20 +286,20 @@ vector<unique_ptr<RoughReservoir>> read_rough_reservoir_data(char *filename) {
       for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
         for (uint idir = 0; idir < directions.size(); idir++) {
           greenfield_reservoir->shape_bound[ih][idir].row =
-              stoi(line[(compressed_format ? 9 : 6) + 3 * dam_wall_heights.size() +
+              stoi(line[(compressed_format ? 9 : 6) + 4 * dam_wall_heights.size() +
                         (ih * directions.size() + idir) * 2]);
           greenfield_reservoir->shape_bound[ih][idir].col =
-              stoi(line[(compressed_format ? 9 : 6) + 3 * dam_wall_heights.size() + 1 +
+              stoi(line[(compressed_format ? 9 : 6) + 4 * dam_wall_heights.size() + 1 +
                         (ih * directions.size() + idir) * 2]);
           greenfield_reservoir->shape_bound[ih][idir].origin = origin;
         }
       }
       reservoirs.push_back(std::move(greenfield_reservoir));
     } else if(reservoir->ocean || reservoir->brownfield){
-      int point_len = stoi(line[9+3*dam_wall_heights.size()]);
+      int point_len = stoi(line[9+4*dam_wall_heights.size()]);
       unique_ptr<RoughBfieldReservoir> bfield_reservoir(new RoughBfieldReservoir(*reservoir));
       for(int i = 0; i<point_len; i++){
-        bfield_reservoir->shape_bound.push_back(ArrayCoordinate_init(stoi(line[10+3*dam_wall_heights.size()+i*2]), stoi(line[10+3*dam_wall_heights.size()+i*2+1]), origin));
+        bfield_reservoir->shape_bound.push_back(ArrayCoordinate_init(stoi(line[10+4*dam_wall_heights.size()+i*2]), stoi(line[10+4*dam_wall_heights.size()+i*2+1]), origin));
       }
       reservoirs.push_back(std::move(bfield_reservoir));
     }
@@ -308,6 +321,7 @@ void write_rough_pair_csv_header(FILE *csv_file) {
                            "Upper max dam height (m)",
                            "Upper water to rock estimate",
                            "Upper area estimate (ha)",
+                           "Upper fill depth (m)",
                            "Lower Identifier",
                            "Lower latitude",
                            "Lower longitude",
@@ -316,6 +330,7 @@ void write_rough_pair_csv_header(FILE *csv_file) {
                            "Lower max dam height (m)",
                            "Lower water to rock estimate",
                            "Lower area estimate (ha)",
+                           "Lower fill depth (m)",
                            "Head (m)",
                            "Pourpoint distance (km)",
                            "Distance (km)",
@@ -337,6 +352,7 @@ void write_rough_pair_data_header(FILE *csv_file) {
                            "Upper max dam height (m)",
                            "Upper water to rock estimate",
                            "Upper area estimate (ha)",
+                           "Upper fill depth (m)",
                            "Upper Brownfield",
                            "Lower Identifier",
                            "Lower latitude",
@@ -346,6 +362,7 @@ void write_rough_pair_data_header(FILE *csv_file) {
                            "Lower max dam height (m)",
                            "Lower water to rock estimate",
                            "Lower area estimate (ha)",
+                           "Lower fill depth (m)",
                            "Lower Brownfield",
                            "Lower Ocean",
                            "Head (m)",
@@ -369,6 +386,7 @@ void write_rough_pair_csv(FILE *csv_file, Pair *pair) {
                          dtos(pair->upper.max_dam_height, 0),
                          dtos(pair->upper.water_rock, 1),
                          dtos(pair->upper.area, 1),
+                         dtos(pair->upper.fill_depth,1),
                          pair->lower.identifier,
                          dtos(pair->lower.latitude, 4),
                          dtos(pair->lower.longitude, 4),
@@ -377,6 +395,7 @@ void write_rough_pair_csv(FILE *csv_file, Pair *pair) {
                          dtos(pair->lower.max_dam_height, 0),
                          dtos(pair->lower.water_rock, 1),
                          dtos(pair->lower.area, 1),
+                         dtos(pair->lower.fill_depth,1),
                          to_string(pair->head),
                          dtos(pair->pp_distance, 2),
                          dtos(pair->distance, 2),
@@ -399,6 +418,7 @@ void write_rough_pair_data(FILE *csv_file, Pair *pair) {
       dtos(pair->upper.max_dam_height, 1),
       dtos(pair->upper.water_rock, 5),
       dtos(pair->upper.area, 1),
+      dtos(pair->upper.fill_depth,1),
       pair->upper.pit ? "2" : to_string(pair->upper.brownfield),
       pair->lower.identifier,
       dtos(pair->lower.latitude, 6),
@@ -408,6 +428,7 @@ void write_rough_pair_data(FILE *csv_file, Pair *pair) {
       dtos(pair->lower.max_dam_height, 1),
       dtos(pair->lower.water_rock, 5),
       dtos(pair->lower.area, 1),
+      dtos(pair->lower.fill_depth,1),
       pair->lower.pit ? "2" : to_string(pair->lower.brownfield),
       to_string(pair->lower.ocean),
       to_string(pair->head),
@@ -446,12 +467,12 @@ vector<vector<Pair>> read_rough_pair_data(char *filename) {
                                    convert_to_int(FLOOR(gc.lon + EPS))),
                    border);
     pair.upper = Reservoir_init(convert_coordinates(gc, origin), stoi(line[4]));
-    gc = GeographicCoordinate_init(stod(line[11]), stod(line[12]));
+    gc = GeographicCoordinate_init(stod(line[12]), stod(line[13]));
     origin = get_origin(GridSquare_init(convert_to_int(FLOOR(gc.lat + EPS)),
                                         convert_to_int(FLOOR(gc.lon + EPS))),
                         border);
     pair.lower =
-        Reservoir_init(convert_coordinates(gc, origin), stoi(line[13]));
+        Reservoir_init(convert_coordinates(gc, origin), stoi(line[14]));
 
     pair.identifier = line[0];
 
@@ -460,29 +481,31 @@ vector<vector<Pair>> read_rough_pair_data(char *filename) {
     pair.upper.max_dam_height = stod(line[6]);
     pair.upper.water_rock = stod(line[7]);
     pair.upper.area = stod(line[8]);
-    pair.upper.brownfield = stoi(line[9]) > 0;
-    pair.upper.pit = stoi(line[9]) > 1;
+    pair.upper.fill_depth = stod(line[9]);
+    pair.upper.brownfield = stoi(line[10]) > 0;
+    pair.upper.pit = stoi(line[10]) > 1;
 
-    pair.lower.identifier = line[10];
-    pair.lower.dam_height = stod(line[14]);
-    pair.lower.max_dam_height = stod(line[15]);
-    pair.lower.water_rock = stod(line[16]);
-    pair.lower.area = stod(line[17]);
-    pair.lower.brownfield = stoi(line[18]) > 0;
-    pair.lower.pit = stoi(line[18]) > 1;
-    pair.lower.ocean = stoi(line[19]) > 0;
+    pair.lower.identifier = line[11];
+    pair.lower.dam_height = stod(line[15]);
+    pair.lower.max_dam_height = stod(line[16]);
+    pair.lower.water_rock = stod(line[17]);
+    pair.lower.area = stod(line[18]);
+    pair.lower.fill_depth = stod(line[19]);
+    pair.lower.brownfield = stoi(line[20]) > 0;
+    pair.lower.pit = stoi(line[20]) > 1;
+    pair.lower.ocean = stoi(line[21]) > 0;
 
-    pair.head = stoi(line[20]);
-    pair.pp_distance = stod(line[21]);
-    pair.distance = stod(line[22]);
-    pair.slope = stod(line[23]);
-    pair.required_volume = stod(line[24]);
-    pair.upper.volume = stod(line[24]);
-    pair.lower.volume = stod(line[24]);
-    pair.energy_capacity = stod(line[25]);
-    pair.storage_time = stoi(line[26]);
+    pair.head = stoi(line[22]);
+    pair.pp_distance = stod(line[23]);
+    pair.distance = stod(line[24]);
+    pair.slope = stod(line[25]);
+    pair.required_volume = stod(line[26]);
+    pair.upper.volume = stod(line[26]);
+    pair.lower.volume = stod(line[26]);
+    pair.energy_capacity = stod(line[27]);
+    pair.storage_time = stoi(line[28]);
 
-    pair.FOM = stod(line[27]);
+    pair.FOM = stod(line[29]);
 
     for (uint i = 0; i < tests.size(); i++)
       if (abs(pair.energy_capacity - tests[i].energy_capacity) < EPS &&
@@ -518,6 +541,7 @@ void write_pair_csv_header(FILE *csv_file, bool output_FOM) {
                            "Upper dam length (m)",
                            "Upper dam volume (GL)",
                            "Upper water to rock ratio",
+                           "Upper fill depth (m)",
                            "Upper country",
                            "Lower Identifier",
                            "Lower elevation (m)",
@@ -529,6 +553,7 @@ void write_pair_csv_header(FILE *csv_file, bool output_FOM) {
                            "Lower dam length (m)",
                            "Lower dam volume (GL)",
                            "Lower water to rock ratio",
+                           "Lower fill depth (m)",
                            "Lower country"};
   if (output_FOM)
     header.push_back("Figure of Merit");
@@ -560,6 +585,7 @@ void write_pair_csv(FILE *csv_file, Pair *pair, bool output_FOM) {
       (pair->upper.brownfield ? "NA" : dtos(pair->upper.dam_length, 0)),
       (pair->upper.brownfield ? "NA" : dtos(pair->upper.dam_volume, 2)),
       (pair->upper.brownfield ? "NA" : dtos(pair->upper.water_rock, 1)),
+      dtos(pair->upper.fill_depth,1),
       pair->upper.country,
       pair->lower.identifier,
       to_string(pair->lower.elevation),
@@ -581,6 +607,7 @@ void write_pair_csv(FILE *csv_file, Pair *pair, bool output_FOM) {
       ((pair->lower.brownfield || pair->lower.ocean)
            ? "NA"
            : dtos(pair->lower.water_rock, 1)),
+      dtos(pair->lower.fill_depth,1),
       pair->lower.country};
   if (output_FOM)
     line.push_back(dtos(pair->FOM, 0));
@@ -604,8 +631,7 @@ void write_summary_csv(FILE *csv_file, string square_name, string test,
   write_to_csv_file(csv_file, line);
 }
 
-std::vector<BulkPit> read_pit_polygons(std::string filename){ 
-  vector<BulkPit> pits;
+void read_pit_polygons(std::string filename, vector<Pair> &pairs){ 
   ifstream inputFile(filename);
   string s;
   bool header = true;
@@ -622,19 +648,26 @@ std::vector<BulkPit> read_pit_polygons(std::string filename){
     GeographicCoordinate origin = get_origin(
         GridSquare_init(convert_to_int(FLOOR(gc.lat)), convert_to_int(FLOOR(gc.lon))),
         border);
-    ArrayCoordinate ac = convert_coordinates(gc,origin,1.0/3600.0,1.0/3600.0);
-    BulkPit pit(ac.row,ac.col,origin);
-
-    pit.res_identifier = line[0];
-
-    int point_len = stoi(line[9+3*dam_wall_heights.size()]);
-    for(int i = 0; i<point_len; i++){
-      ArrayCoordinate array_point = ArrayCoordinate_init(stoi(line[10+3*dam_wall_heights.size()+i*2]), stoi(line[10+3*dam_wall_heights.size()+i*2+1]), origin);
-      GeographicCoordinate geo_point = convert_coordinates(array_point);
-      pit.brownfield_polygon.push_back(geo_point);
+    
+    for(Pair &pair : pairs){
+      if (pair.upper.identifier == line[0]){
+        pair.upper.shape_bound.clear();
+        int point_len = stoi(line[9+4*dam_wall_heights.size()]);
+        for(int i = 0; i<point_len; i++){
+          ArrayCoordinate array_point = ArrayCoordinate_init(stoi(line[10+4*dam_wall_heights.size()+i*2]), stoi(line[10+4*dam_wall_heights.size()+i*2+1]), origin);
+          pair.upper.shape_bound.push_back(array_point);
+        }   
+      }
+      if (pair.lower.identifier == line[0]){
+        pair.lower.shape_bound.clear();
+        int point_len = stoi(line[9+4*dam_wall_heights.size()]);
+        for(int i = 0; i<point_len; i++){
+          ArrayCoordinate array_point = ArrayCoordinate_init(stoi(line[10+4*dam_wall_heights.size()+i*2]), stoi(line[10+4*dam_wall_heights.size()+i*2+1]), origin);
+          pair.lower.shape_bound.push_back(array_point);
+        }   
+      }
     }    
-    pits.push_back(pit);
   }
 
-  return pits;
+  return;
 }

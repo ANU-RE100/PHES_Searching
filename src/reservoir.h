@@ -2,6 +2,7 @@
 #define RESERVOIR_H
 
 #include "phes_base.h"
+#include <array>
 
 class RoughReservoir{
   public:
@@ -18,6 +19,7 @@ class RoughReservoir{
     vector<double> dam_volumes;
     vector<double> areas;
     vector<double> water_rocks;
+    vector<int> fill_depths;
     double watershed_area;
     double max_dam_height;
     int bottom_elevation;
@@ -100,6 +102,7 @@ class Reservoir {
     double area;
     double water_rock;
     double watershed_area;
+    double fill_depth;
     double average_water_depth;
     double dam_height;
     double max_dam_height;
@@ -121,6 +124,7 @@ struct Pair {
   double FOM;
   char category;
   double water_rock;
+  double fill_depth;
   double energy_capacity;
   int storage_time;
   int head;

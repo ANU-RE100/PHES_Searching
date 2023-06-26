@@ -14,7 +14,7 @@ vector<string> read_names(char* filename);
 
 void write_rough_reservoir_csv_header(FILE *csv_file);
 void write_rough_reservoir_data_header(FILE *csv_file);
-void write_rough_reservoir_csv(FILE *csv_file, RoughReservoir reservoir);
+void write_rough_reservoir_csv(FILE *csv_file, RoughReservoir *reservoir);
 void write_rough_reservoir_data(FILE *csv_file, RoughReservoir *reservoir);
 vector<unique_ptr<RoughReservoir>> read_rough_reservoir_data(char *filename);
 
@@ -30,6 +30,6 @@ void write_summary_csv_header(FILE *csv_file);
 void write_summary_csv(FILE *csv_file, string square_name, string test, 
                       int non_overlapping_sites, int num_sites, 
                       int energy_capacity);
-std::vector<BulkPit> read_pit_polygons(std::string filename);
+void read_pit_polygons(std::string filename, std::vector<Pair> &pairs);
 
 #endif

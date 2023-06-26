@@ -7,10 +7,10 @@
 #include "mining_pits.h"
 #include "constructor_helpers.hpp"
 
-double pit_area_calculator(int row, int col, Model<bool> *pit_mask, Model<bool> *overlap_mask, Model<bool> *seen, vector<ArrayCoordinate> &individual_pit_points, bool &pit_overlap, ArrayCoordinate &pit_new_seed){
+double pit_area_calculator(int row, int col, Model<bool> *pit_mask, Model<bool> *overlap_mask, Model<bool> *seen, Model<bool> *overlap_seen, vector<ArrayCoordinate> &individual_pit_points, bool &pit_overlap, ArrayCoordinate &pit_new_seed){
 	double pit_area = 0;
 
-	// Find all cells interconnected to within the pit and add them to the individual_pit_points vector
+	// Find all cells interconnected within the pit and add them to the individual_pit_points vector
 	ArrayCoordinate c = ArrayCoordinate_init(row,col,pit_mask->get_origin());
 	queue<ArrayCoordinate> q;
 	q.push(c);
@@ -28,7 +28,7 @@ double pit_area_calculator(int row, int col, Model<bool> *pit_mask, Model<bool> 
 			individual_pit_points.push_back(p);
 			pit_area += find_area(p);
 
-			if(overlap_mask->get(p.row,p.col) && (pit_overlap == false)){
+			if(overlap_mask->get(p.row,p.col) && (pit_overlap == false) && !overlap_seen->get(p.row,p.col)){
 				pit_overlap = true;
 				pit_new_seed = {p.row,p.col,overlap_mask->get_origin()};
 			}
@@ -118,12 +118,11 @@ double determine_circularity(std::vector<ArrayCoordinate> individual_pit_points,
 }
 
 void model_pit_lakes(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *depression_mask, 
-						Model<bool> *seen_pl, vector<ArrayCoordinate> &individual_pit_lake_points, Model<short> *DEM){
+						Model<bool> *seen_pl, Model<bool> *seen_d, vector<ArrayCoordinate> &individual_pit_lake_points, Model<short> *DEM){
 	int seed_row = pit.seed_point.row;
 	int seed_col = pit.seed_point.col;	
 
-	double pit_lake_max_area = pit_area_calculator(seed_row, seed_col, pit_lake_mask, depression_mask, seen_pl, individual_pit_lake_points, pit.overlap, pit.seed_point);
-	//pit.area = MAX(pit_lake_area,pit.area);
+	double pit_lake_max_area = pit_area_calculator(seed_row, seed_col, pit_lake_mask, depression_mask, seen_pl, seen_d, individual_pit_lake_points, pit.overlap, pit.seed_point);
 	pit.pit_lake_area = pit_lake_max_area;
 
 	// Estimate the lowest point of the pit lake
@@ -169,13 +168,12 @@ void model_pit_lakes(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *depr
 }
 
 void model_depression(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *depression_mask, 
-						Model<bool> *seen_d, std::vector<ArrayCoordinate> &individual_depression_points, Model<short> *DEM) {
+						Model<bool> *seen_d, Model<bool> *seen_pl, std::vector<ArrayCoordinate> &individual_depression_points, Model<short> *DEM) {
 
 	int seed_row = pit.seed_point.row;
 	int seed_col = pit.seed_point.col;	
 				
-	pit_area_calculator(seed_row, seed_col, depression_mask, pit_lake_mask, seen_d, individual_depression_points, pit.overlap, pit.seed_point);
-	//pit.area = MAX(depression_area, pit.area);
+	pit_area_calculator(seed_row, seed_col, depression_mask, pit_lake_mask, seen_d, seen_pl, individual_depression_points, pit.overlap, pit.seed_point);
 	
 	std::vector<GeographicCoordinate> depression_polygon = convert_coordinates(find_edge(individual_depression_points), 0);
 
@@ -184,45 +182,59 @@ void model_depression(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *dep
 	ArrayCoordinate edge_lowest_point = {-1, -1, DEM->get_origin()};
 
 	for (GeographicCoordinate point : depression_polygon) {
-		if (DEM->get(point) < lowest_edge_elevation){
-			lowest_edge_elevation = DEM->get(point);
-			edge_lowest_point = DEM->get_array_coord(point.lat, point.lon);
+		for (uint d=0; d<directions.size(); d++) {
+			if ((directions[d].row * directions[d].col != 0))
+				continue;
+			ArrayCoordinate point_ac = convert_coordinates(point, depression_mask->get_origin());
+			ArrayCoordinate neighbor = {point_ac.row+directions[d].row, point_ac.col+directions[d].col, point_ac.origin};
+			if (!depression_mask->check_within(neighbor.row,neighbor.col))
+				continue;
+			if (depression_mask->get(neighbor.row,neighbor.col))
+				continue;
+			if (DEM->get(neighbor.row,neighbor.col) < lowest_edge_elevation){
+				lowest_edge_elevation = DEM->get(neighbor.row,neighbor.col);
+				edge_lowest_point = neighbor;
+			}
 		}
 	}
-	
-	//double depression_volume = 0;
 
+	// Define tests for volume-altitude pairs
 	uint depth_tests = pit.fill_elevations.size();
 	
 	if (pit.overlap == true){
 		depth_tests = depth_tests/2;
 	}
 
-	// NEED TO FIND DEPRESSION MIN ELEVATION BEFORE THIS - CURRENTLY LOOKS AT DIFFERENCE BETWEEN LOWEST EDGE ELEVATION AND SEA LEVEL
-	for(uint i=(pit.fill_elevations.size()-depth_tests); i < pit.fill_elevations.size(); i++) {
-		pit.fill_elevations[i] = (i / depth_tests) * lowest_edge_elevation;
-	}
-
+	// Find the lowest point in the depression
 	int depression_min_elevation = INT_MAX;
 	for (ArrayCoordinate point : individual_depression_points) {
 		depression_min_elevation = MIN(depression_min_elevation,DEM->get(point.row,point.col));
-		if (depression_min_elevation < pit.min_elevation){
-			pit.min_elevation = DEM->get(point.row,point.col);
+		if (depression_min_elevation < pit.min_elevation){			
 			pit.lowest_point = point;
-		}
+			pit.min_elevation = DEM->get(pit.lowest_point.row,pit.lowest_point.col);
+		}	
+	}
 
-		// Calculate volume and area of depression at different fill elevations
+	// Determing each of the test elevations within the depression
+	for(uint i=(pit.fill_elevations.size()-depth_tests); i < pit.fill_elevations.size(); i++) {
+		pit.fill_elevations[i] = pit.min_elevation + (i / depth_tests) * (lowest_edge_elevation - pit.min_elevation);
+	}
+	
+	// Calculate volume and area of depression at different fill elevations
+	for (ArrayCoordinate point : individual_depression_points) {
 		for(uint i=(pit.fill_elevations.size()-depth_tests); i < pit.fill_elevations.size(); i++) {
-			if (DEM->get(point.row,point.col) < pit.fill_elevations[i]) {
+			if (DEM->get(point.row,point.col) <= pit.fill_elevations[i]) {
 				pit.areas[i] += find_area(point);
 				pit.volumes[i] += 0.01*find_area(point) * (pit.fill_elevations[i] - DEM->get(point.row,point.col));
 			}
 		}		
 	}
 
+	// Determine each of the test depths and fix areas for pit lakes that area almost entirely filled with water
 	for(uint i=(pit.fill_elevations.size()-depth_tests); i < pit.fill_elevations.size(); i++) {
+		pit.areas[i] = MAX(pit.areas[i], pit.areas[depth_tests-1]);
 		pit.fill_depths[i] += pit.fill_elevations[i] - depression_min_elevation;
-		printf("%i %i %i %.2f %.2f %i %i\n",i,pit.fill_elevations[i],pit.fill_depths[i], pit.areas[i], pit.volumes[i], pit.min_elevation, pit.overlap);
+		printf("%i %i %i %.2f %.2f %i %i %i %i %.4f %.4f\n",i,pit.fill_elevations[i],pit.fill_depths[i], pit.areas[i], pit.volumes[i], pit.min_elevation, pit.overlap, pit.fill_depths[i], lowest_edge_elevation,convert_coordinates({seed_row, seed_col, pit.seed_point.origin}).lat,convert_coordinates({seed_row, seed_col, pit.seed_point.origin}).lon);
 		
 	}
 

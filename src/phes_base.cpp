@@ -409,15 +409,17 @@ RoughBfieldReservoir pit_to_rough_reservoir(BulkPit pit, GeographicCoordinate lo
 	reservoir.pit = true;
     reservoir.brownfield = true;
     reservoir.ocean = false;
+	reservoir.turkey = false;
 	reservoir.latitude = lowest_point.lat;
 	reservoir.longitude = lowest_point.lon;
 	reservoir.elevation = pit.min_elevation;
 
 	for(uint i = 0; i<pit.fill_elevations.size(); i++){
 		reservoir.volumes.push_back(pit.volumes[i]);
-		reservoir.dam_volumes.push_back(pit.fill_depths[i]); // NEED TO CHANGE THIS TO BE FILL_DEPTH VARIABLE INSTEAD. MUST CHANGE CSV READING, WRITING AND ROUGH RESERVOIR CLASS
+		reservoir.fill_depths.push_back(pit.fill_depths[i]);
 		reservoir.areas.push_back(pit.areas[i]);
 		reservoir.water_rocks.push_back(1000000000);
+		reservoir.dam_volumes.push_back(0);
   	}
 
 	GeographicCoordinate origin = get_origin(lowest_point.lat, lowest_point.lon, border);
