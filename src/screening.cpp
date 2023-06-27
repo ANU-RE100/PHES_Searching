@@ -731,10 +731,11 @@ int main(int nargs, char **argv) {
             int temp_elevation = INT_MAX;
             for (int dx = -5; dx < 6; dx++)
               for (int dy = -5; dy < 6; dy++) {
-                temp_elevation =
-                    MIN(temp_elevation,
-                        (int)DEM_filled_no_flat->get(convert_coordinates(
-                            ArrayCoordinate_init(ac.row + dy, ac.col + dx, ac.origin))));
+                ArrayCoordinate n = ArrayCoordinate_init(ac.row + dy, ac.col + dx, ac.origin);
+                if (DEM_filled_no_flat->check_within(n.row, n.col))
+                  temp_elevation =
+                      MIN(temp_elevation,
+                          (int)DEM_filled_no_flat->get(convert_coordinates(n)));
               }
             reservoir.elevations.push_back(temp_elevation);
           }

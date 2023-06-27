@@ -3,6 +3,7 @@
 #include "model2D.h"
 #include "reservoir.h"
 #include "search_config.hpp"
+#include <shapefil.h>
 #include <string>
 
 int convert_to_int(double f)
@@ -219,32 +220,49 @@ GeographicCoordinate get_origin(double latitude, double longitude, int border){
 	return GeographicCoordinate_init(FLOOR(latitude)+1+(border/3600.0),FLOOR(longitude)-(border/3600.0));
 }
 
-ExistingReservoir get_existing_reservoir(string name) {
+ExistingReservoir get_existing_reservoir(string name, string filename) {
   ExistingReservoir to_return;
-  string filename = file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv;
+  int i = 0;
+  if (filename.empty())
+    filename = file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv;
   if(!file_exists(convert_string(filename))){
     cout << "File " << filename << " does not exist." << endl;
     throw 1;
   }
-  vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(
-      convert_string(filename));
 
-  for (ExistingReservoir r : reservoirs)
-    if (r.identifier == name)
-      to_return = r;
+  if (use_tiled_bluefield) {
+    DBFHandle DBF = DBFOpen(convert_string(filename), "rb");
+    int dbf_field = DBFGetFieldIndex(DBF, string("Vol_total").c_str());
+    int dbf_elevation_field = DBFGetFieldIndex(DBF, string("Elevation").c_str());
+    int dbf_name_field = DBFGetFieldIndex(DBF, string("Lake_name").c_str());
+    for (i = 0; i<DBFGetRecordCount(DBF); i++){
+      const char* s = DBFReadStringAttribute(DBF, i, dbf_name_field);
+      if(name==string(s)){
+        break;
+      }
+    }
+    if(i==DBFGetRecordCount(DBF)){
+      cout<<"Could not find reservoir with name " << name << " in " << filename << endl;
+      throw 1;
+    }
+    to_return = ExistingReservoir_init(name, 0, 0, DBFReadIntegerAttribute(DBF, i, dbf_elevation_field), DBFReadDoubleAttribute(DBF, i, dbf_field));
+    DBFClose(DBF);
+  } else {
+    vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(filename));
 
-  int i = 0;
-  for (string s : read_names(convert_string(file_storage_location +
-                                            "input/existing_reservoirs/" +
-                                            existing_reservoirs_shp_names))) {
-    if (s == name)
-      break;
-    else
-      i++;
+    for (ExistingReservoir r : reservoirs)
+      if (r.identifier == name)
+        to_return = r;
+
+    for (string s : read_names(convert_string(file_storage_location + "input/existing_reservoirs/" +
+                                              existing_reservoirs_shp_names))) {
+      if (s == name)
+        break;
+      else
+        i++;
+    }
   }
 
-  filename = file_storage_location + "input/existing_reservoirs/" +
-                    existing_reservoirs_shp;
   if (!file_exists(filename)) {
     search_config.logger.debug("No file: " + filename);
     throw(1);
@@ -278,6 +296,13 @@ ExistingReservoir get_existing_reservoir(string name) {
   to_return.area = geographic_polygon_area(to_return.polygon);
 
   return to_return;
+}
+
+ExistingReservoir get_existing_tiled_reservoir(string name, double lat, double lon) {
+  GridSquare grid_square = GridSquare_init(convert_to_int(lat-0.5), convert_to_int(lon-0.5));
+  string filename = file_storage_location + "input/bluefield_shapefile_tiles/" +
+                      str(grid_square) + "_shapefile_tile.shp";
+  return get_existing_reservoir(name, filename);
 }
 
 vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square) {
