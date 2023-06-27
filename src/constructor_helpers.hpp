@@ -12,6 +12,7 @@ bool is_edge(ArrayCoordinate point1, ArrayCoordinate point2, Model<char>* model,
 bool is_dam_wall(ArrayCoordinate point1, ArrayCoordinate point2, Model<short>* DEM, ArrayCoordinate offset, double wall_elevation);
 
 vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate offset, ArrayCoordinate pour_point, int threshold);
+vector<ArrayCoordinate> order_polygon(vector<ArrayCoordinate> unordered_edge_points);
 vector<GeographicCoordinate> convert_poly(vector<ArrayCoordinate> polygon);
 vector<GeographicCoordinate> corner_cut_poly(vector<GeographicCoordinate> polygon);
 vector<GeographicCoordinate> compress_poly(vector<GeographicCoordinate> polygon);

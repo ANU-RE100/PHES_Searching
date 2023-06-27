@@ -77,25 +77,17 @@ Circle find_pole_of_inaccessibility(vector<ArrayCoordinate> polygon_points) {
 }
 
 void find_pit_lake_depth_characteristics(int pit_lake_max_depth, double pit_lake_max_area, int pit_lake_test_depth, double &pit_lake_test_volume, double &pit_lake_test_area) {
-	// Pit lake volumes are calculated by assuming that they are conical structures with a flat bottom
+	// Pit lake volumes are calculated by assuming that they are conical structures
 	// Find height of cone with pit_lake surface as base
 	double pit_lake_surface_r = sqrt(10000*pit_lake_max_area / pi); // Area from Ha to m^2
-	double pit_lake_bottom_r = sqrt(pit_lake_relative_area * 10000 * pit_lake_max_area / pi);
-	double surface_bottom_r_diff = pit_lake_surface_r - pit_lake_bottom_r;
-	double large_cone_height = pit_lake_surface_r*(pit_lake_max_depth/surface_bottom_r_diff);
 
-	// Find volume of cone with pit_lake bottom as base
-	double small_cone_height = large_cone_height - pit_lake_max_depth;
-	double small_cone_volume = pi * (pit_lake_bottom_r * pit_lake_bottom_r) * small_cone_height / 3;
-
-	// Find volume of cone for test depth
-	double test_cone_height = small_cone_height + pit_lake_test_depth;
-	double pit_lake_test_r = test_cone_height * (pit_lake_bottom_r / small_cone_height);
+	// Find volume of cone for test fill depth
+	double pit_lake_test_r = pit_lake_test_depth * (pit_lake_surface_r / pit_lake_max_depth);
 	pit_lake_test_area = pi * pit_lake_test_r * pit_lake_test_r / 10000; // Area from m^2 to Ha
-	double test_cone_volume = pi * (pit_lake_test_r * pit_lake_test_r) * test_cone_height / 3;
+	double test_cone_volume = pi * (pit_lake_test_r * pit_lake_test_r) * pit_lake_test_depth / 3;
 
 	// Estimate volume of pit_lake
-	pit_lake_test_volume = (test_cone_volume - small_cone_volume) / pow(10,6); // Volume from m^3 to GL
+	pit_lake_test_volume = (test_cone_volume) / pow(10,6); // Volume from m^3 to GL
 
 	return;
 }
@@ -154,7 +146,6 @@ void model_pit_lakes(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *depr
 		pit.areas[i] = pit_lake_test_area;
 		pit.volumes[i] += pit_lake_test_volume;
 		pit.fill_elevations[i] = DEM->get(seed_row, seed_col) - pit_lake_test_depth;
-		//printf("%i %i %i %.2f %.2f %.2f %i\n",i,pit.fill_elevations[i],pit_lake_test_depth, pit_lake_test_area, pit_lake_test_volume, pit_lake_max_depth, pit.overlap);
 	}	
 
 	// Add maximum pit lake volume and depth to all depression volumes
@@ -175,7 +166,7 @@ void model_depression(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *dep
 				
 	pit_area_calculator(seed_row, seed_col, depression_mask, pit_lake_mask, seen_d, seen_pl, individual_depression_points, pit.overlap, pit.seed_point);
 	
-	std::vector<GeographicCoordinate> depression_polygon = convert_coordinates(find_edge(individual_depression_points), 0);
+	std::vector<GeographicCoordinate> depression_polygon = convert_poly(find_edge(individual_depression_points));
 
 	// Find lowest point on pit edge
 	int lowest_edge_elevation = INT_MAX;
@@ -234,8 +225,6 @@ void model_depression(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *dep
 	for(uint i=(pit.fill_elevations.size()-depth_tests); i < pit.fill_elevations.size(); i++) {
 		pit.areas[i] = MAX(pit.areas[i], pit.areas[depth_tests-1]);
 		pit.fill_depths[i] += pit.fill_elevations[i] - depression_min_elevation;
-		printf("%i %i %i %.2f %.2f %i %i %i %i %.4f %.4f\n",i,pit.fill_elevations[i],pit.fill_depths[i], pit.areas[i], pit.volumes[i], pit.min_elevation, pit.overlap, pit.fill_depths[i], lowest_edge_elevation,convert_coordinates({seed_row, seed_col, pit.seed_point.origin}).lat,convert_coordinates({seed_row, seed_col, pit.seed_point.origin}).lon);
-		
 	}
 
 	return;

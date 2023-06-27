@@ -203,6 +203,43 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
     return to_return;
 }
 
+vector<ArrayCoordinate> order_polygon(vector<ArrayCoordinate> unordered_edge_points){
+    vector<ArrayCoordinate> to_return;
+
+    bool succesful_path = false;
+    ArrayCoordinate initial = unordered_edge_points[0];
+    ArrayCoordinate last = initial;
+
+    while(!unordered_edge_points.empty()){
+        bool found_path = false;
+        for (uint d=0; d<directions.size(); d++) {
+            ArrayCoordinate next = ArrayCoordinate_init(last.row+directions[d].row,last.col+directions[d].col, unordered_edge_points[0].origin);
+            
+            if(std::find(unordered_edge_points.begin(), unordered_edge_points.end(), next) != unordered_edge_points.end()){
+                found_path = true;
+                to_return.push_back(next);
+                unordered_edge_points.erase(remove(unordered_edge_points.begin(), unordered_edge_points.end(), next), unordered_edge_points.end());
+                last = next;
+                break;
+            }
+        }
+
+        if(!found_path)
+            break;
+          
+        if(last==initial){
+            succesful_path = true;
+            break;
+        }
+    }
+    
+    if(!succesful_path){
+      search_config.logger.error("Could not find a succesful path around the polygon.");
+      throw 1;
+    }
+    return to_return;
+}
+
 /*
  * Convert polygon of grid vertices to polygon of geographic coordinates
  */
@@ -485,8 +522,8 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
 bool model_bulk_pit(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates,
                      vector<vector<vector<GeographicCoordinate>>> &countries,
                      vector<string> &country_names) {
-  printf("Size %i\n",(int)reservoir->shape_bound.size());
-  string polygon_string = str(compress_poly(corner_cut_poly(convert_poly(reservoir->shape_bound))), reservoir->elevation);
+  //string polygon_string = str(compress_poly(corner_cut_poly(convert_poly(reservoir->shape_bound))), reservoir->elevation);
+  string polygon_string = str(compress_poly(convert_poly(reservoir->shape_bound)), reservoir->elevation);
   coordinates->reservoir = polygon_string;
   
   for(uint i = 0; i< countries.size();i++){

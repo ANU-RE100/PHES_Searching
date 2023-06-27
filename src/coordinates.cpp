@@ -157,14 +157,6 @@ GeographicCoordinate convert_coordinates(ArrayCoordinate c, double offset)
 	return GeographicCoordinate_init(c.origin.lat-(c.row+offset)/3600.0, c.origin.lon+(c.col+offset)/3600.0);
 }
 
-std::vector<GeographicCoordinate> convert_coordinates(std::vector<ArrayCoordinate> vector_c, double offset)
-{
-	std::vector<GeographicCoordinate> to_return;
-	for (ArrayCoordinate c : vector_c)
-		to_return.push_back(convert_coordinates(c,offset));
-	return to_return;
-}
-
 double find_orthogonal_nn_distance(ArrayCoordinate c1, ArrayCoordinate c2)
 {
 	if (c1.col == c2.col)

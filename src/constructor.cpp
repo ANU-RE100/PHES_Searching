@@ -188,9 +188,6 @@ int main(int nargs, char **argv)
         bool keep_lower;
         bool keep_upper;
         for(uint j=0; j<pairs[i].size(); j++){
-            if(pairs[i][j].lower.pit)
-              printf("SizeL %i\n",(int)pairs[i][j].lower.shape_bound.size());
-
             Pair_KML pair_kml;
             bool non_overlap;
             int max_FOM = category_cutoffs[0].storage_cost*tests[i].storage_time+category_cutoffs[0].power_cost;

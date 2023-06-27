@@ -5,11 +5,12 @@
 #include "polygons.h"
 #include "reservoir.h"
 #include "mining_pits.h"
+#include "constructor_helpers.hpp"
 #include "search_config.hpp"
 #include <array>
 #include <gdal/gdal.h>
 
-bool debug_output = true;
+bool debug_output = false;
 
 void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_to_filter){
 	try{
@@ -703,10 +704,11 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 			if(pit.pit_lake_area / max(pit.areas) > 0.5)
 				pit.res_identifier = str(search_config.grid_square) + "_PITL" + str(i);
 			else
-			 pit.res_identifier = str(search_config.grid_square) + "_PITD" + str(i);
+				pit.res_identifier = str(search_config.grid_square) + "_PITD" + str(i);
 
 			// Find polygon for the combined depression/pit lake
-			pit.brownfield_polygon = convert_coordinates(find_edge(individual_pit_points),0);
+			pit.brownfield_polygon = convert_poly(order_polygon(find_edge(individual_pit_points)));
+			//pit.brownfield_polygon = convert_coordinates(find_edge(individual_pit_points),0);
 			
 			if(debug_output){
 				for (ArrayCoordinate point : individual_pit_points)
