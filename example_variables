@@ -5,6 +5,7 @@ existing_reservoirs_csv = pits.csv;
 existing_reservoirs_shp = osm-aus-pits.shp;
 existing_reservoirs_shp_names = pitnames.csv;
 use_tiled_bluefield = 1;  // 0 for false, 1 for true
+use_tiled_rivers = 1;  // 0 for false, 1 for true (if true, above shps are ignored)
 
 // General
 border = 600;					// Number of cells to add as border around DEM square
