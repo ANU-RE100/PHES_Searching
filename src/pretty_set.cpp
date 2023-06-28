@@ -2,20 +2,33 @@
 #include "search_config.hpp"
 #include "constructor_helpers.hpp"
 
-bool check_pair(Pair& pair, Model<bool>* seen, BigModel& big_model){
+bool check_pair(Pair &pair, Model<bool> *seen, BigModel &big_model) {
   vector<vector<vector<GeographicCoordinate>>> empty_countries;
   vector<string> empty_country_names;
-	vector<ArrayCoordinate> used_points;
-	if(!pair.upper.brownfield && !model_reservoir(&pair.upper, NULL, seen, NULL, &used_points, big_model, NULL, empty_countries, empty_country_names))
-		return false;
-	if(!pair.lower.brownfield && !pair.lower.ocean && !model_reservoir(&pair.lower, NULL, seen, NULL, &used_points, big_model, NULL, empty_countries, empty_country_names))
-		return false;
+  vector<ArrayCoordinate> used_points;
+  if (!pair.upper.brownfield &&
+      !model_reservoir(&pair.upper, NULL, seen, NULL, &used_points, big_model, NULL,
+                       empty_countries, empty_country_names))
+    return false;
+  if (!pair.lower.brownfield && !pair.lower.ocean &&
+      !model_reservoir(&pair.lower, NULL, seen, NULL, &used_points, big_model, NULL,
+                       empty_countries, empty_country_names))
+    return false;
 
-	for(uint i = 0; i<used_points.size();i++){
-		seen->set(used_points[i].row,used_points[i].col,true);
-	}
+  if (pair.upper.brownfield && !pair.lower.brownfield) {
+    if (pair.lower.area > max_bluefield_surface_area_ratio * pair.upper.area)
+      return false;
+  }
+  if (pair.lower.brownfield && !pair.upper.brownfield) {
+    if (pair.upper.area > max_bluefield_surface_area_ratio * pair.lower.area)
+      return false;
+  }
 
-	return true;
+  for (uint i = 0; i < used_points.size(); i++) {
+    seen->set(used_points[i].row, used_points[i].col, true);
+  }
+
+  return true;
 }
 
 int main(int nargs, char **argv)
@@ -29,7 +42,7 @@ int main(int nargs, char **argv)
 	parse_variables(convert_string("storage_location"));
 	parse_variables(convert_string(file_storage_location+"variables"));
 	unsigned long t_usec = walltime_usec();
-	
+
 	pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pairs/"+search_config.filename()+"_rough_pairs_data.csv"));
 
 	mkdir(convert_string(file_storage_location+"processing_files/pretty_set_pairs"),0777);

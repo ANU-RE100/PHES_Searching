@@ -26,12 +26,13 @@ class RoughReservoir{
 
     RoughReservoir() {};
     virtual ~RoughReservoir() = default;
-    RoughReservoir(ArrayCoordinate pour_point, int elevation): brownfield(false),
-    pit(false), elevation(elevation), pour_point(pour_point), max_dam_height(max_wall_height), bottom_elevation(elevation){
+    RoughReservoir(const ArrayCoordinate &pour_point, int elevation)
+        : brownfield(false), ocean(false), pit(false), turkey(false), elevation(elevation),
+          pour_point(pour_point), watershed_area(0), max_dam_height(max_wall_height),
+          bottom_elevation(elevation) {
       GeographicCoordinate geo_coordinate = convert_coordinates(pour_point);
       this->latitude = geo_coordinate.lat;
       this->longitude = geo_coordinate.lon;
-
     }
 
     bool operator<(const RoughReservoir &o) const
@@ -45,7 +46,7 @@ class RoughGreenfieldReservoir : public RoughReservoir {
 public:
   vector<array<ArrayCoordinate, directions.size()>> shape_bound;
 
-  RoughGreenfieldReservoir(RoughReservoir r)
+  explicit RoughGreenfieldReservoir(const RoughReservoir& r)
       : RoughReservoir(r) {
     for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
       array<ArrayCoordinate, directions.size()> temp_array;
@@ -62,7 +63,7 @@ class RoughBfieldReservoir : public RoughReservoir {
 public:
   vector<ArrayCoordinate> shape_bound;
   RoughBfieldReservoir() {};
-  RoughBfieldReservoir(RoughReservoir r) : RoughReservoir(r) {}
+  explicit RoughBfieldReservoir(const RoughReservoir &r) : RoughReservoir(r) {}
 };
 
 struct ExistingReservoir {
@@ -71,6 +72,7 @@ struct ExistingReservoir {
   double longitude;
   int elevation;
   double volume;
+  double area;
   vector<GeographicCoordinate> polygon;
 };
 

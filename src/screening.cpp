@@ -349,12 +349,16 @@ static RoughGreenfieldReservoir model_greenfield_reservoir(ArrayCoordinate pour_
 				  Model<int>* modelling_array, int iterator)
 {
 
-	RoughGreenfieldReservoir reservoir = RoughReservoir(pour_point, convert_to_int(DEM_filled->get(pour_point.row,pour_point.col)));
+	RoughGreenfieldReservoir reservoir = RoughGreenfieldReservoir(RoughReservoir(pour_point, convert_to_int(DEM_filled->get(pour_point.row,pour_point.col))));
 
-	double area_at_elevation[max_wall_height+1] = {0};
-	double cumulative_area_at_elevation[max_wall_height+1] = {0};
-	double volume_at_elevation[max_wall_height+1] = {0};
-	double dam_length_at_elevation[max_wall_height+1] = {0};
+  double area_at_elevation[max_wall_height + 1];
+  double cumulative_area_at_elevation[max_wall_height + 1];
+  double volume_at_elevation[max_wall_height + 1];
+  double dam_length_at_elevation[max_wall_height + 1];
+  std::memset(area_at_elevation, 0, (max_wall_height+1)*sizeof(double));
+  std::memset(volume_at_elevation, 0, (max_wall_height+1)*sizeof(double));
+  std::memset(cumulative_area_at_elevation, 0, (max_wall_height+1)*sizeof(double));
+  std::memset(dam_length_at_elevation, 0, (max_wall_height+1)*sizeof(double));
 
 	queue<ArrayCoordinate> q;
 	q.push(pour_point);
@@ -481,7 +485,7 @@ model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_points,
         }
       }
     if (pp->row>0) {
-      RoughBfieldReservoir reservoir = RoughReservoir(*pp, 0);
+      RoughBfieldReservoir reservoir = RoughBfieldReservoir(RoughReservoir(*pp, 0));
       reservoir.identifier = str(square_coordinate) + "_OCEAN";
       reservoir.ocean = true;
       reservoir.watershed_area = 0;
@@ -908,9 +912,9 @@ int main(int nargs, char **argv) {
 
 	if (existing_reservoirs.size() < 1) {
 		printf("No existing reservoirs in %s\n",convert_string(str(search_config.grid_square)));
-		exit(0); 
+		exit(0);
 	}
-	
+
 	for(ExistingReservoir r : existing_reservoirs){
       RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
       reservoir.pit = (search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT);

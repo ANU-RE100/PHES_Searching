@@ -4,6 +4,7 @@ processes_file = processes;		// File with list of processes to complete
 existing_reservoirs_csv = pits.csv;
 existing_reservoirs_shp = osm-aus-pits.shp;
 existing_reservoirs_shp_names = pitnames.csv;
+use_tiled_bluefield = 1;  // 0 for false, 1 for true
 
 // GPKG Tiling
 gpkg_path = preprocessing_files/brownfield/global_mining_tenaments.gpkg;       // Path to the GPKG file containing global mining tenament polygons
@@ -27,11 +28,11 @@ min_max_dam_height = 5.0;		// Minimum maximum dam height (m) (Before overlapping
 
 // filter = use_world_urban;						// Use world urban data from tiffs stored in fileformat input/WORLD_URBAN/55H_hbase_human_built_up_and_settlement_extent_geographic_30m
 // filter = use_tiled_filter;						// Use shapefile filters output from shapefile_tiling
-// filter = input/CLUM/CLUM541550552_WGS84.shp;	
+// filter = input/CLUM/CLUM541550552_WGS84.shp;
 filter = input/CAPAD/capad.shp;
 filter = input/WPAD/WDPA_Nov2018-shapefile-polygons.shp; 	// Location of shapefile to be tiled
 
-dam_wall_heights = 10, 20, 30, 40, 50, 60, 70, 80, 90, 100;			//  Wall heights to test and export in greenfield search
+dam_wall_heights = 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150;			//  Wall heights to test and export in greenfield search
 
 depression_depth_min = 10;      // Minimum depth of depressions (m) for mining pit and turkey's nest screenings
 pit_lake_relative_depth = 0.25;  // Pit lakes typically have a relative depth (maximum depth : diameter) of between 10% - 40% (https://www.water.wa.gov.au/__data/assets/pdf_file/0020/4970/96278.pdf). Diameter is based on a circle with the same surface area as the pit lake.
@@ -48,6 +49,7 @@ tolerance_on_FOM = 0.1;
 max_head_variability = 0.35		// Maximum amount the head can vary during water transfer (Default 0.35)
 num_altitude_volume_pairs = 10;	// Number of altitude-volume pairs provided with an existing pit
 pit_height_resolution = 1;		// Height resolution of top and bottom of pit in metres
+max_bluefield_surface_area_ratio = 0.5;  // Maximum surface area of new reservoir relative to existing reservoir
 
 // Common
 gravity = 9.8;					// Acceleration due to gravity (m/s/s)

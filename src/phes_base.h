@@ -30,6 +30,7 @@ extern string processes_file; // File with list of processes to complete
 extern string existing_reservoirs_csv;
 extern string existing_reservoirs_shp;
 extern string existing_reservoirs_shp_names;
+extern bool use_tiled_bluefield;
 
 // GPKG Tiling
 extern std::string gpkg_path;  // Path to the GPKG file containing global mining tenament polygons
@@ -90,6 +91,7 @@ extern int num_altitude_volume_pairs; // Number of altitude-volume pairs
                                       // provided with an existing pit
 extern int pit_height_resolution; // Height resolution of top and bottom of pit
                                   // in metres
+extern double max_bluefield_surface_area_ratio;
 
 // Common
 extern double gravity;               // Acceleration due to gravity (m/s/s)
@@ -173,6 +175,8 @@ extern vector<CategoryCutoff> category_cutoffs;
 #define COS cos
 #define SQRT sqrt
 #define FLOOR floor
+#define EARTH_RADIUS_KM 6378.137
+#define SQ_KM_TO_HA 100
 
 bool file_exists(char *name);
 bool file_exists(string name);

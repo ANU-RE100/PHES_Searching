@@ -131,7 +131,13 @@ def main(
     store = layer + "_store"
 
     assert not geo.store_exists(store=store, workspace=workspace)
-    tif_path = f"/mnt/data/Heatmap/{heatmap_type} {transmission_type.lower()} {heatmap_cost.lower()}-cost/Australia Raster/Australia_raster.tif"
+    if country == "Australia":
+        tif_path = f"/mnt/data/Heatmap/{heatmap_type} {transmission_type.lower()} {heatmap_cost.lower()}-cost/Australia Raster/Australia_raster.tif"
+    elif country == "TAS":
+        tif_path = f"/mnt/data/Heatmap/TAS/{heatmap_type.lower()}_{transmission_type.lower()}_{heatmap_cost.lower()}_TAS.tif"
+    else:
+        print(f"Country {country} not supported.")
+
     geo.create_raster_store(
         store=store,
         workspace=workspace,

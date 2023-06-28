@@ -68,6 +68,7 @@ double find_required_volume(int energy, int head)
 }
 
 char* convert_string(string str){
+  // NUKE THIS, mem leak galore
 	char *c = new char[str.length() + 1];
 	strcpy(c, str.c_str());
 	return c;
@@ -269,6 +270,8 @@ ExistingReservoir get_existing_reservoir(string name) {
   }
   SHPClose(SHP);
 
+  to_return.area = geographic_polygon_area(to_return.polygon);
+
   return to_return;
 }
 
@@ -325,13 +328,13 @@ vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square) {
             GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
         reservoir.polygon.push_back(temp_point);
       }
-	  // Coordinates in existing_reservoirs_csv are based on geometric centre. 
+	  // Coordinates in existing_reservoirs_csv are based on geometric centre.
 	  // Require the same calculation of coordinates here to prevent
 	  // disconnect between reservoirs.csv and existing_reservoirs_csv
       bool overlaps_grid_cell = false;
 	  double centre_gc_lat = 0;
 	  double centre_gc_lon = 0;
-	  
+
       for(GeographicCoordinate gc : reservoir.polygon) {
 		centre_gc_lat += gc.lat;
 		centre_gc_lon += gc.lon;
@@ -342,8 +345,10 @@ vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square) {
       }
 
       SHPDestroyObject(shape);
-      if(overlaps_grid_cell)
+      if(overlaps_grid_cell){
+        reservoir.area = geographic_polygon_area(reservoir.polygon);
         to_return.push_back(reservoir);
+      }
     }
   } else {
     cout << "Could not read shapefile " << filename << endl;
@@ -365,7 +370,7 @@ RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r){
 	for(uint i = 0; i<dam_wall_heights.size(); i++){
 		reservoir.volumes.push_back(r.volume);
 		reservoir.dam_volumes.push_back(0);
-		reservoir.areas.push_back(0);
+		reservoir.areas.push_back(r.area);
 		reservoir.water_rocks.push_back(1000000000);
   }
 
@@ -379,7 +384,7 @@ vector<ExistingPit> get_pit_details(GridSquare grid_square){
 	vector<ExistingPit> gridsquare_pits;
 
 	vector<ExistingPit> pits = read_existing_pit_data(convert_string(file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_csv));
-	
+
 	for(ExistingPit p : pits){
 		if (check_within(GeographicCoordinate_init(p.reservoir.latitude, p.reservoir.longitude), grid_square))
 			gridsquare_pits.push_back(p);

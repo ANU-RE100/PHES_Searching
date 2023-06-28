@@ -9,3 +9,7 @@ for htype in Solar Wind; do
     done
   done
 done
+
+#for htype in Solar Wind; do
+  #python update_heatmaps.py --admin_password "$password" --re100_username u6311272 --heatmap_type $htype --heatmap_cost Low --transmission_type Overhead --country TAS
+#done

@@ -99,3 +99,14 @@ std::vector<ArrayCoordinate> find_edge(std::vector<ArrayCoordinate> polygon_poin
 
 	return edge_points;
 }
+
+double geographic_polygon_area(vector<GeographicCoordinate> polygon) {
+    double area = 0;
+    for (size_t i = 0; i < polygon.size() - 1; i++) {
+        GeographicCoordinate g1 = polygon[i];
+        GeographicCoordinate g2 = polygon[i + 1];
+        area += RADIANS(g2.lon - g1.lon) * (sin(RADIANS(g1.lat)) + sin(RADIANS(g2.lat)));
+    }
+    area = 0.5 * area * EARTH_RADIUS_KM * EARTH_RADIUS_KM * SQ_KM_TO_HA;
+    return abs(area);
+}

@@ -118,7 +118,7 @@ class SearchConfig {
         search_type = SearchType::BULK_PIT;
         adj = 1;
         arg1 = argv[1 + adj];
-      } 
+      }
       if (arg1.compare("pit") == 0) {
         search_type = SearchType::SINGLE_PIT;
         adj = 1;
