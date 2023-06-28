@@ -879,7 +879,7 @@ int main(int nargs, char **argv) {
 		search_config.logger.debug("Found " + to_string(count) + " reservoirs. Runtime: " + to_string(1.0e-6*(walltime_usec() - t_usec)) + " sec");
 		printf(convert_string("Screening finished for "+search_config.search_type.prefix()+str(search_config.grid_square)+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
    
-   // Deprecated Brownfield searching based on individual pit Shapefiles
+   // Brownfield searching based on individual pits
    } else if (search_config.search_type == SearchType::SINGLE_PIT) {
     FILE *csv_file = fopen(convert_string(file_storage_location + "output/reservoirs/" +
                                           search_config.filename() + "_reservoirs.csv"),
