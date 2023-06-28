@@ -80,7 +80,7 @@ void read_shp_filter(string filename, Model<bool>* filter){
 
 std::vector<ArrayCoordinate> find_edge(std::vector<ArrayCoordinate> polygon_points){
 	std::vector<ArrayCoordinate> edge_points;
-
+	
 	for (const auto& point : polygon_points) {
 		for (uint d=0; d<directions.size(); d++) {
 			ArrayCoordinate neighbor = ArrayCoordinate_init(point.row + directions[d].row, point.col + directions[d].col, point.origin);

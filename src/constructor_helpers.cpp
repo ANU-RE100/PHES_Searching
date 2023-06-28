@@ -246,7 +246,7 @@ vector<ArrayCoordinate> order_polygon(vector<ArrayCoordinate> unordered_edge_poi
 vector<GeographicCoordinate> convert_poly(vector<ArrayCoordinate> polygon){
     vector<GeographicCoordinate> to_return;
     for(uint i = 0; i<polygon.size(); i++){
-    	to_return.push_back(convert_coordinates(polygon[i], 0));
+    	to_return.push_back(convert_coordinates(polygon[i], 0.5));
     }
     return to_return;
 }

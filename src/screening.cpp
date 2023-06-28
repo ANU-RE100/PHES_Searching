@@ -672,7 +672,7 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 			if ((pit_lake_mask->get(row,col)) && (!seen_pl->get(row,col))) {
 				model_pit_lakes(pit, pit_lake_mask, depression_mask, seen_pl, seen_d, individual_pit_lake_points, DEM);
 				individual_pit_points = individual_pit_lake_points;
-				
+
 				if (pit.overlap) {
 					model_depression(pit, pit_lake_mask, depression_mask, seen_d, seen_pl, individual_depression_points, DEM);
 					pushback_non_duplicate_points(individual_pit_points,individual_depression_points);
@@ -696,7 +696,7 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 			}
 
 			// Remove pits with a low pit-to-circle ratio (e.g. rivers with mining operations)
-			pit.circularity = determine_circularity(individual_pit_points, pit.lowest_point, max(pit.areas));
+			pit.circularity = determine_circularity(individual_pit_points, max(pit.areas));
 			if(pit.circularity < min_pit_circularity){
 				continue;
 			}
@@ -708,7 +708,6 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 
 			// Find polygon for the combined depression/pit lake
 			pit.brownfield_polygon = convert_poly(order_polygon(find_edge(individual_pit_points)));
-			//pit.brownfield_polygon = convert_coordinates(find_edge(individual_pit_points),0);
 			
 			if(debug_output){
 				for (ArrayCoordinate point : individual_pit_points)

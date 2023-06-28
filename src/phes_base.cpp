@@ -211,11 +211,6 @@ bool file_exists (string name) {
     return infile.good();
 }
 
-
-GeographicCoordinate get_origin(double latitude, double longitude, int border){
-	return GeographicCoordinate_init(FLOOR(latitude)+1+(border/3600.0),FLOOR(longitude)-(border/3600.0));
-}
-
 ExistingReservoir get_existing_reservoir(string name) {
   ExistingReservoir to_return;
   string filename = file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv;
@@ -374,7 +369,7 @@ RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r){
 		reservoir.water_rocks.push_back(1000000000);
   }
 
-	GeographicCoordinate origin = get_origin(r.latitude, r.longitude, border);
+	GeographicCoordinate origin = get_origin(search_config.grid_square, border);
 	for(GeographicCoordinate c : r.polygon)
     reservoir.shape_bound.push_back(convert_coordinates(c, origin));
 	return reservoir;
@@ -422,7 +417,7 @@ RoughBfieldReservoir pit_to_rough_reservoir(BulkPit pit, GeographicCoordinate lo
 		reservoir.dam_volumes.push_back(0);
   	}
 
-	GeographicCoordinate origin = get_origin(lowest_point.lat, lowest_point.lon, border);
+	GeographicCoordinate origin = get_origin(search_config.grid_square, border);
 	for(GeographicCoordinate c : pit.brownfield_polygon)
     	reservoir.shape_bound.push_back(convert_coordinates(c, origin));
 	return reservoir;

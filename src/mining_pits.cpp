@@ -24,7 +24,7 @@ double pit_area_calculator(int row, int col, Model<bool> *pit_mask, Model<bool> 
 
 		seen->set(p.row,p.col,true);
 
-		if(pit_mask->get(p.row,p.col)){			
+		if(pit_mask->get(p.row,p.col)){	
 			individual_pit_points.push_back(p);
 			pit_area += find_area(p);
 
@@ -92,20 +92,21 @@ void find_pit_lake_depth_characteristics(int pit_lake_max_depth, double pit_lake
 	return;
 }
 
-double determine_circularity(std::vector<ArrayCoordinate> individual_pit_points, ArrayCoordinate lowest_point, double pit_area){
-	double pit_radius = sqrt(pit_area / pi);
+double determine_circularity(std::vector<ArrayCoordinate> individual_pit_points, double pit_area){
+	ArrayCoordinate pole_of_inaccessibility = find_pole_of_inaccessibility(individual_pit_points).centre_point;
+	double pit_radius = 0.001*sqrt(pit_area * 10000/ pi); // Ha to m^2, then m to km
 	double area_in_circle = 0;
 	double pit_circularity = 0;
 
 	for (ArrayCoordinate point : individual_pit_points) {
-		double distance_to_poi = find_distance(lowest_point, point);
+		double distance_to_poi = find_distance(pole_of_inaccessibility, point); // km
 
 		if (distance_to_poi <= pit_radius)
-			area_in_circle+=find_area(point);
+			area_in_circle+=find_area(point); // Ha
 	}
 
 	pit_circularity = area_in_circle / pit_area;
-
+	
 	return pit_circularity;
 }
 

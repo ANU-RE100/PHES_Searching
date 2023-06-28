@@ -14,7 +14,7 @@ bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* c
     string polygon_string = str(compress_poly(corner_cut_poly(r.polygon)), reservoir->pit ? r.elevation+reservoir->dam_height : r.elevation+5);
     coordinates->reservoir = polygon_string;
 
-    GeographicCoordinate origin = get_origin(r.latitude, r.longitude, border);
+    GeographicCoordinate origin = get_origin(search_config.grid_square, border);
     reservoir->shape_bound.clear();
     for(GeographicCoordinate p : r.polygon)
       reservoir->shape_bound.push_back(convert_coordinates(p, origin));
