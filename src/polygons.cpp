@@ -97,7 +97,7 @@ std::vector<ArrayCoordinate> find_edge(std::vector<ArrayCoordinate> polygon_poin
 		}
 	}
 
-	return edge_points;
+    return edge_points;
 }
 
 double geographic_polygon_area(vector<GeographicCoordinate> polygon) {

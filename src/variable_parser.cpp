@@ -42,7 +42,7 @@ double min_pit_circularity;      // Quality measure of pit lakes for filtering o
 
 // Pairing
 int min_head;						// Minimum head (m) to be considered a potential pair
-int max_head;						/bool use_tiled_bluefield;/ Maximum head (m) to be considered a potential pair
+int max_head;						// Maximum head (m) to be considered a potential pair
 double min_pair_water_rock;			// Minimum pair water to rock ratio based on interpolated values
 double min_slope;					// Minimum slope based on interpolated nearest point seperation between two reservoirs
 double min_pp_slope;				// Minimum slope based on pourpoint seperation between two reservoirs

@@ -205,11 +205,11 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
 
 vector<ArrayCoordinate> order_polygon(vector<ArrayCoordinate> unordered_edge_points){
     vector<ArrayCoordinate> to_return;
-
+    
     bool succesful_path = false;
     ArrayCoordinate initial = unordered_edge_points[0];
     ArrayCoordinate last = initial;
-
+    
     while(!unordered_edge_points.empty()){
         bool found_path = false;
         for (uint d=0; d<directions.size(); d++) {
@@ -224,8 +224,14 @@ vector<ArrayCoordinate> order_polygon(vector<ArrayCoordinate> unordered_edge_poi
             }
         }
 
-        if(!found_path)
-            break;
+        if(!found_path){
+            // Backtrack if path is dead-end
+            if(!to_return.empty()){
+                last = to_return[to_return.size()-1]; 
+                to_return.pop_back();
+            }else
+                break;          
+        }
           
         if(last==initial){
             succesful_path = true;
@@ -522,7 +528,6 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
 bool model_bulk_pit(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates,
                      vector<vector<vector<GeographicCoordinate>>> &countries,
                      vector<string> &country_names) {
-  //string polygon_string = str(compress_poly(corner_cut_poly(convert_poly(reservoir->shape_bound))), reservoir->elevation);
   string polygon_string = str(compress_poly(convert_poly(reservoir->shape_bound)), reservoir->elevation);
   coordinates->reservoir = polygon_string;
   
