@@ -24,12 +24,12 @@ min_max_dam_height = 5.0;		// Minimum maximum dam height (m) (Before overlapping
 
 filter = use_world_urban;						// Use world urban data from tiffs stored in fileformat input/WORLD_URBAN/55H_hbase_human_built_up_and_settlement_extent_geographic_30m
 filter = use_tiled_filter;						// Use shapefile filters output from shapefile_tiling
-filter_to_tile = input/CLUM/CLUM_541-550-552_WGS84_2020_cleaned.shp;	// Location of shapefile to be tiled
-filter_to_tile = input/CAPAD/CAPAD2022_marine.shp;
-filter_to_tile = input/CAPAD/CAPAD2022_terrestrial.shp;
-filter_to_tile = input/WPAD/WDPA_Jun2023_Public_shp-polygons0.shp; 	
-filter_to_tile = input/WPAD/WDPA_Jun2023_Public_shp-polygons1.shp;
-filter_to_tile = input/WPAD/WDPA_Jun2023_Public_shp-polygons2.shp;
+filter_to_tile = input/filters/CLUM/CLUM_541-550-552_WGS84_2020_cleaned.shp;	// Location of shapefile to be tiled
+filter_to_tile = input/filters/CAPAD/CAPAD2022_marine.shp;
+filter_to_tile = input/filters/CAPAD/CAPAD2022_terrestrial.shp;
+filter_to_tile = input/filters/WPAD/WDPA_Jun2023_Public_shp-polygons0.shp; 	
+filter_to_tile = input/filters/WPAD/WDPA_Jun2023_Public_shp-polygons1.shp;
+filter_to_tile = input/filters/WPAD/WDPA_Jun2023_Public_shp-polygons2.shp;
 
 dam_wall_heights = 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150;			//  Wall heights to test and export in greenfield search
 
