@@ -3,6 +3,8 @@
 #include <shapefil.h>
 #include <vector>
 
+set<string> names;
+
 // Reads a list of cells to process from the tasks_file (Eg. 148 -36)
 vector<GridSquare> read_tasklist(char *tasks_file) {
   ifstream fd(tasks_file);
@@ -127,6 +129,14 @@ int main(int argc, char *argv[]) {
             shape.name = string(DBFReadStringAttribute(DBF, i, dbf_name_field));
             if (shape.name.size() < 2)
               shape.name = "RES_" + to_string(iterator);
+            else{
+              int j = 1;
+              while (names.contains(shape.name+" "+to_string(j))){
+                j++;
+              }
+              shape.name+=" "+to_string(j);
+              names.insert(shape.name);
+            }
           }
           shapes.push_back(shape);
           iterator++;
