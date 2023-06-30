@@ -30,6 +30,7 @@ extern string processes_file; // File with list of processes to complete
 extern string existing_reservoirs_csv;
 extern string existing_reservoirs_shp;
 extern string existing_reservoirs_shp_names;
+extern bool use_tiled_bluefield;
 
 // General
 extern string file_storage_location; // Where to look for input files and store

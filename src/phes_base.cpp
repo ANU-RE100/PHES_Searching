@@ -68,6 +68,7 @@ double find_required_volume(int energy, int head)
 }
 
 char* convert_string(string str){
+  // NUKE THIS, mem leak galore
 	char *c = new char[str.length() + 1];
 	strcpy(c, str.c_str());
 	return c;
