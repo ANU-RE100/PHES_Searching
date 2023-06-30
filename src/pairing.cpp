@@ -350,31 +350,31 @@ void pairing(vector<unique_ptr<RoughReservoir>> &upper_reservoirs,
         continue;
 
       // Pour point separation
-      double distance_sqd = find_distance_sqd(
+      double min_dist_sqd = find_distance_sqd(
           upper_reservoir->pour_point, lower_reservoir->pour_point, coslat);
 
       if(upper_reservoir->brownfield){
-        distance_sqd = INF;
+        min_dist_sqd = INF;
         RoughBfieldReservoir* br = static_cast<RoughBfieldReservoir*>(upper_reservoir);
         for(size_t i = 0; i<br->shape_bound.size(); i++){
           ArrayCoordinate ac = br->shape_bound[i];
           double dist_sqd = find_distance_sqd(ac, lower_reservoir->pour_point, coslat);
-          if(dist_sqd < distance_sqd){
-            distance_sqd = dist_sqd;
+          if(dist_sqd < min_dist_sqd){
+            min_dist_sqd = dist_sqd;
           }
         }
       }
       if(lower_reservoir->brownfield || lower_reservoir->ocean){
-        distance_sqd = INF;
+        min_dist_sqd = INF;
         RoughBfieldReservoir* lr = static_cast<RoughBfieldReservoir*>(lower_reservoir);
 
         int idx = 0;
         for(size_t i = 0; i<lr->shape_bound.size(); i++){
           ArrayCoordinate ac = lr->shape_bound[i];
           double dist_sqd = find_distance_sqd(ac, upper_reservoir->pour_point, coslat);
-          if(dist_sqd < distance_sqd){
+          if(dist_sqd < min_dist_sqd){
             idx = i;
-            distance_sqd = dist_sqd;
+            min_dist_sqd = dist_sqd;
           }
         }
         if(lower_reservoir->river){
@@ -390,7 +390,7 @@ void pairing(vector<unique_ptr<RoughReservoir>> &upper_reservoirs,
       if (head < min_head || head > max_head)
         continue;
 
-      if (SQ(head * 0.001) <= distance_sqd * SQ(min_pp_slope))
+      if (SQ(head * 0.001) <= min_dist_sqd * SQ(min_pp_slope))
         continue;
 
 

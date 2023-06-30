@@ -157,9 +157,7 @@ int main(int argc, char *argv[]) {
   if (type == "BLUEFIELD")
     output_location = file_storage_location + "input/bluefield_shapefile_tiles";
   mkdir(convert_string(output_location), 0777);
-  int z = 0;
   for (GridSquare gs : tasklist) {
-    z++;
     int lat = gs.lat;
     int lon = gs.lon;
     SHPHandle SHP = SHPCreate(
