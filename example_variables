@@ -42,6 +42,7 @@ max_head_variability = 0.35		// Maximum amount the head can vary during water tr
 num_altitude_volume_pairs = 10;	// Number of altitude-volume pairs provided with an existing pit
 pit_height_resolution = 1;		// Height resolution of top and bottom of pit in metres
 max_bluefield_surface_area_ratio = 0.5;  // Maximum surface area of new reservoir relative to existing reservoir
+river_flow_volume_ratio = 5;  // Minimum ratio of annual river flow to reservoir volume for seasonal
 
 // Common
 gravity = 9.8;					// Acceleration due to gravity (m/s/s)

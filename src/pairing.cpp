@@ -152,7 +152,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   int head = upper->elevation - lower->elevation;
   double required_volume = find_required_volume(energy_capacity, head);
   if ((max(upper->volumes) < required_volume) ||
-      (max(lower->volumes) < required_volume)) {
+      (max(lower->volumes) < required_volume * (lower->river ? 5 : 1))) {
     return NULL;
   }
   ExistingPit single_pit;

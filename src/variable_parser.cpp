@@ -83,6 +83,7 @@ vector<Test> tests;					// Test in format {Volume (GL), Storage time (h), Maximu
 vector<CategoryCutoff> category_cutoffs;
 
 double max_bluefield_surface_area_ratio;
+double river_flow_volume_ratio;
 
 void parse_variables(char* filename){
     if(!file_exists(filename)){
@@ -234,6 +235,8 @@ void parse_variables(char* filename){
 				pit_height_resolution = stoi(value);
       if(variable=="max_bluefield_surface_area_ratio")
 				max_bluefield_surface_area_ratio = stod(value);
+      if(variable=="river_flow_volume_ratio")
+				river_flow_volume_ratio = stod(value);
 			if(variable=="use_tiled_bluefield")
 				use_tiled_bluefield = stoi(value);
 			if(variable=="use_tiled_rivers")

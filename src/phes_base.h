@@ -83,6 +83,7 @@ extern int num_altitude_volume_pairs; // Number of altitude-volume pairs
 extern int pit_height_resolution; // Height resolution of top and bottom of pit
                                   // in metres
 extern double max_bluefield_surface_area_ratio;
+extern double river_flow_volume_ratio;
 
 // Common
 extern double gravity;               // Acceleration due to gravity (m/s/s)
