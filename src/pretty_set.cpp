@@ -8,6 +8,8 @@ bool check_pair(Pair &pair, Model<bool> *seen, BigModel &big_model, set<string>&
   vector<ArrayCoordinate> used_points;
   if(pair.lower.river && used_with_river.contains(pair.upper.identifier))
     return false;
+  if(pair.lower.river && !use_tiled_rivers)
+    return false;
   if (!pair.upper.brownfield &&
       !model_reservoir(&pair.upper, NULL, seen, NULL, &used_points, big_model, NULL,
                        empty_countries, empty_country_names))
