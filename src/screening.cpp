@@ -6,14 +6,6 @@
 
 bool debug_output = false;
 
-bool check_fabdem_nonempty(Model<short> *DEM){
-	for (int row=0; row<DEM->nrows(); row++)
-		for (int col=0; col<DEM->ncols();col++)
-			if (DEM->get(row,col) > 0)
-				return true;
-	return false;
-}
-
 void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_to_filter){
 	try{
 		Model<unsigned char>* tif_filter = new Model<unsigned char>(filename, GDT_Byte);
@@ -558,9 +550,6 @@ int main(int nargs, char **argv) {
 
   if (search_config.search_type.not_existing()) {
     Model<short> *DEM = read_DEM_with_borders(search_config.grid_square, border);
-	if (dem_type == "FABDEM")
-		if (check_fabdem_nonempty(DEM))
-			exit(0);
 
     if (search_config.logger.output_debug()) {
       printf("\nAfter border added:\n");
