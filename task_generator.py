@@ -65,5 +65,5 @@ if __name__ == '__main__':
                 exit()        
 
             if DEM_name in DEM_list:
-                file.write(str(lon)+" "+str(lat)+" "+task_type+"\n")
+                file.write(task_type+" "+str(lon)+" "+str(lat)+"\n")
     file.close()
