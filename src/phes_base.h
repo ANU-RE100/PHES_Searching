@@ -44,6 +44,7 @@ extern int border;       // Number of cells to add as border around DEM square
 extern double dambatter; // Slope on sides of dam
 extern double cwidth;    // Width of top of dam
 extern double freeboard; // Freeboard on dam
+extern string dem_type;					// Relative path of folder containing the DEMs
 
 // Shapefile tiling
 extern vector<string>
@@ -155,6 +156,9 @@ struct CategoryCutoff {
     return category > o.category;
   }
 };
+
+const int model_size = (dem_type=="SRTM") ? 3601 : 3600;
+const int tile_overlap = (dem_type=="SRTM") ? 1 : 0;
 
 extern vector<CategoryCutoff> category_cutoffs;
 

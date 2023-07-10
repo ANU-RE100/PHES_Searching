@@ -19,6 +19,7 @@ int border;							// Number of cells to add as border around DEM square
 double dambatter;					// Slope on sides of dam
 double cwidth;						// Width of top of dam
 double freeboard;            		// Freeboard on dam
+string dem_type;         // The digital elevation model to be used (SRTM or FABDEM)
 
 // Shapefile tiling
 vector<string> filter_filenames_to_tile; // Shapefiles to split into tiles
@@ -114,6 +115,8 @@ void parse_variables(char* filename){
 				filter_filenames.push_back(value);
 			if(variable=="filter_to_tile")
 				filter_filenames_to_tile.push_back(value);
+			if(variable=="dem_type")
+				dem_type=value;
 			if(variable=="mining_tenament_shp")
 				mining_tenament_shp = value;
 			if(variable=="depression_depth_min")
@@ -255,7 +258,7 @@ void parse_variables(char* filename){
 				num_altitude_volume_pairs = stoi(value);
 			if(variable=="pit_height_resolution")
 				pit_height_resolution = stoi(value);
-      if(variable=="max_bluefield_surface_area_ratio")
+			if(variable=="max_bluefield_surface_area_ratio")
 				max_bluefield_surface_area_ratio = stod(value);
 			if(variable=="use_tiled_bluefield")
 				use_tiled_bluefield = stoi(value);
