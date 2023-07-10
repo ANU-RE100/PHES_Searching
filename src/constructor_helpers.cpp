@@ -262,11 +262,18 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
 
   Model<short> *DEM = big_model.DEM;
   Model<char> *flow_directions = big_model.flow_directions[0];
+  GridSquare flow_directions_gs = big_model.neighbors[0];
 
   for (int i = 0; i < 9; i++)
     if (big_model.neighbors[i].lat == convert_to_int(FLOOR(reservoir->latitude + EPS)) &&
-        big_model.neighbors[i].lon == convert_to_int(FLOOR(reservoir->longitude + EPS)))
+        big_model.neighbors[i].lon == convert_to_int(FLOOR(reservoir->longitude + EPS))) {
       flow_directions = big_model.flow_directions[i];
+      flow_directions_gs = big_model.neighbors[i];
+    }
+  
+  if(!file_exists(file_storage_location+"processing_files/flow_directions/"+str(flow_directions_gs)+"_flow_directions.tif")){
+    return false;
+  }
 
   ArrayCoordinate offset = convert_coordinates(
       convert_coordinates(ArrayCoordinate_init(0, 0, flow_directions->get_origin())),
