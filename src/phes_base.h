@@ -32,6 +32,11 @@ extern string existing_reservoirs_shp;
 extern string existing_reservoirs_shp_names;
 extern bool use_tiled_bluefield;
 
+// GPKG Tiling
+extern std::string gpkg_path;  // Path to the GPKG file containing global mining tenament polygons
+extern std::string gpkg_layer; // Name of the layer within the GPKG file that is used for tiling
+extern std::string mining_tenament_shp; // File path and naming convention used for the gpkg tiling output Shapefiles containing mining tenaments
+
 // General
 extern string file_storage_location; // Where to look for input files and store
                                      // output files
@@ -63,6 +68,11 @@ extern double
 
 extern vector<string> filter_filenames;
 extern vector<double> dam_wall_heights; //  Wall heights to test and export
+
+extern int depression_depth_min; // Minimum depth of depressions (m) for mining pit and turkey's nest screenings
+extern double pit_lake_relative_depth;  // Pit lakes typically have a relative depth (maximum depth : diameter of circle with surface area) of between 10% - 40%
+extern double pit_lake_relative_area;    // The ratio of surface area at the bottom of the pit vs the surface of the lake
+extern double min_pit_circularity;      // Quality measure of pit lakes for filtering out rivers. Proportion of pit lake contained within a circle of the same surface area, centred on the Point of Inaccessibility
 
 // Pairing
 extern int min_head; // Minimum head (m) to be considered a potential pair
@@ -189,6 +199,7 @@ struct BigModel {
 #include "model2D.h"
 #include "polygons.h"
 #include "reservoir.h"
+#include "mining_pits.h"
 
 #include "csv.h"
 
@@ -210,12 +221,11 @@ BigModel BigModel_init(GridSquare sc);
 void set_FOM(Pair *pair);
 string str(Test test);
 string energy_capacity_to_string(double energy_capacity);
-GeographicCoordinate get_origin(double latitude, double longitude, int border);
 ExistingReservoir get_existing_reservoir(string name);
 vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square);
 RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r);
 vector<ExistingPit> get_pit_details(GridSquare grid_square);
 ExistingPit get_pit_details(string pitname);
-void depression_volume_finding(Model<short>* DEM);
+RoughBfieldReservoir pit_to_rough_reservoir(BulkPit pit, GeographicCoordinate lowest_point);
 
 #endif

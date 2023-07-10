@@ -1,6 +1,10 @@
+#include "csv.h"
+#include "mining_pits.h"
+#include "model2D.h"
 #include "phes_base.h"
 #include "constructor_helpers.hpp"
 #include "kml.h"
+#include "search_config.hpp"
 
 vector<vector<Pair>> pairs;
 
@@ -10,7 +14,7 @@ bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* c
     string polygon_string = str(compress_poly(corner_cut_poly(r.polygon)), reservoir->pit ? r.elevation+reservoir->dam_height : r.elevation+5);
     coordinates->reservoir = polygon_string;
 
-    GeographicCoordinate origin = get_origin(r.latitude, r.longitude, border);
+    GeographicCoordinate origin = get_origin(search_config.grid_square, border);
     reservoir->shape_bound.clear();
     for(GeographicCoordinate p : r.polygon)
       reservoir->shape_bound.push_back(convert_coordinates(p, origin));
@@ -34,19 +38,30 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
   vector<ArrayCoordinate> used_points;
   *non_overlap = true;
 
-  if (pair->upper.brownfield) {
+  if (pair->upper.brownfield && (search_config.search_type != SearchType::BULK_PIT)) {
     if (!model_existing_reservoir(&pair->upper, &pair_kml->upper, countries,
                                   country_names))
       return false;
+  } else if (pair->upper.brownfield && (search_config.search_type == SearchType::BULK_PIT)) {
+    if (!model_bulk_pit(&pair->upper, &pair_kml->upper,
+                              countries, country_names)){
+      return false;
+    }
   } else if (!model_reservoir(&pair->upper, &pair_kml->upper, seen, non_overlap,
                               &used_points, big_model, full_cur_model,
                               countries, country_names))
     return false;
 
-  if (pair->lower.brownfield) {
+  if (pair->lower.brownfield && (search_config.search_type != SearchType::BULK_PIT)) {
     if (!model_existing_reservoir(&pair->lower, &pair_kml->lower, countries,
                                   country_names))
       return false;
+  } else if (pair->lower.brownfield && (search_config.search_type == SearchType::BULK_PIT)){
+    if (!model_bulk_pit(&pair->lower, &pair_kml->lower, 
+                              countries, country_names)){
+      return false;
+    }
+  
   } else if (!pair->lower.ocean &&
              !model_reservoir(&pair->lower, &pair_kml->lower, seen, non_overlap,
                               &used_points, big_model, full_cur_model,
@@ -152,6 +167,12 @@ int main(int nargs, char **argv)
       int count = 0;
       int non_overlapping_count = 0;
       if (pairs[i].size() != 0) {
+        // Extract bulk pit shape bounds found during screening
+        if (search_config.search_type == SearchType::BULK_PIT) {     
+          read_pit_polygons(convert_string(file_storage_location + "processing_files/reservoirs/pit_" +
+                          str(search_config.grid_square) + "_reservoirs_data.csv"), pairs[i]);
+        }
+
         FILE *csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+search_config.filename()+"/"+search_config.filename()+"_"+str(tests[i])+".csv"), "w");
         write_pair_csv_header(csv_file_classes, false);
         FILE *csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+search_config.filename()+"/"+search_config.filename()+"_"+str(tests[i])+".csv"), "w");
@@ -162,7 +183,7 @@ int main(int nargs, char **argv)
         KML_Holder kml_holder;
 
         sort(pairs[i].begin(), pairs[i].end());
-	    set<string> lowers;
+	      set<string> lowers;
         set<string> uppers;
         bool keep_lower;
         bool keep_upper;
@@ -170,6 +191,7 @@ int main(int nargs, char **argv)
             Pair_KML pair_kml;
             bool non_overlap;
             int max_FOM = category_cutoffs[0].storage_cost*tests[i].storage_time+category_cutoffs[0].power_cost;
+
             if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, max_FOM, big_model, full_cur_model, countries, country_names)){
                 write_pair_csv(csv_file_classes, &pairs[i][j], false);
                 write_pair_csv(csv_file_FOM, &pairs[i][j], true);

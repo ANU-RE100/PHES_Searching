@@ -8,6 +8,11 @@ string existing_reservoirs_shp;
 string existing_reservoirs_shp_names;
 bool use_tiled_bluefield;
 
+// GPKG Tiling
+std::string gpkg_path;  // Path to the GPKG file containing global mining tenament polygons
+std::string gpkg_layer;             // Name of the layer within the GPKG file that is used for tiling
+std::string mining_tenament_shp;	// File path and naming convention used for the gpkg tiling output Shapefiles containing mining tenaments
+
 // General
 string file_storage_location;		// Where to look for input files and store output files
 int border;							// Number of cells to add as border around DEM square
@@ -30,6 +35,11 @@ double min_max_dam_height;			// Minimum maximum dam height (m) (Before overlappi
 
 vector<string> filter_filenames;
 vector<double> dam_wall_heights; 	//  Wall heights to test and export
+
+int depression_depth_min;			// Minimum depth of depressions (m) for mining pit and turkey's nest screenings
+double pit_lake_relative_depth;  // Pit lakes typically have a relative depth (maximum depth : diameter of circle with surface area) of between 10% - 40%
+double pit_lake_relative_area;    // The ratio of surface area at the bottom of the pit vs the surface of the lake
+double min_pit_circularity;      // Quality measure of pit lakes for filtering out rivers. Proportion of pit lake contained within a circle of the same surface area, centred on the Point of Inaccessibility
 
 // Pairing
 int min_head;						// Minimum head (m) to be considered a potential pair
@@ -107,6 +117,16 @@ void parse_variables(char* filename){
 				filter_filenames_to_tile.push_back(value);
 			if(variable=="dem_type")
 				dem_type=value;
+			if(variable=="mining_tenament_shp")
+				mining_tenament_shp = value;
+			if(variable=="depression_depth_min")
+				depression_depth_min = stoi(value);
+			if(variable=="pit_lake_relative_depth")
+				pit_lake_relative_depth = stod(value);
+			if(variable=="pit_lake_relative_area")
+				pit_lake_relative_area = stod(value);
+			if(variable=="min_pit_circularity")
+				min_pit_circularity = stod(value);
 			if(variable=="min_watershed_area"){
 				min_watershed_area = stod(value);
 				stream_threshold = (int)(11.1*min_watershed_area);
@@ -215,6 +235,10 @@ void parse_variables(char* filename){
 				existing_reservoirs_shp = value;
 			if(variable=="existing_reservoirs_shp_names")
 				existing_reservoirs_shp_names = value;
+			if(variable=="gpkg_path")
+				gpkg_path = value;
+			if(variable=="gpkg_layer")
+				gpkg_layer = value;
 			if(variable=="tolerance_on_FOM")
 				tolerance_on_FOM = stod(value);
 
@@ -241,4 +265,3 @@ void parse_variables(char* filename){
 		}
 	}
 }
-

@@ -1,4 +1,6 @@
 #include "constructor_helpers.hpp"
+#include "mining_pits.h"
+#include "model2D.h"
 
 /*
  * Returns sorted vector containing the longitude of all polgon boundary interections at certain
@@ -166,6 +168,7 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
             for(int id = 0; id<3; id++){
                 int d = dir_to_do[last_dir][id];
                 ArrayCoordinate next = ArrayCoordinate_init(last.row+dir_def[d][0],last.col+dir_def[d][1], pour_point.origin);
+                
                 if(is_edge(last, next, model, offset, threshold)){
                     temp_to_return.push_back(next);
                     last = next;
@@ -174,8 +177,10 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
                     break;
                 }
             }
-            if(!found_path)
+            if(!found_path){
                 break;
+            }
+            
             if(last.row==initial.row && last.col == initial.col){
                 succesful_path = true;
                 break;
@@ -198,13 +203,56 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
     return to_return;
 }
 
+vector<ArrayCoordinate> order_polygon(vector<ArrayCoordinate> unordered_edge_points){
+    vector<ArrayCoordinate> to_return;
+    
+    bool succesful_path = false;
+    ArrayCoordinate initial = unordered_edge_points[0];
+    ArrayCoordinate last = initial;
+    
+    while(!unordered_edge_points.empty()){
+        bool found_path = false;
+        for (uint d=0; d<directions.size(); d++) {
+            ArrayCoordinate next = ArrayCoordinate_init(last.row+directions[d].row,last.col+directions[d].col, unordered_edge_points[0].origin);
+            
+            if(std::find(unordered_edge_points.begin(), unordered_edge_points.end(), next) != unordered_edge_points.end()){
+                found_path = true;
+                to_return.push_back(next);
+                unordered_edge_points.erase(remove(unordered_edge_points.begin(), unordered_edge_points.end(), next), unordered_edge_points.end());
+                last = next;
+                break;
+            }
+        }
+
+        if(!found_path){
+            // Backtrack if path is dead-end
+            if(!to_return.empty()){
+                last = to_return[to_return.size()-1]; 
+                to_return.pop_back();
+            }else
+                break;          
+        }
+          
+        if(last==initial){
+            succesful_path = true;
+            break;
+        }
+    }
+    
+    if(!succesful_path){
+      search_config.logger.error("Could not find a succesful path around the polygon.");
+      throw 1;
+    }
+    return to_return;
+}
+
 /*
  * Convert polygon of grid vertices to polygon of geographic coordinates
  */
 vector<GeographicCoordinate> convert_poly(vector<ArrayCoordinate> polygon){
     vector<GeographicCoordinate> to_return;
     for(uint i = 0; i<polygon.size(); i++){
-    	to_return.push_back(convert_coordinates(polygon[i], 0));
+    	to_return.push_back(convert_coordinates(polygon[i], 0.5));
     }
     return to_return;
 }
@@ -359,6 +407,8 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
     }
   }
 
+  reservoir->fill_depth = reservoir->dam_height;
+
   if (reservoir->dam_height < minimum_dam_height) {
     return false;
   }
@@ -479,5 +529,21 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
     }
   }
 
+  return true;
+}
+
+bool model_bulk_pit(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates,
+                     vector<vector<vector<GeographicCoordinate>>> &countries,
+                     vector<string> &country_names) {
+  string polygon_string = str(compress_poly(convert_poly(reservoir->shape_bound)), reservoir->elevation);
+  coordinates->reservoir = polygon_string;
+  
+  for(uint i = 0; i< countries.size();i++){
+      if(check_within(GeographicCoordinate_init(reservoir->latitude, reservoir->longitude), countries[i])){
+          reservoir->country = country_names[i];
+          break;
+      }
+  }
+  
   return true;
 }

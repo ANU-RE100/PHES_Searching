@@ -157,33 +157,11 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   }
   ExistingPit single_pit;
 
-  if (search_config.search_type == SearchType::BULK_PIT) {
-    for (uint i = 0; i < pit_details.size(); i++) {
-      if (upper->brownfield && pit_details[i].reservoir.identifier == upper->identifier) {
-        single_pit = pit_details[i];
-        break;
-      }
-      else if (lower->brownfield && pit_details[i].reservoir.identifier == lower->identifier) {
-        single_pit = pit_details[i];
-        break;
-      }
-
-      // Throw error if there are no pit details assigned to single_pit
-      if (i == pit_details.size() - 1) {
-        string pit_id = "MISSING ID";
-        if (upper->brownfield)
-          pit_id = upper->identifier;
-        else
-          pit_id = lower->identifier;
-        search_config.logger.debug("No pit details in existing_reservoirs_csv for reservoir with ID: " + pit_id);
-        exit(1);
-      }
-    }
-  } else if (search_config.search_type == SearchType::SINGLE_PIT) {
+  if (search_config.search_type == SearchType::SINGLE_PIT) {
     single_pit = single_pit_details;
   }
 
-  if (search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT) {
+  if (search_config.search_type == SearchType::SINGLE_PIT) {
     if (!determine_pit_elevation_and_volume(upper, lower, energy_capacity,
                                           single_pit, required_volume, head)) {
       return NULL;
@@ -203,7 +181,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
                                              dam_wall_heights,
                                              upper->dam_volumes);
   } else {
-    if (search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT)
+    if (search_config.search_type == SearchType::SINGLE_PIT)
       upper_dam_wall_height = linear_interpolate(required_volume +
                                  pit_volume(single_pit,
                                             single_pit.reservoir.elevation,
@@ -224,7 +202,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
                                              dam_wall_heights,
                                              lower->dam_volumes);
   } else {
-    if (search_config.search_type==SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT)
+    if (search_config.search_type == SearchType::SINGLE_PIT)
       lower_dam_wall_height =
           linear_interpolate(required_volume +
                                  pit_volume(single_pit,
@@ -282,6 +260,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   upper_reservoir.water_rock = upper_water_rock_estimate;
   upper_reservoir.dam_height = upper_dam_wall_height;
   upper_reservoir.max_dam_height = upper->max_dam_height;
+  upper_reservoir.fill_depth = linear_interpolate(required_volume, upper->volumes, int_to_double_vector(upper->fill_depths));
   upper_reservoir.brownfield = upper->brownfield;
   upper_reservoir.pit = upper->pit;
 
@@ -299,6 +278,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   lower_reservoir.water_rock = lower_water_rock_estimate;
   lower_reservoir.dam_height = lower_dam_wall_height;
   lower_reservoir.max_dam_height = lower->max_dam_height;
+  lower_reservoir.fill_depth = linear_interpolate(required_volume, lower->volumes, int_to_double_vector(lower->fill_depths));
   lower_reservoir.brownfield = lower->brownfield;
   lower_reservoir.pit = lower->pit;
   lower_reservoir.ocean = lower->ocean;
@@ -425,9 +405,7 @@ int main(int nargs, char **argv) {
         upper_reservoirs.push_back(std::move(greenfield_reservoirs[i]));
       }
     }
-    if (search_config.search_type == SearchType::BULK_PIT) {
-      pit_details = get_pit_details(search_config.grid_square);
-    } else if (search_config.search_type == SearchType::SINGLE_PIT) {
+    if (search_config.search_type == SearchType::SINGLE_PIT) {
       single_pit_details = get_pit_details(search_config.name);
     }
   } else
