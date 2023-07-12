@@ -1,6 +1,7 @@
 #include "constructor_helpers.hpp"
 #include "mining_pits.h"
 #include "model2D.h"
+#include "phes_base.h"
 
 /*
  * Returns sorted vector containing the longitude of all polgon boundary interections at certain
@@ -205,11 +206,14 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
 
 vector<ArrayCoordinate> order_polygon(vector<ArrayCoordinate> unordered_edge_points){
     vector<ArrayCoordinate> to_return;
-    
+
     bool succesful_path = false;
-    ArrayCoordinate initial = unordered_edge_points[0];
+    // initial edge point is the point with the largest column - avoids finding a point on the edge of a hole
+    ArrayCoordinate initial = *std::max_element(unordered_edge_points.begin(), unordered_edge_points.end(), [](const ArrayCoordinate& p1, const ArrayCoordinate& p2) {
+        return p1.col < p2.col;
+    });
     ArrayCoordinate last = initial;
-    
+
     while(!unordered_edge_points.empty()){
         bool found_path = false;
         for (uint d=0; d<directions.size(); d++) {

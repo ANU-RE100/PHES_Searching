@@ -698,7 +698,7 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 			if ((max(pit.areas) < min_watershed_area) || (max(pit.volumes) < min_reservoir_volume)){
 				continue;
 			}
-
+			
 			// Remove pits with a low pit-to-circle ratio (e.g. rivers with mining operations)
 			pit.circularity = determine_circularity(individual_pit_points, max(pit.areas));
 			if(pit.circularity < min_pit_circularity){
@@ -709,7 +709,7 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 				pit.res_identifier = str(search_config.grid_square) + "_PITL" + str(i);
 			else
 				pit.res_identifier = str(search_config.grid_square) + "_PITD" + str(i);
-
+			
 			// Find polygon for the combined depression/pit lake
 			pit.brownfield_polygon = convert_poly(order_polygon(find_edge(individual_pit_points)));
 			
@@ -717,7 +717,7 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 				for (ArrayCoordinate point : individual_pit_points)
 					pit_mask_debug->set(point.row,point.col,true);
 			}
-
+			
 			// Model the brownfield reservoir
 			GeographicCoordinate lowest_point_geo = DEM->get_coordinate(pit.lowest_point.row, pit.lowest_point.col);
 			res_count++;

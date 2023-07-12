@@ -23,7 +23,7 @@ struct BulkPit {
     double pit_lake_area;
 
     BulkPit(int row, int col, GeographicCoordinate origin) 
-        : areas(10,0), volumes(10,0), fill_elevations(10,0), fill_depths(10,0)
+        : areas(dam_wall_heights.size(),0), volumes(dam_wall_heights.size(),0), fill_elevations(dam_wall_heights.size(),0), fill_depths(dam_wall_heights.size(),0)
     {
         min_elevation = INT_MAX;
         circularity = 0;

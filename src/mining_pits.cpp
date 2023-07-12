@@ -133,7 +133,7 @@ void model_pit_lakes(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *depr
 	uint depth_tests = pit.fill_elevations.size();
 	
 	if (pit.overlap == true){
-		depth_tests = depth_tests/2;
+		depth_tests = (double)depth_tests/2+0.5; // Round up if odd dam_wall_heights.size()
 	}
 
 	for(uint i=0; i < depth_tests; i++) {
@@ -151,7 +151,7 @@ void model_pit_lakes(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *depr
 
 	// Add maximum pit lake volume and depth to all depression volumes
 	if (pit.overlap == true)
-		for(uint i=(pit.fill_elevations.size()-depth_tests); i < pit.fill_elevations.size(); i++){
+		for(uint i=(depth_tests); i < pit.fill_elevations.size(); i++){
 			pit.volumes[i] += pit.volumes[depth_tests-1];
 			pit.fill_depths[i] += pit_lake_max_depth;
 		}
@@ -168,7 +168,7 @@ void model_depression(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *dep
 	pit_area_calculator(seed_row, seed_col, depression_mask, pit_lake_mask, seen_d, seen_pl, individual_depression_points, pit.overlap, pit.seed_point);
 	
 	std::vector<GeographicCoordinate> depression_polygon = convert_poly(find_edge(individual_depression_points));
-
+	
 	// Find lowest point on pit edge
 	int lowest_edge_elevation = INT_MAX;
 	ArrayCoordinate edge_lowest_point = {-1, -1, DEM->get_origin()};
@@ -194,7 +194,7 @@ void model_depression(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *dep
 	uint depth_tests = pit.fill_elevations.size();
 	
 	if (pit.overlap == true){
-		depth_tests = depth_tests/2;
+		depth_tests = (double)depth_tests/2+0.5; // Round up if odd dam_wall_heights.size()
 	}
 
 	// Find the lowest point in the depression
@@ -208,13 +208,13 @@ void model_depression(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *dep
 	}
 
 	// Determing each of the test elevations within the depression
-	for(uint i=(pit.fill_elevations.size()-depth_tests); i < pit.fill_elevations.size(); i++) {
+	for(uint i=(depth_tests); i < pit.fill_elevations.size(); i++) {
 		pit.fill_elevations[i] = pit.min_elevation + (i / depth_tests) * (lowest_edge_elevation - pit.min_elevation);
 	}
 	
 	// Calculate volume and area of depression at different fill elevations
 	for (ArrayCoordinate point : individual_depression_points) {
-		for(uint i=(pit.fill_elevations.size()-depth_tests); i < pit.fill_elevations.size(); i++) {
+		for(uint i=(depth_tests); i < pit.fill_elevations.size(); i++) {
 			if (DEM->get(point.row,point.col) <= pit.fill_elevations[i]) {
 				pit.areas[i] += find_area(point);
 				pit.volumes[i] += 0.01*find_area(point) * (pit.fill_elevations[i] - DEM->get(point.row,point.col));
@@ -223,7 +223,7 @@ void model_depression(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *dep
 	}
 
 	// Determine each of the test depths and fix areas for pit lakes that area almost entirely filled with water
-	for(uint i=(pit.fill_elevations.size()-depth_tests); i < pit.fill_elevations.size(); i++) {
+	for(uint i=(depth_tests); i < pit.fill_elevations.size(); i++) {
 		pit.areas[i] = MAX(pit.areas[i], pit.areas[depth_tests-1]);
 		pit.fill_depths[i] += pit.fill_elevations[i] - depression_min_elevation;
 	}
