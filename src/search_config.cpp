@@ -1,4 +1,5 @@
 #include "search_config.hpp"
+#include <algorithm>
 
 SearchConfig search_config;
 
