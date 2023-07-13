@@ -51,6 +51,8 @@ def get_site(task):
         type = "existing_"
     if task[0] == "ocean":
         type = "ocean_"
+    if task[0] == "bulk_pit":
+        type = "pit_"
     return type+ns+str(abs(int(task[-1]))).zfill(2)+"_"+ew+str(abs(int(task[-2]))).zfill(3)
 
 def remove_fullstop(site):

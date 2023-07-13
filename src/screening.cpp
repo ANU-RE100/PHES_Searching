@@ -619,6 +619,36 @@ Model<bool> *find_depressions(Model<short> *DEM, Model<short> *DEM_filled, Model
 	return depression_mask;
 }
 
+void output_empty_mining(){
+	FILE *csv_file;
+	FILE *csv_data_file;
+
+	// Prepare the reservoir CSV file
+	csv_file =
+			fopen(convert_string(file_storage_location + "output/reservoirs/pit_" +
+					str(search_config.grid_square) + "_reservoirs.csv"),
+				"w");
+	if (!csv_file) {
+		cout << "Failed to open reservoir CSV file" << endl;
+		exit(1);
+	}
+	write_rough_reservoir_csv_header(csv_file);
+
+	// Prepare the reservoir data CSV file
+	csv_data_file = fopen(
+			convert_string(file_storage_location + "processing_files/reservoirs/pit_" +
+				str(search_config.grid_square) + "_reservoirs_data.csv"),
+			"w");
+	if (!csv_data_file) {
+		fprintf(stderr, "failed to open reservoir CSV data file\n");
+		exit(1);
+	}
+	write_rough_reservoir_data_header(csv_data_file);
+
+	fclose(csv_file);
+    fclose(csv_data_file);
+}
+
 static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *depression_mask, Model<short> *DEM){
 	Model<bool> *pit_mask_debug = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 	pit_mask_debug->set_geodata(DEM->get_geodata());
@@ -985,9 +1015,10 @@ int main(int nargs, char **argv) {
 		}
 
 		if(!mining_cells) {
+			output_empty_mining();
 			printf("No mining tenaments in %s\n",convert_string(str(search_config.grid_square)));
 			exit(0); 
-		}
+		} 
 
 		if (search_config.logger.output_debug()) {
 			printf("\nMining Tenament Mask:\n");

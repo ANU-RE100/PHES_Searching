@@ -50,6 +50,8 @@ class SearchType {
         return "ocean_";
       case BULK_EXISTING:
         return "existing_";
+      case BULK_PIT:
+        return "pit_";
       default:
         return "";
       }

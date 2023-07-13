@@ -254,6 +254,8 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
         upper_dam_wall_height, dam_wall_heights, upper->dam_volumes);
     upper_reservoir.area = linear_interpolate(upper_dam_wall_height,
                                               dam_wall_heights, upper->areas);
+  } else if (upper->pit) {
+    upper_reservoir.area = linear_interpolate(required_volume, upper->volumes, upper->areas);
   } else {
     upper_reservoir.area = upper->areas[0];
   }
@@ -272,6 +274,8 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
         lower_dam_wall_height, dam_wall_heights, lower->dam_volumes);
     lower_reservoir.area = linear_interpolate(lower_dam_wall_height,
                                               dam_wall_heights, lower->areas);
+  } else if (lower->pit) {
+    lower_reservoir.area = linear_interpolate(required_volume, lower->volumes, lower->areas);
   } else {
     lower_reservoir.area = lower->areas[0];
   }
@@ -389,15 +393,16 @@ int main(int nargs, char **argv) {
 
   vector<unique_ptr<RoughReservoir>> upper_reservoirs;
   vector<unique_ptr<RoughReservoir>> lower_reservoirs;
-
+  
   if (search_config.search_type.existing()) {
     if (search_config.search_type.single())
       search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
     upper_reservoirs = read_rough_reservoir_data(
         convert_string(file_storage_location + "processing_files/reservoirs/" +
                        search_config.filename() + "_reservoirs_data.csv"));
-    if (search_config.search_type == SearchType::BULK_EXISTING){
-
+    
+    if (search_config.search_type == SearchType::BULK_EXISTING || search_config.search_type == SearchType::BULK_PIT){
+      
       vector<unique_ptr<RoughReservoir>> greenfield_reservoirs = read_rough_reservoir_data(
           convert_string(file_storage_location + "processing_files/reservoirs/" +
                          str(search_config.grid_square) + "_reservoirs_data.csv"));
@@ -412,7 +417,7 @@ int main(int nargs, char **argv) {
     upper_reservoirs = read_rough_reservoir_data(
         convert_string(file_storage_location + "processing_files/reservoirs/" +
                        str(search_config.grid_square) + "_reservoirs_data.csv"));
-
+  
   GridSquare neighbors[9] = {
       (GridSquare){search_config.grid_square.lat, search_config.grid_square.lon},
       (GridSquare){search_config.grid_square.lat + 1, search_config.grid_square.lon - 1},
