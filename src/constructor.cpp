@@ -1,3 +1,4 @@
+#include "coordinates.h"
 #include "csv.h"
 #include "mining_pits.h"
 #include "model2D.h"
@@ -33,7 +34,7 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
                 bool *non_overlap, int max_FOM, BigModel big_model,
                 Model<char> *full_cur_model,
                 vector<vector<vector<GeographicCoordinate>>> &countries,
-                vector<string> &country_names) {
+                vector<string> &country_names, vector<vector<GeographicCoordinate>> &seen_polygons) {
 
   vector<ArrayCoordinate> used_points;
   *non_overlap = true;
@@ -89,6 +90,19 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
   set_FOM(pair);
   if (pair->FOM > max_FOM || pair->category == 'Z') {
     return false;
+  }
+
+  // Check overlap between reservoirs during pit and existing reservoir constructor
+  if (pair->upper.brownfield || pair->lower.brownfield) {
+    // Overlap between upper and lower reservoirs
+    if(check_within(convert_coordinates(pair->upper.pour_point), convert_poly(pair->lower.shape_bound)) || check_within(convert_coordinates(pair->lower.pour_point), convert_poly(pair->upper.shape_bound)))
+      return false;
+    
+    // Overlap with other sites
+    *non_overlap = !(check_within(convert_coordinates(pair->upper.pour_point), seen_polygons) || check_within(convert_coordinates(pair->lower.pour_point), seen_polygons));
+    
+    seen_polygons.push_back(convert_poly(pair->upper.shape_bound));
+    seen_polygons.push_back(convert_poly(pair->lower.shape_bound));
   }
 
   if (*non_overlap) {
@@ -160,6 +174,7 @@ int main(int nargs, char **argv)
     seen->set_geodata(big_model.DEM->get_geodata());
     Model<char>* full_cur_model = new Model<char>(big_model.DEM->nrows(), big_model.DEM->ncols(), MODEL_SET_ZERO);
     full_cur_model->set_geodata(big_model.DEM->get_geodata());
+    vector<vector<GeographicCoordinate>> seen_polygons;
 
     int total_count = 0;
     int total_capacity = 0;
@@ -168,9 +183,15 @@ int main(int nargs, char **argv)
       int non_overlapping_count = 0;
       if (pairs[i].size() != 0) {
         // Extract bulk pit shape bounds found during screening
-        if (search_config.search_type == SearchType::BULK_PIT) {     
+        if (search_config.search_type == SearchType::BULK_PIT) {  
           read_pit_polygons(convert_string(file_storage_location + "processing_files/reservoirs/pit_" +
                           str(search_config.grid_square) + "_reservoirs_data.csv"), pairs[i]);
+
+          for (uint d=0; d<directions.size(); d++){   
+            GridSquare neighbor_gs = GridSquare_init(search_config.grid_square.lat + directions[d].row, search_config.grid_square.lon+ directions[d].col);
+            read_pit_polygons(convert_string(file_storage_location + "processing_files/reservoirs/pit_" +
+                          str(neighbor_gs) + "_reservoirs_data.csv"), pairs[i]);
+          }
         }
 
         FILE *csv_file_classes = fopen(convert_string(file_storage_location+"output/final_output_classes/"+search_config.filename()+"/"+search_config.filename()+"_"+str(tests[i])+".csv"), "w");
@@ -192,7 +213,7 @@ int main(int nargs, char **argv)
             bool non_overlap;
             int max_FOM = category_cutoffs[0].storage_cost*tests[i].storage_time+category_cutoffs[0].power_cost;
 
-            if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, max_FOM, big_model, full_cur_model, countries, country_names)){
+            if(model_pair(&pairs[i][j], &pair_kml, seen, &non_overlap, max_FOM, big_model, full_cur_model, countries, country_names, seen_polygons)){
                 write_pair_csv(csv_file_classes, &pairs[i][j], false);
                 write_pair_csv(csv_file_FOM, &pairs[i][j], true);
                 keep_lower = !lowers.contains(pairs[i][j].lower.identifier);

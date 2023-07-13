@@ -5,7 +5,9 @@
 #include "kml.h"
 
 vector<double> find_polygon_intersections(double lat, vector<GeographicCoordinate> &polygon);
+bool check_contained_within(GeographicCoordinate point, vector<GeographicCoordinate> polygon);
 bool check_within(GeographicCoordinate point, vector<vector<GeographicCoordinate>> polygons);
+bool check_within(GeographicCoordinate point, vector<GeographicCoordinate> polygon);
 vector<vector<vector<GeographicCoordinate>>> read_countries(string filename, vector<string>& country_names);
 ArrayCoordinate* get_adjacent_cells(ArrayCoordinate point1, ArrayCoordinate point2);
 bool is_edge(ArrayCoordinate point1, ArrayCoordinate point2, Model<char>* model, ArrayCoordinate offset, int threshold);

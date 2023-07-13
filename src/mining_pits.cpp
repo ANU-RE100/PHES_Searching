@@ -62,7 +62,7 @@ Circle find_pole_of_inaccessibility(vector<ArrayCoordinate> polygon_points) {
 		
 		double clearance = INT_MAX;
 		for (ArrayCoordinate boundary_point : polygon_boundary) {
-			double distance = find_distance(fill_point,boundary_point);
+			double distance = find_distance(fill_point,boundary_point)*1000; // km to m
 			clearance = MIN(clearance,distance);
 		}
 		if(clearance > max_clearance){
@@ -92,24 +92,6 @@ void find_pit_lake_depth_characteristics(int pit_lake_max_depth, double pit_lake
 	return;
 }
 
-double determine_circularity(std::vector<ArrayCoordinate> individual_pit_points, double pit_area){
-	ArrayCoordinate pole_of_inaccessibility = find_pole_of_inaccessibility(individual_pit_points).centre_point;
-	double pit_radius = 0.001*sqrt(pit_area * 10000/ pi); // Ha to m^2, then m to km
-	double area_in_circle = 0;
-	double pit_circularity = 0;
-
-	for (ArrayCoordinate point : individual_pit_points) {
-		double distance_to_poi = find_distance(pole_of_inaccessibility, point); // km
-
-		if (distance_to_poi <= pit_radius)
-			area_in_circle+=find_area(point); // Ha
-	}
-
-	pit_circularity = area_in_circle / pit_area;
-	
-	return pit_circularity;
-}
-
 void model_pit_lakes(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *depression_mask, 
 						Model<bool> *seen_pl, Model<bool> *seen_d, vector<ArrayCoordinate> &individual_pit_lake_points, Model<short> *DEM){
 	int seed_row = pit.seed_point.row;
@@ -119,10 +101,12 @@ void model_pit_lakes(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *depr
 	pit.pit_lake_area = pit_lake_max_area;
 
 	// Estimate the lowest point of the pit lake
-	ArrayCoordinate pit_lake_lowest_point = find_pole_of_inaccessibility(individual_pit_lake_points).centre_point;
+	Circle pole_of_inaccessibility = find_pole_of_inaccessibility(individual_pit_lake_points);
+	ArrayCoordinate pit_lake_lowest_point = pole_of_inaccessibility.centre_point;
+	double pole_clearance = pole_of_inaccessibility.radius;
 
 	// Estimate maximum depth of the pit lake
-	double pit_lake_min_elevation = DEM->get(seed_row,seed_col) - pit_lake_relative_depth * 2*sqrt(pit_lake_max_area * 10000 / pi); // Relative depth assumpion x diameter of pit, assuming it is a circle. DEM has equal elevation across entire pit lake.
+	double pit_lake_min_elevation = DEM->get(seed_row,seed_col) - pit_lake_relative_depth * 2*pole_clearance; // Relative depth assumpion x diameter of circle formed by POI clearance. DEM has equal elevation across entire pit lake.
 	if (pit_lake_min_elevation < pit.min_elevation){
 		pit.lowest_point = pit_lake_lowest_point;
 		pit.min_elevation = pit_lake_min_elevation;

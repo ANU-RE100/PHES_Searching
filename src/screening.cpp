@@ -729,12 +729,6 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 				continue;
 			}
 			
-			// Remove pits with a low pit-to-circle ratio (e.g. rivers with mining operations)
-			pit.circularity = determine_circularity(individual_pit_points, max(pit.areas));
-			if(pit.circularity < min_pit_circularity){
-				continue;
-			}
-			
 			if(pit.pit_lake_area / max(pit.areas) > 0.5)
 				pit.res_identifier = str(search_config.grid_square) + "_PITL" + str(i);
 			else

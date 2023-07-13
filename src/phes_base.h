@@ -72,7 +72,6 @@ extern vector<double> dam_wall_heights; //  Wall heights to test and export
 extern int depression_depth_min; // Minimum depth of depressions (m) for mining pit and turkey's nest screenings
 extern double pit_lake_relative_depth;  // Pit lakes typically have a relative depth (maximum depth : diameter of circle with surface area) of between 10% - 40%
 extern double pit_lake_relative_area;    // The ratio of surface area at the bottom of the pit vs the surface of the lake
-extern double min_pit_circularity;      // Quality measure of pit lakes for filtering out rivers. Proportion of pit lake contained within a circle of the same surface area, centred on the Point of Inaccessibility
 
 // Pairing
 extern int min_head; // Minimum head (m) to be considered a potential pair

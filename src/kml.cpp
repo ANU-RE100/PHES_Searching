@@ -45,7 +45,7 @@ string get_html(Reservoir* reservoir, Pair* pair){
 "              <tr><td>"+newline+
 "              <table style=\"font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px\">"+newline+
 "              <tr bgcolor=\"#D4E4F3\"><td>Elevation</td><td>"+to_string(reservoir->elevation)+"</td></tr>"+newline+
-"              <tr><td>Depth (m)</td><td>"+dtos(reservoir->fill_depth,0)+"</td></tr>"+newline+
+"              <tr><td>Fill Depth (m)</td><td>"+dtos(reservoir->fill_depth,0)+"</td></tr>"+newline+
 "              <tr bgcolor=\"#D4E4F3\"><td>Latitude</td><td>"+dtos(reservoir->latitude,4)+"</td></tr>"+newline+
 "              <tr><td>Longitude</td><td>"+dtos(reservoir->longitude,4)+"</td></tr>"+newline+
 "              <tr bgcolor=\"#D4E4F3\"><td>Volume (GL)</td><td>"+dtos(reservoir->volume,1)+"</td></tr>"+newline+
@@ -107,7 +107,7 @@ string get_html(Pair* pair){
 "              <tr bgcolor=\"#D4E4F3\"><td>Head (m)</td><td>"+to_string(pair->head)+"</td></tr>"+newline+
 "              <tr><td>Separation (km)</td><td>"+dtos(pair->distance,1)+"</td></tr>"+newline+
 "              <tr bgcolor=\"#D4E4F3\"><td>Average Slope (%)</td><td>"+dtos(pair->slope*100,0)+"</td></tr>"+newline+
-((!pair->upper.brownfield || !pair->lower.brownfield) ? (
+(((!pair->upper.brownfield && !pair->upper.pit) || (!pair->lower.brownfield && !pair->lower.pit)) ? (
     "              <tr><td>Volume (GL)</td><td>"+dtos(pair->volume,1)+"</td></tr>"+newline+
 "              <tr bgcolor=\"#D4E4F3\"><td>Water to Rock (Pair)</td><td>"+dtos(pair->water_rock,1)+"</td></tr>"+newline) : " ") +
 "              <tr><td>Energy (GWh)</td><td>"+energy_capacity_to_string(pair->energy_capacity)+"</td></tr>"+newline+

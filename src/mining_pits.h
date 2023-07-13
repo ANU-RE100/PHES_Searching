@@ -40,7 +40,6 @@ double pit_area_calculator(int row, int col, Model<bool> *pit_mask, Model<bool> 
 Circle find_pole_of_inaccessibility(vector<ArrayCoordinate> polygon_points);
 double find_volume_pit_lake(double pit_area, int pit_depth);
 void find_pit_lake_depth_characteristics(int pit_lake_max_depth, double pit_lake_max_area, int pit_lake_test_depth, double &pit_lake_test_volume, double &pit_lake_test_area);
-double determine_circularity(std::vector<ArrayCoordinate> individual_pit_points, double pit_area);
 void model_pit_lakes(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *depression_mask, Model<bool> *seen_pl, Model<bool> *seen_d, vector<ArrayCoordinate> &individual_pit_lake_points, Model<short> *DEM);
 void model_depression(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *depression_mask, Model<bool> *seen_d, Model<bool> *seen_pl, std::vector<ArrayCoordinate> &individual_depression_points, Model<short> *DEM);
 
