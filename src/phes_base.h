@@ -216,6 +216,7 @@ void write_to_csv_file(FILE *csv_file, vector<string> cols);
 vector<string> read_from_csv_file(string line);
 string dtos(double f, int nd);
 Model<short> *read_DEM_with_borders(GridSquare sq, int border);
+Model<float>* read_float_DEM_with_borders(GridSquare sc, int border);
 BigModel BigModel_init(GridSquare sc);
 void set_FOM(Pair *pair);
 string str(Test test);

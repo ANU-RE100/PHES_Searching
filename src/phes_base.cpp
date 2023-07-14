@@ -136,6 +136,46 @@ Model<short>* read_DEM_with_borders(GridSquare sc, int border){
 	return DEM;
 }
 
+Model<float>* read_float_DEM_with_borders(GridSquare sc, int border){
+	Model<float>* DEM = new Model<float>(0, 0, MODEL_UNSET);
+	const int neighbors[9][4][2] = {
+		//[(Tile coordinates) , 				(Tile base)		 		  									, (Tile limit)				  																				, (Tile offset)	 	       ]
+		{ {sc.lat  ,sc.lon  } , {border,      						border	 						}, {border+model_size-tile_overlap, 	model_size+border-tile_overlap		}, {border-tile_overlap,    			border  		  				 	} },
+		{ {sc.lat+1,sc.lon-1} , {0,			  						0		 						}, {border, 	    					border	 	 						}, {border-model_size, 	   				border-(model_size-tile_overlap)	} },
+		{ {sc.lat+1,sc.lon  } , {0,	      	  						border	 						}, {border,	    						model_size+border-tile_overlap		}, {border-model_size, 					border     							} },
+		{ {sc.lat+1,sc.lon+1} , {0,	      	  						model_size+border-tile_overlap	}, {border,        						model_size+2*border-tile_overlap	}, {border-model_size, 					border+(model_size-tile_overlap)	} },
+		{ {sc.lat  ,sc.lon+1} , {border-tile_overlap,    			model_size+border-tile_overlap	}, {model_size+border-tile_overlap,   	model_size+2*border-tile_overlap	}, {border-tile_overlap,   				border+(model_size-tile_overlap)	} },
+		{ {sc.lat-1,sc.lon+1} , {model_size+border-tile_overlap,	model_size+border-tile_overlap	}, {model_size+2*border-tile_overlap, 	model_size+2*border-tile_overlap	}, {border+(model_size-2*tile_overlap),	border+(model_size-tile_overlap)	} },
+		{ {sc.lat-1,sc.lon  } , {model_size+border-tile_overlap,	border							}, {model_size+2*border-tile_overlap, 	model_size+border					}, {border+(model_size-2*tile_overlap), border     							} },
+		{ {sc.lat-1,sc.lon-1} , {model_size+border-tile_overlap,	0		 	 					}, {model_size+2*border-tile_overlap, 	border	 							}, {border+(model_size-2*tile_overlap), border-(model_size-tile_overlap)	} },
+		{ {sc.lat  ,sc.lon-1} , {border-tile_overlap,    			0		 	 					}, {model_size+border-tile_overlap,   	border	 	 						}, {border-tile_overlap,    			border-(model_size-tile_overlap)	} }
+	};
+	for (int i=0; i<9; i++) {
+		GridSquare gs = GridSquare_init(neighbors[i][0][0], neighbors[i][0][1]);
+		ArrayCoordinate tile_start = ArrayCoordinate_init(neighbors[i][1][0], neighbors[i][1][1], get_origin(gs, border));
+		ArrayCoordinate tile_end = ArrayCoordinate_init(neighbors[i][2][0], neighbors[i][2][1], get_origin(gs, border));
+		ArrayCoordinate tile_offset = ArrayCoordinate_init(neighbors[i][3][0], neighbors[i][3][1], get_origin(gs, border));
+		try{
+			Model<float>* DEM_temp = new Model<float>(get_dem_filename(gs), GDT_Float32);
+			if (i==0) {
+				DEM = new Model<float>(DEM_temp->nrows()+2*border-tile_overlap,DEM_temp->ncols()+2*border-tile_overlap, MODEL_SET_ZERO);
+				DEM->set_geodata(DEM_temp->get_geodata());
+				GeographicCoordinate origin = get_origin(gs, border);
+				DEM->set_origin(origin.lat, origin.lon);
+			}
+			for(int row = tile_start.row ; row < tile_end.row ; row++)
+				for(int col = tile_start.col ; col < tile_end.col; col++){
+					DEM->set(row, col, DEM_temp->get(row-tile_offset.row,col-tile_offset.col));
+				}
+			delete DEM_temp;
+		}catch (int e){
+			search_config.logger.debug("Could not find file "+get_dem_filename(gs)+" " + strerror(errno));
+			if (i==0)
+				throw(1);
+		}
+	}
+	return DEM;
+}
 
 BigModel BigModel_init(GridSquare sc){
 	BigModel big_model;

@@ -15,13 +15,15 @@ bool check_pair(Pair &pair, Model<bool> *seen, BigModel &big_model) {
                        empty_countries, empty_country_names))
     return false;
 
-  if (pair.upper.brownfield && !pair.lower.brownfield) {
-    if (pair.lower.area > max_bluefield_surface_area_ratio * pair.upper.area)
+  if (pair.upper.brownfield && !pair.upper.pit && !pair.lower.brownfield) {
+    if (pair.lower.area > max_bluefield_surface_area_ratio * pair.upper.area){
       return false;
+	}
   }
-  if (pair.lower.brownfield && !pair.upper.brownfield) {
-    if (pair.upper.area > max_bluefield_surface_area_ratio * pair.lower.area)
+  if (pair.lower.brownfield && !pair.lower.pit && !pair.upper.brownfield) {
+    if (pair.upper.area > max_bluefield_surface_area_ratio * pair.lower.area){
       return false;
+	}
   }
 
   for (uint i = 0; i < used_points.size(); i++) {

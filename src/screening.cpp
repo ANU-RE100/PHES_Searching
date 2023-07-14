@@ -540,7 +540,7 @@ model_reservoirs(GridSquare square_coordinate, Model<bool> *pour_points,
   return count;
   }
 
-Model<bool> *find_pit_lakes(Model<short> *DEM, Model<bool> *filter){		
+Model<bool> *find_pit_lakes(Model<float> *DEM, Model<bool> *filter){		
 	Model<bool> *pit_lake_mask = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 	pit_lake_mask->set_geodata(DEM->get_geodata());
 
@@ -1024,10 +1024,13 @@ int main(int nargs, char **argv) {
 			mining_tenament_mask->write(file_storage_location+"debug/mining_tenament_mask/"+str(search_config.grid_square)+"_mining_tenament_mask.tif", GDT_Byte);
 			filter->write(file_storage_location+"debug/filter/"+str(search_config.grid_square)+"_filter.tif", GDT_Byte);
 		}
+		delete mining_tenament_mask;
 
 		// Create a mask for all regions with 0% slope (i.e. pits filled with water)
 		t_usec = walltime_usec();
-		pit_lake_mask = find_pit_lakes(DEM, filter);
+		Model<float> *DEM_float = read_float_DEM_with_borders(search_config.grid_square, border); // Float accuracy required to find pit lakes, since require slope of exactly 0
+		pit_lake_mask = find_pit_lakes(DEM_float, filter);
+		delete DEM_float;
 
 		if (search_config.logger.output_debug()) {
 			printf("\nPit Lake Mask:\n");
@@ -1072,6 +1075,8 @@ int main(int nargs, char **argv) {
 					depression_mask->set(row,col,true);
 			}
 		}
+
+		delete DEM_filled;
 
 		if (search_config.logger.output_debug()) {
 			printf("\nDepression Mask:\n");
