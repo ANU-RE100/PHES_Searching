@@ -577,9 +577,9 @@ void write_pair_csv(FILE *csv_file, Pair *pair, bool output_FOM) {
       to_string(pair->upper.elevation),
       dtos(pair->upper.latitude, 4),
       dtos(pair->upper.longitude, 4),
-      (pair->upper.brownfield ? "NA" : dtos(pair->upper.area, 0)),
+      ((pair->upper.brownfield && !pair->upper.pit) ? "NA" : dtos(pair->upper.area, 0)),
       dtos(pair->upper.volume, 1),
-      (pair->upper.brownfield && !pair->upper.pit
+      (pair->upper.brownfield
            ? "NA"
            : dtos(pair->upper.dam_height, 1)),
       (pair->upper.brownfield ? "NA" : dtos(pair->upper.dam_length, 0)),
@@ -591,11 +591,11 @@ void write_pair_csv(FILE *csv_file, Pair *pair, bool output_FOM) {
       to_string(pair->lower.elevation),
       dtos(pair->lower.latitude, 4),
       dtos(pair->lower.longitude, 4),
-      ((pair->lower.brownfield || pair->lower.ocean)
+      (((pair->lower.brownfield && !pair->upper.pit) || pair->lower.ocean)
            ? "NA"
            : dtos(pair->lower.area, 0)),
       dtos(pair->lower.volume, 1),
-      (((pair->lower.brownfield && !pair->lower.pit) || pair->lower.ocean)
+      ((pair->lower.brownfield || pair->lower.ocean)
            ? "NA"
            : dtos(pair->lower.dam_height, 1)),
       ((pair->lower.brownfield || pair->lower.ocean)

@@ -193,7 +193,7 @@ void model_depression(BulkPit &pit, Model<bool> *pit_lake_mask, Model<bool> *dep
 
 	// Determing each of the test elevations within the depression
 	for(uint i=(depth_tests); i < pit.fill_elevations.size(); i++) {
-		pit.fill_elevations[i] = depression_min_elevation + ((i-depth_tests) / (pit.fill_elevations.size() - depth_tests)) * MAX(lowest_edge_elevation - depression_min_elevation,0);
+		pit.fill_elevations[i] = depression_min_elevation + ((i-depth_tests) / (double)(pit.fill_elevations.size() - depth_tests)) * MAX(lowest_edge_elevation - depression_min_elevation,0);
 	}
 	
 	// Calculate volume and area of depression at different fill elevations
