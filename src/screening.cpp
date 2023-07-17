@@ -692,7 +692,7 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 	// Locate pit lakes based upon interconnected cells on the mask
 	for(int row = 0; row<DEM->nrows();row++) {
 		for(int col = 0; col<DEM->ncols();col++) {	
-			if ((!pit_lake_mask->get(row,col)) || (!depression_mask->get(row,col))) {
+			if ((!pit_lake_mask->get(row,col)) && (!depression_mask->get(row,col))) {
 				continue;
 			}
 			
