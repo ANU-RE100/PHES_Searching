@@ -977,7 +977,7 @@ int main(int nargs, char **argv) {
           }
           reservoir.elevation = reservoir.elevations[0];
         }
-        write_rough_reservoir_csv(csv_file, reservoir);
+        write_rough_reservoir_csv(csv_file, &reservoir);
         write_rough_reservoir_data(csv_data_file, &reservoir);
       }
     } else {
@@ -985,7 +985,7 @@ int main(int nargs, char **argv) {
         RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
         reservoir.pit = (search_config.search_type == SearchType::BULK_PIT ||
                          search_config.search_type == SearchType::SINGLE_PIT);
-        write_rough_reservoir_csv(csv_file, reservoir);
+        write_rough_reservoir_csv(csv_file, &reservoir);
         write_rough_reservoir_data(csv_data_file, &reservoir);
       }
     }

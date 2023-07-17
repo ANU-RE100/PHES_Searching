@@ -19,15 +19,13 @@ bool check_pair(Pair &pair, Model<bool> *seen, BigModel &big_model, set<string>&
                        empty_countries, empty_country_names))
     return false;
 
-if (pair.upper.brownfield && pair.upper.volume > INF/10 && !pair.lower.brownfield) {
+  if (pair.upper.brownfield && pair.upper.volume > INF/10 && !pair.lower.brownfield) {
     if (pair.lower.area > max_bluefield_surface_area_ratio * pair.upper.area)
       return false;
-	}
   }
-if (pair.lower.brownfield && pair.lower.volume > INF/10 && !pair.upper.brownfield) {
+  if (pair.lower.brownfield && pair.lower.volume > INF/10 && !pair.upper.brownfield) {
     if (pair.upper.area > max_bluefield_surface_area_ratio * pair.lower.area)
       return false;
-	}
   }
 
   for (uint i = 0; i < used_points.size(); i++) {
