@@ -98,6 +98,12 @@ public:
     return check_within(floor((g.lat - geodata.geotransform[3]) / geodata.geotransform[5]),
                         floor((g.lon - geodata.geotransform[0]) / geodata.geotransform[1]));
   }
+  bool check_within_border(int row, int col) {
+    return (row<border || col<border || row >= nrows()-border || col>=ncols()-border);
+  }
+  bool check_on_edge(int row, int col){
+    return (row == 0 || col == 0 || row == nrows()-1 || col == ncols()-1);
+  }
   T get(GeographicCoordinate g) {
     return get(floor((g.lat - geodata.geotransform[3]) / geodata.geotransform[5]),
                floor((g.lon - geodata.geotransform[0]) / geodata.geotransform[1]));

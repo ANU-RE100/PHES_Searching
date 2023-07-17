@@ -3,6 +3,7 @@
 #include "phes_base.h"
 #include "reservoir.h"
 #include "mining_pits.h"
+#include "search_config.hpp"
 
 string ReplaceAll(string str, const string &from, const string &to) {
   size_t start_pos = 0;
@@ -631,7 +632,7 @@ void write_summary_csv(FILE *csv_file, string square_name, string test,
   write_to_csv_file(csv_file, line);
 }
 
-void read_pit_polygons(std::string filename, vector<Pair> &pairs){ 
+void read_pit_polygons(std::string filename, vector<Pair> &pairs, GridSquare gs){ 
   ifstream inputFile(filename);
   string s;
   bool header = true;
@@ -643,18 +644,14 @@ void read_pit_polygons(std::string filename, vector<Pair> &pairs){
       continue;
     }
     vector<string> line = read_from_csv_file(s);
-    GeographicCoordinate gc =
-        GeographicCoordinate_init(stod(line[1]), stod(line[2]));
-    GeographicCoordinate origin = get_origin(
-        GridSquare_init(convert_to_int(FLOOR(gc.lat)), convert_to_int(FLOOR(gc.lon))),
-        border);
+    GeographicCoordinate origin = get_origin(gs, border);
     
     for(Pair &pair : pairs){
       if (pair.upper.identifier == line[0]){
         pair.upper.shape_bound.clear();
         int point_len = stoi(line[9+4*dam_wall_heights.size()]);
         for(int i = 0; i<point_len; i++){
-          ArrayCoordinate array_point = ArrayCoordinate_init(stoi(line[10+4*dam_wall_heights.size()+i*2]), stoi(line[10+4*dam_wall_heights.size()+i*2+1]), origin);
+          ArrayCoordinate array_point = convert_coordinates(convert_coordinates(ArrayCoordinate_init(stoi(line[10+4*dam_wall_heights.size()+i*2]), stoi(line[10+4*dam_wall_heights.size()+i*2+1]), origin)), get_origin(search_config.grid_square, border));
           pair.upper.shape_bound.push_back(array_point);
         }   
       }
@@ -662,7 +659,7 @@ void read_pit_polygons(std::string filename, vector<Pair> &pairs){
         pair.lower.shape_bound.clear();
         int point_len = stoi(line[9+4*dam_wall_heights.size()]);
         for(int i = 0; i<point_len; i++){
-          ArrayCoordinate array_point = ArrayCoordinate_init(stoi(line[10+4*dam_wall_heights.size()+i*2]), stoi(line[10+4*dam_wall_heights.size()+i*2+1]), origin);
+          ArrayCoordinate array_point = convert_coordinates(convert_coordinates(ArrayCoordinate_init(stoi(line[10+4*dam_wall_heights.size()+i*2]), stoi(line[10+4*dam_wall_heights.size()+i*2+1]), origin)), get_origin(search_config.grid_square, border));
           pair.lower.shape_bound.push_back(array_point);
         }   
       }

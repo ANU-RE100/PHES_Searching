@@ -185,12 +185,12 @@ int main(int nargs, char **argv)
         // Extract bulk pit shape bounds found during screening
         if (search_config.search_type == SearchType::BULK_PIT) {  
           read_pit_polygons(convert_string(file_storage_location + "processing_files/reservoirs/pit_" +
-                          str(search_config.grid_square) + "_reservoirs_data.csv"), pairs[i]);
+                          str(search_config.grid_square) + "_reservoirs_data.csv"), pairs[i], search_config.grid_square);
 
           for (uint d=0; d<directions.size(); d++){   
             GridSquare neighbor_gs = GridSquare_init(search_config.grid_square.lat + directions[d].row, search_config.grid_square.lon+ directions[d].col);
             read_pit_polygons(convert_string(file_storage_location + "processing_files/reservoirs/pit_" +
-                          str(neighbor_gs) + "_reservoirs_data.csv"), pairs[i]);
+                          str(neighbor_gs) + "_reservoirs_data.csv"), pairs[i], neighbor_gs);
           }
         }
 

@@ -728,6 +728,22 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 			if ((max(pit.areas) < min_watershed_area) || (max(pit.volumes) < min_reservoir_volume)){
 				continue;
 			}
+
+			// If the pit is entirely contained within the border, skip modelling.
+			// Prevents overlap between pits of different grid-squares and incomplete pit lakes
+			bool outside_border = false;
+			bool touching_edge = false;
+			for (ArrayCoordinate point : individual_pit_points){
+				if(!DEM->check_within_border(point.row, point.col)){
+					outside_border = true;
+				}
+				if(DEM->check_on_edge(point.row, point.col)){
+					touching_edge = true;
+					break;
+				}
+			}
+			if(!outside_border || touching_edge)
+				continue;
 			
 			if(pit.pit_lake_area / max(pit.areas) > 0.5)
 				pit.res_identifier = str(search_config.grid_square) + "_PITL" + str(i);
