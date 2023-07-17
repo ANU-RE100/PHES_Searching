@@ -31,6 +31,7 @@ extern string existing_reservoirs_csv;
 extern string existing_reservoirs_shp;
 extern string existing_reservoirs_shp_names;
 extern bool use_tiled_bluefield;
+extern bool use_tiled_rivers;
 
 // GPKG Tiling
 extern std::string gpkg_path;  // Path to the GPKG file containing global mining tenament polygons
@@ -92,6 +93,7 @@ extern int num_altitude_volume_pairs; // Number of altitude-volume pairs
 extern int pit_height_resolution; // Height resolution of top and bottom of pit
                                   // in metres
 extern double max_bluefield_surface_area_ratio;
+extern double river_flow_volume_ratio;
 
 // Common
 extern double gravity;               // Acceleration due to gravity (m/s/s)
@@ -211,7 +213,7 @@ double linear_interpolate(double value, vector<double> x_values,
 string str(int i);
 unsigned long walltime_usec();
 double find_required_volume(int energy, int head);
-char *convert_string(string str);
+char *convert_string(const string& str);
 void write_to_csv_file(FILE *csv_file, vector<string> cols);
 vector<string> read_from_csv_file(string line);
 string dtos(double f, int nd);
@@ -221,7 +223,8 @@ BigModel BigModel_init(GridSquare sc);
 void set_FOM(Pair *pair);
 string str(Test test);
 string energy_capacity_to_string(double energy_capacity);
-ExistingReservoir get_existing_reservoir(string name);
+ExistingReservoir get_existing_reservoir(string name, string filename = "");
+ExistingReservoir get_existing_tiled_reservoir(string name, double lat, double lon);
 vector<ExistingReservoir> get_existing_reservoirs(GridSquare grid_square);
 RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r);
 vector<ExistingPit> get_pit_details(GridSquare grid_square);

@@ -26,7 +26,7 @@ class SearchType {
     }
 
     // Filename prefix
-    std::string prefix(){
+    string prefix(){
       switch(value){
         case OCEAN:
           return "ocean_";

@@ -53,7 +53,7 @@ vector<string> read_from_csv_file(string line, char delimeter) {
   return cols;
 }
 
-vector<ExistingReservoir> read_existing_reservoir_data(char *filename) {
+vector<ExistingReservoir> read_existing_reservoir_data(const char *filename) {
   vector<ExistingReservoir> reservoirs;
   ifstream inputFile(filename);
   bool header = true;
@@ -204,7 +204,9 @@ void write_rough_reservoir_data(FILE *csv_file, RoughReservoir *reservoir) {
   for (uint i = 0; i < dam_wall_heights.size(); i++) {
     line.push_back(to_string(reservoir->fill_depths[i]));
   }
-  if (reservoir->pit)
+  if (reservoir->river)
+    line.push_back("3");
+  else if (reservoir->pit)
     line.push_back("2");
   else if (reservoir->brownfield)
     line.push_back("1");
@@ -225,6 +227,9 @@ void write_rough_reservoir_data(FILE *csv_file, RoughReservoir *reservoir) {
       line.push_back(to_string(c.row));
       line.push_back(to_string(c.col));
     }
+    if(br->river)
+      for(int e : br->elevations)
+        line.push_back(to_string(e));
   }
   write_to_csv_file(csv_file, line);
 }
@@ -265,7 +270,9 @@ vector<unique_ptr<RoughReservoir>> read_rough_reservoir_data(char *filename) {
       reservoir->brownfield =
           stoi(line[6 + 4 * dam_wall_heights.size()]) > 0;
       reservoir->pit =
-          stoi(line[6 + 4 * dam_wall_heights.size()]) > 1;
+          stoi(line[6 + 4 * dam_wall_heights.size()]) == 2;
+      reservoir->river =
+          stoi(line[6 + 4 * dam_wall_heights.size()]) == 3;
       reservoir->ocean =
           stoi(line[6 + 4 * dam_wall_heights.size() + 1]) > 0;
       reservoir->turkey =
@@ -281,6 +288,19 @@ vector<unique_ptr<RoughReservoir>> read_rough_reservoir_data(char *filename) {
           stoi(line[6 + 4 * dam_wall_heights.size() +
                     (dam_wall_heights.size() * directions.size()) * 2 + 1]) > 0;
     }
+    for (uint i = 0; i < dam_wall_heights.size(); i++)
+      if(reservoir->river)
+        reservoir->volumes.push_back(stod(line[6 + i])*60*60*24*365/1e6);
+      else
+        reservoir->volumes.push_back(stod(line[6 + i]));
+    for (uint i = 0; i < dam_wall_heights.size(); i++)
+      reservoir->areas.push_back(stod(line[6 + dam_wall_heights.size() + i]));
+    for (uint i = 0; i < dam_wall_heights.size(); i++)
+      reservoir->dam_volumes.push_back(
+          stod(line[6 + 2 * dam_wall_heights.size() + i]));
+    reservoir->max_dam_height = stod(line[4]);
+    reservoir->watershed_area = stod(line[5]);
+    reservoir->identifier = line[0];
 
     if(!compressed_format || (!reservoir->ocean && !reservoir->brownfield)){
       unique_ptr<RoughGreenfieldReservoir> greenfield_reservoir(new RoughGreenfieldReservoir(*reservoir));
@@ -302,6 +322,10 @@ vector<unique_ptr<RoughReservoir>> read_rough_reservoir_data(char *filename) {
       for(int i = 0; i<point_len; i++){
         bfield_reservoir->shape_bound.push_back(ArrayCoordinate_init(stoi(line[10+4*dam_wall_heights.size()+i*2]), stoi(line[10+4*dam_wall_heights.size()+i*2+1]), origin));
       }
+      if(reservoir->river)
+        for(int i = 0; i<point_len; i++){
+          bfield_reservoir->elevations.push_back(stoi(line[10+3*dam_wall_heights.size()+2*point_len+i]));
+        }
       reservoirs.push_back(std::move(bfield_reservoir));
     }
   }
@@ -419,8 +443,7 @@ void write_rough_pair_data(FILE *csv_file, Pair *pair) {
       dtos(pair->upper.max_dam_height, 1),
       dtos(pair->upper.water_rock, 5),
       dtos(pair->upper.area, 1),
-      dtos(pair->upper.fill_depth,1),
-      pair->upper.pit ? "2" : to_string(pair->upper.brownfield),
+      pair->upper.river ? "3" : (pair->upper.pit ? "2" : to_string(pair->upper.brownfield)),
       pair->lower.identifier,
       dtos(pair->lower.latitude, 6),
       dtos(pair->lower.longitude, 6),
@@ -429,8 +452,7 @@ void write_rough_pair_data(FILE *csv_file, Pair *pair) {
       dtos(pair->lower.max_dam_height, 1),
       dtos(pair->lower.water_rock, 5),
       dtos(pair->lower.area, 1),
-      dtos(pair->lower.fill_depth,1),
-      pair->lower.pit ? "2" : to_string(pair->lower.brownfield),
+      pair->lower.river ? "3" : (pair->lower.pit ? "2" : to_string(pair->lower.brownfield)),
       to_string(pair->lower.ocean),
       to_string(pair->head),
       dtos(pair->pp_distance, 5),
@@ -484,7 +506,8 @@ vector<vector<Pair>> read_rough_pair_data(char *filename) {
     pair.upper.area = stod(line[8]);
     pair.upper.fill_depth = stod(line[9]);
     pair.upper.brownfield = stoi(line[10]) > 0;
-    pair.upper.pit = stoi(line[10]) > 1;
+    pair.upper.pit = stoi(line[10]) == 2;
+    pair.upper.river = stoi(line[10]) == 3;
 
     pair.lower.identifier = line[11];
     pair.lower.dam_height = stod(line[15]);
@@ -493,7 +516,8 @@ vector<vector<Pair>> read_rough_pair_data(char *filename) {
     pair.lower.area = stod(line[18]);
     pair.lower.fill_depth = stod(line[19]);
     pair.lower.brownfield = stoi(line[20]) > 0;
-    pair.lower.pit = stoi(line[20]) > 1;
+    pair.lower.pit = stoi(line[20]) == 2;
+    pair.lower.river = stoi(line[20]) == 3;
     pair.lower.ocean = stoi(line[21]) > 0;
 
     pair.head = stoi(line[22]);

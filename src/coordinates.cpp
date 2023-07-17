@@ -130,7 +130,7 @@ double find_distance_sqd(ArrayCoordinate c1, ArrayCoordinate c2)
 double find_distance_sqd(ArrayCoordinate c1, ArrayCoordinate c2, double coslat)
 {
   if(c1.origin.lat==c2.origin.lat && c1.origin.lon==c2.origin.lon)
-    return (SQ(c2.row-c1.row)*coslat + SQ(c2.col-c1.col))*SQ(resolution*0.001);
+    return (SQ(c2.row-c1.row) + SQ((c2.col-c1.col)*coslat))*SQ(resolution*0.001);
 	GeographicCoordinate p1 = convert_coordinates(c1);
 	GeographicCoordinate p2 = convert_coordinates(c2);
 	return find_distance_sqd(p1, p2, coslat);
