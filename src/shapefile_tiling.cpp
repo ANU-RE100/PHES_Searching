@@ -211,12 +211,11 @@ int main(int argc, char *argv[]) {
 		
 		string shpName = output_location + "/" + str(gs) + "_shapefile_tile.shp";
     	string dbfName = output_location + "/" + str(gs) + "_shapefile_tile.dbf";
-
 		SHPHandle SHP;
 		DBFHandle DBF;
 
 		if(first_file){
-			SHP = SHPCreate(convert_string(shpName), SHPT_POLYGON);
+			SHP = SHPCreate(convert_string(shpName), SHAPE_TYPE);
 			DBF = DBFCreate(convert_string(dbfName));
 		}
 		else{
