@@ -17,3 +17,4 @@ tools/raster_to_csv.py
 tools/DEM_arrays/*
 preprocessing_files
 __pycache__/
+Results/*
