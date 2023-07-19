@@ -10,6 +10,7 @@ The gpkg_tiling program will take merged_gpkg and split it into Shapefiles conta
 that are relevant to each specific gridsquare, dramatically reducing PHES Searching time.
 */
 
+#include "coordinates.h"
 #include "phes_base.h"
 #include "gdal/ogrsf_frmts.h"
 #include <fstream>
@@ -100,9 +101,9 @@ int main()
         poDriver = GetGDALDriverManager()->GetDriverByName(pszDriverName);
 
         GDALDataset *poDS_s;
-        string filename = mining_tenament_shp + str(search_config.grid_square) + ".shp";        
+        string filename = mining_tenament_shp + str(GridSquare_init(lat, lon)) + ".shp";        
 
-        printf("Started tiling grid square %i %i with feature count %i...\n", search_config.grid_square.lat, search_config.grid_square.lon, (int) poLayer_g->GetFeatureCount());
+        printf("Started tiling grid square %i %i with feature count %i...\n", lat, lon, (int) poLayer_g->GetFeatureCount());
         
         poDS_s = poDriver->Create(filename.c_str(), 0, 0, 0, GDT_Unknown, NULL);
         if( poDS_s == NULL ){
