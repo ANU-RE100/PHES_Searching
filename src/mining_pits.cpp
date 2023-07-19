@@ -53,7 +53,7 @@ Circle find_pole_of_inaccessibility(vector<ArrayCoordinate> polygon_points) {
 	// For a perfect circle, the POI would be the centre of the circle
 
 	// Create a vector of all points on the polygon boundary
-	vector<ArrayCoordinate> polygon_boundary = find_edge(polygon_points);
+	vector<ArrayCoordinate> polygon_boundary = find_edge(polygon_points, true);
 
 	// Find the point with the largest distance between all boundary points
 	double max_clearance = 0;

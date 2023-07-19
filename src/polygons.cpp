@@ -78,7 +78,7 @@ void read_shp_filter(string filename, Model<bool>* filter){
     SHPClose(SHP);
 }
 
-std::vector<ArrayCoordinate> find_edge(std::vector<ArrayCoordinate> polygon_points){
+std::vector<ArrayCoordinate> find_edge(std::vector<ArrayCoordinate> polygon_points, bool add_edge){
 	std::vector<ArrayCoordinate> edge_points;
 
 	auto model_row_iter = std::max_element(polygon_points.begin(), polygon_points.end(), [](const ArrayCoordinate& p1, const ArrayCoordinate& p2) {
@@ -108,7 +108,12 @@ std::vector<ArrayCoordinate> find_edge(std::vector<ArrayCoordinate> polygon_poin
 				seen_points[neighbor.row][neighbor.col] = true;	
 			
 			if(std::find(polygon_points.begin(), polygon_points.end(), neighbor) == polygon_points.end()){
-				edge_points.push_back(neighbor);
+				if(add_edge)
+					edge_points.push_back(neighbor);
+				else {
+					edge_points.push_back(point);
+					break;
+				}
 			}
 		}
 	}
