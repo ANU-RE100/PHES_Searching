@@ -1,6 +1,9 @@
 #include "model2D.h"
 #include "phes_base.h"
 #include <shapefil.h>
+#include <vector>
+
+set<string> names;
 
 // Reads a list of cells to process from the tasks_file (Eg. 148 -36)
 vector<GridSquare> read_tasklist(char *tasks_file) {
@@ -29,9 +32,9 @@ int SHAPE_TYPE = SHPT_POLYGON;
 
 struct Shape {
   vector<GeographicCoordinate> points;
-  explicit Shape(vector<GeographicCoordinate>& points) : points(points) {};
-  double volume=0;
-  string name="";
+  explicit Shape(vector<GeographicCoordinate> &points) : points(points){};
+  double volume = 0;
+  string name = "";
   int elevation = 0;
 };
 
@@ -41,12 +44,10 @@ std::vector<Shape> read_shapefile(string filename, Model<bool> *to_keep, Model<v
 
 	SHPHandle SHP = SHPOpen(convert_string(file_storage_location + filename), "rb");
     DBFHandle DBF = DBFOpen(convert_string(file_storage_location + filename), "rb");
-    int dbf_field = 0;
-    int dbf_name_field = 0;
-    int dbf_elevation_field = 0;
+    int dbf_field = 0, dbf_name_field = 0, dbf_elevation_field = 0;
     if (type == "RIVER")
       dbf_field = DBFGetFieldIndex(DBF, string("DIS_AV_CMS").c_str());
-    if (type == "BLUEFIELD"){
+    if (type == "BLUEFIELD") {
       dbf_field = DBFGetFieldIndex(DBF, string("Vol_total").c_str());
       dbf_elevation_field = DBFGetFieldIndex(DBF, string("Elevation").c_str());
       dbf_name_field = DBFGetFieldIndex(DBF, string("Lake_name").c_str());
@@ -55,13 +56,13 @@ std::vector<Shape> read_shapefile(string filename, Model<bool> *to_keep, Model<v
       int nEntities;
       SHPGetInfo(SHP, &nEntities, NULL, NULL, NULL);
       for (int i = 0; i < nEntities; i++) {
-        double flow = 0, volume=0;
-        if (type == "RIVER"){
+        double flow = 0, volume = 0;
+        if (type == "RIVER") {
           flow = DBFReadDoubleAttribute(DBF, i, dbf_field);
           if (flow < 1)
             continue;
         }
-        if (type == "BLUEFIELD"){
+        if (type == "BLUEFIELD") {
           volume = DBFReadDoubleAttribute(DBF, i, dbf_field);
           if (volume < 1)
             continue;
@@ -74,53 +75,49 @@ std::vector<Shape> read_shapefile(string filename, Model<bool> *to_keep, Model<v
         }
         vector<GeographicCoordinate> temp_poly;
 
-        for (int j = 0, iPart = 1; j < SHP_shape->nVertices; j++) {
-          if (iPart < SHP_shape->nParts && SHP_shape->panPartStart[iPart] == j) {
-
-            for (int lat = -90; lat < 90; lat++)
-              for (int lon = -180; lon < 180; lon++)
-                if (to_keep->get(lat + 90, lon + 180)) {
-                  relevant_polygons->get_pointer(lat + 90, lon + 180)->push_back(iterator);
-                  to_keep->set(lat + 90, lon + 180, false);
-                }
-            Shape shape = Shape(temp_poly);
-            if (type == "RIVER")
-              shape.volume = flow;
-            if(type=="BLUEFIELD"){
-              shape.volume = volume;
-              shape.elevation =DBFReadIntegerAttribute(DBF, i, dbf_elevation_field);
-              shape.name = string(DBFReadStringAttribute(DBF, i, dbf_name_field));
-            }
-            shapes.push_back(shape);
-            iterator++;
-            temp_poly.clear();
-            if(type=="BLUEFIELD")
-              break;
-            iPart++;
+        for (int iPart = 0; iPart < SHP_shape->nParts; iPart++) {
+          for (int j = 0; j < SHP_shape->nVertices && (iPart == SHP_shape->nParts - 1 ||
+                                                       j < SHP_shape->panPartStart[iPart + 1]);
+               j++) {
+            GeographicCoordinate temp_point =
+                GeographicCoordinate_init(SHP_shape->padfY[j], SHP_shape->padfX[j]);
+            to_keep->set((int)(temp_point.lat + 90), (int)(temp_point.lon + 180), true);
+            temp_poly.push_back(temp_point);
           }
-          GeographicCoordinate temp_point =
-              GeographicCoordinate_init(SHP_shape->padfY[j], SHP_shape->padfX[j]);
-          to_keep->set((int)(temp_point.lat + 90), (int)(temp_point.lon + 180), true);
-          temp_poly.push_back(temp_point);
-        }
-        for (int lat = -90; lat < 90; lat++)
-          for (int lon = -180; lon < 180; lon++)
-            if (to_keep->get(lat + 90, lon + 180)) {
-              relevant_polygons->get_pointer(lat + 90, lon + 180)->push_back(iterator);
-              to_keep->set(lat + 90, lon + 180, false);
+          for (int lat = -90; lat < 90; lat++)
+            for (int lon = -180; lon < 180; lon++)
+              if (to_keep->get(lat + 90, lon + 180)) {
+                relevant_polygons->get_pointer(lat + 90, lon + 180)->push_back(iterator);
+                to_keep->set(lat + 90, lon + 180, false);
+              }
+
+          Shape shape = Shape(temp_poly);
+          if (type == "RIVER") {
+            shape.volume = flow;
+            shape.name = "RIVER_" + to_string(i);
+          }
+          if (type == "BLUEFIELD") {
+            shape.volume = volume;
+            shape.elevation = DBFReadIntegerAttribute(DBF, i, dbf_elevation_field);
+            shape.name = string(DBFReadStringAttribute(DBF, i, dbf_name_field));
+            if (shape.name.size() < 2)
+              shape.name = "RES_" + to_string(iterator);
+            else{
+              int j = 1;
+              while (names.contains(shape.name+" "+to_string(j))){
+                j++;
+              }
+              shape.name+=" "+to_string(j);
+              names.insert(shape.name);
             }
-        Shape shape = Shape(temp_poly);
-        if (type == "RIVER")
-          shape.volume = flow;
-        if(type=="BLUEFIELD"){
-          shape.volume = volume;
-          shape.elevation =DBFReadIntegerAttribute(DBF, i, dbf_elevation_field);
-          shape.name = string(DBFReadStringAttribute(DBF, i, dbf_name_field));
+          }
+          shapes.push_back(shape);
+          iterator++;
+          temp_poly.clear();
+          if (type == "BLUEFIELD")
+            break;
         }
-        shapes.push_back(shape);
-        iterator++;
-        SHAPE_TYPE = SHP_shape->nSHPType,
-        SHPDestroyObject(SHP_shape);
+        SHAPE_TYPE = SHP_shape->nSHPType, SHPDestroyObject(SHP_shape);
       }
       printf("%d Polygons imported from %s\n", iterator, convert_string(filename));
     }
@@ -190,11 +187,12 @@ int main(int argc, char *argv[]) {
     shapefile_names.push_back("input/existing_reservoirs/" + existing_reservoirs_shp);    
 
   string output_location = file_storage_location + "input/shapefile_tiles";
-  if(type=="RIVER")
+  if (type == "RIVER")
     output_location = file_storage_location + "input/river_shapefile_tiles";
-  if(type=="BLUEFIELD")
+  if (type == "BLUEFIELD")
     output_location = file_storage_location + "input/bluefield_shapefile_tiles";
   mkdir(convert_string(output_location), 0777);
+
   int z = 0;
   bool first_file = true;
 
