@@ -114,6 +114,7 @@ class Reservoir {
     double max_dam_height;
     string country;
     vector<ArrayCoordinate> shape_bound;
+    vector<ArrayCoordinate> reservoir_polygon;
     bool operator<(const Reservoir &o) const { return elevation > o.elevation; }
 };
 

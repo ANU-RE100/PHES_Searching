@@ -457,6 +457,7 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
 
   vector<ArrayCoordinate> reservoir_polygon;
   reservoir_polygon = convert_to_polygon(full_cur_model, offset, reservoir->pour_point, 1);
+  reservoir->reservoir_polygon = reservoir_polygon;
 
   // full_cur_model->write("out1.tif", GDT_Byte);
   // DAM WALL
@@ -571,6 +572,7 @@ bool model_bulk_pit(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates
                      vector<string> &country_names) {
   string polygon_string = str(compress_poly(convert_poly(reservoir->shape_bound)), reservoir->elevation);
   coordinates->reservoir = polygon_string;
+  reservoir->reservoir_polygon = reservoir->shape_bound;
 
   for(uint i = 0; i< countries.size();i++){
       if(check_within(GeographicCoordinate_init(reservoir->latitude, reservoir->longitude), countries[i])){
