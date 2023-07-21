@@ -513,6 +513,8 @@ RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r) 
     reservoir.fill_depths.push_back(0);
   }
 
+   if (search_config.search_type.single()) 
+      search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
 	GeographicCoordinate origin = get_origin(search_config.grid_square, border);
 	for(GeographicCoordinate c : r.polygon)
     reservoir.shape_bound.push_back(convert_coordinates(c, origin));
