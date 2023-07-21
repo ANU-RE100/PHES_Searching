@@ -928,7 +928,7 @@ int main(int nargs, char **argv) {
 		printf(convert_string("Screening finished for "+search_config.search_type.prefix()+str(search_config.grid_square)+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
    
    // Brownfield searching based on individual pits
-   } else if (search_config.search_type == SearchType::SINGLE_PIT) {
+   } else if (search_config.search_type.existing() && search_config.search_type != SearchType::BULK_PIT) {
     FILE *csv_file = fopen(convert_string(file_storage_location + "output/reservoirs/" +
                                           search_config.filename() + "_reservoirs.csv"),
                            "w");
@@ -952,7 +952,10 @@ int main(int nargs, char **argv) {
 
     vector<ExistingReservoir> existing_reservoirs;
 
-    existing_reservoirs.push_back(get_existing_reservoir(search_config.name));
+    if(search_config.search_type.single())
+      existing_reservoirs.push_back(get_existing_reservoir(search_config.name));
+    else
+      existing_reservoirs = get_existing_reservoirs(search_config.grid_square);
 
     if (existing_reservoirs.size() < 1) {
       printf("No existing reservoirs in %s\n", convert_string(str(search_config.grid_square)));
@@ -984,7 +987,7 @@ int main(int nargs, char **argv) {
         write_rough_reservoir_data(csv_data_file, &reservoir);
       }
     } else {
-      for (ExistingReservoir r : existing_reservoirs) {
+		for (ExistingReservoir r : existing_reservoirs) {
         RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
         reservoir.pit = (search_config.search_type == SearchType::BULK_PIT ||
                          search_config.search_type == SearchType::SINGLE_PIT);

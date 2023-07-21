@@ -319,6 +319,11 @@ ExistingReservoir get_existing_reservoir(string name, string filename) {
     }
   }
 
+  if(!use_tiled_bluefield){
+    filename = file_storage_location + "input/existing_reservoirs/" +
+                    existing_reservoirs_shp;
+  }
+
   if (!file_exists(filename)) {
     search_config.logger.debug("No file: " + filename);
     throw(1);
@@ -505,6 +510,7 @@ RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r) 
     reservoir.dam_volumes.push_back(0);
     reservoir.areas.push_back(r.area);
     reservoir.water_rocks.push_back(1000000000);
+    reservoir.fill_depths.push_back(0);
   }
 
 	GeographicCoordinate origin = get_origin(search_config.grid_square, border);
