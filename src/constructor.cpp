@@ -21,10 +21,14 @@ bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* c
     string polygon_string = str(compress_poly(corner_cut_poly(r.polygon)), reservoir->pit ? r.elevation+reservoir->dam_height : r.elevation+5);
     coordinates->reservoir = polygon_string;
 
+    if (search_config.search_type.single()) 
+      search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
     GeographicCoordinate origin = get_origin(search_config.grid_square, border);
     reservoir->shape_bound.clear();
-    for(GeographicCoordinate p : r.polygon)
+    for(GeographicCoordinate p : r.polygon){
       reservoir->shape_bound.push_back(convert_coordinates(p, origin));
+      reservoir->reservoir_polygon.push_back(convert_coordinates(p, origin));
+    }
 
     //KML
     for(uint i = 0; i< countries.size();i++){
