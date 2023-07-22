@@ -569,17 +569,8 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
 
 bool model_bulk_pit(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates,
                      vector<vector<vector<GeographicCoordinate>>> &countries,
-                     vector<string> &country_names, BigModel big_model) {
-  Model<short> *DEM = big_model.DEM;
-  int min_edge_elevation = INT_MAX;
-
-  if (reservoir->identifier.find("PITL") != std::string::npos)
-    for (ArrayCoordinate point : reservoir->shape_bound)
-      min_edge_elevation = MIN(DEM->get(point.row, point.col), min_edge_elevation);
-  else
-    min_edge_elevation = INT_MIN;
-
-  string polygon_string = str(compress_poly(convert_poly(reservoir->shape_bound)), MAX(reservoir->elevation + reservoir->fill_depth, min_edge_elevation));
+                     vector<string> &country_names) {
+  string polygon_string = str(compress_poly(convert_poly(reservoir->shape_bound)), reservoir->elevation + reservoir->fill_depth);
   coordinates->reservoir = polygon_string;
   reservoir->reservoir_polygon = reservoir->shape_bound;
 

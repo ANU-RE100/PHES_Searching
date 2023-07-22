@@ -56,7 +56,7 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
       return false;
   } else if (pair->upper.brownfield && (search_config.search_type == SearchType::BULK_PIT)) {
     if (!model_bulk_pit(&pair->upper, &pair_kml->upper,
-                              countries, country_names, big_model)){
+                              countries, country_names)){
       return false;
     }
   } else if (!model_reservoir(&pair->upper, &pair_kml->upper, seen, non_overlap,
@@ -70,7 +70,7 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
       return false;
   } else if (pair->lower.brownfield && (search_config.search_type == SearchType::BULK_PIT)){
     if (!model_bulk_pit(&pair->lower, &pair_kml->lower, 
-                              countries, country_names, big_model)){
+                              countries, country_names)){
       return false;
     }
   
