@@ -28,7 +28,7 @@ for lat_lb in lat_bounds:
           relation["industrial"="mine"]{bounding_box};
           relation["historic"="mine"]{bounding_box};
           relation["landuse"="quarry"]{bounding_box};
-          way["natural"="water"]{bounding_box};
+          way["industrial"="mine"]{bounding_box};
           way["historic"="mine"]{bounding_box};
           way["landuse"="quarry"]{bounding_box};
         );
