@@ -1,6 +1,19 @@
 import os
 from shapely.geometry import Point, Polygon
-import fiona
+
+def read_file(file_name):
+    # Initialize an empty list to hold the lists of integers
+    list_of_lists = []
+    
+    # Open the file
+    with open(file_name, 'r') as file:
+        # Read each line in the file
+        for line in file:
+            # Strip the newline character and split the line by the space character
+            # Then convert each item to an integer and append it to the main list
+            list_of_lists.append([int(item) for item in line.strip().split()])
+    
+    return list_of_lists
 
 # Create a function to check if a point is in a polygon
 def point_in_country(lat, lon, polygons):
@@ -58,9 +71,17 @@ if __name__ == '__main__':
         print("Invalid DEM type.")
         exit()
 
-    DEM_list = list_files_in_folder(folder_path)
+    # Create DEM list based on downloaded data files
+    #DEM_list = list_files_in_folder(folder_path)
 
-    file = open("task_lists/indonesia_tasks_fabdem.txt", "w+")
+    # Read DEM list from existing task file
+    task_list = read_file("task_lists/world_tasks_fabdem.txt")
+    DEM_list = []
+    for task in task_list:
+        lon = task[0]
+        lat = task[1]
+        DEM_name = get_FABDEM_filename(lat,lon)
+        DEM_list.append(DEM_name)
 
     task_type = input("Enter task type (e.g. ocean): ")
 
@@ -88,8 +109,12 @@ if __name__ == '__main__':
         count = 0
         for polygon in polygons:
             count += 1
-            print(str(count) +" of "+str(len(polygons)))
-            min_lat, min_lon, max_lat, max_lon = polygon.bounds
+            min_lon, min_lat, max_lon, max_lat = polygon.bounds
+            if min_lon < -180 or max_lon < -180 or min_lon > 180 or max_lon > 180:
+                continue
+            if min_lat < -90 or max_lat < -90 or min_lat > 90 or max_lat > 90:
+                continue
+
             lowest_lat = min(lowest_lat, min_lat)
             lowest_lon = min(lowest_lon, min_lon)
             highest_lat = max(highest_lat, max_lat)
@@ -102,10 +127,10 @@ if __name__ == '__main__':
         highest_lon = int(input("Enter highest longitude: "))
 
     else:
-        file.close()
         print("Invalid input type.")
         exit()
 
+    file = open("task_lists/indonesia_tasks_fabdem.txt", "w+")
     for lat in range(int(lowest_lat), int(highest_lat)+1):
         for lon in range(int(lowest_lon), int(highest_lon+1)):
             if DEM_type == "SRTM":
