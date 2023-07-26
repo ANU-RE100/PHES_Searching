@@ -614,7 +614,10 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
 bool model_bulk_pit(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates,
                      vector<vector<vector<vector<GeographicCoordinate>>>> &countries,
                      vector<string> &country_names) {
-  string polygon_string = str(compress_poly(convert_poly(reservoir->shape_bound)), reservoir->elevation + reservoir->fill_depth);
+  vector<ArrayCoordinate> reservoir_ring = reservoir->shape_bound;
+  reservoir_ring.push_back(reservoir->shape_bound[0]);
+
+  string polygon_string = str(compress_poly(corner_cut_poly(convert_poly(reservoir_ring))), reservoir->elevation + reservoir->fill_depth);
   coordinates->reservoir = polygon_string;
   reservoir->reservoir_polygon = reservoir->shape_bound;
 
