@@ -146,6 +146,57 @@ bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
   return false;
 }
 
+bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
+                                        RoughReservoir* &lower,
+                                        double energy_capacity,
+                                        double &required_volume, int &head) {
+  RoughReservoir* greenfield = upper;
+  RoughReservoir* pit = lower;
+  if (upper->pit) {
+    greenfield = lower;
+    pit = upper;
+  }
+
+  int max_fill_depth = *max_element(pit->fill_depths.begin(), pit->fill_depths.end());
+  vector<double> fill_depth_doubles;
+  for (int depth : pit->fill_depths)
+    fill_depth_doubles.push_back((double)depth);
+
+  while (pit->elevation < max_fill_depth) {
+    pit->max_dam_height = max_fill_depth - pit->elevation;
+    int pit_depth = 0;
+    while (pit_depth < pit->max_dam_height) {
+      pit_depth += 1;
+      double volume = linear_interpolate(pit_depth, fill_depth_doubles, pit->volumes);
+      double greenfield_wall_height = linear_interpolate(volume, greenfield->volumes, dam_wall_heights);
+      head = convert_to_int(ABS(((0.5 * (double)greenfield_wall_height +
+                        (double)greenfield->elevation) -
+                       (0.5 * (double)pit_depth + (double)pit->elevation))));
+      if (head < min_head || head > max_head)
+        continue;
+      double head_ratio =
+          (head + 0.5 * (greenfield_wall_height + (double)pit_depth)) /
+          (head - 0.5 * (greenfield_wall_height + (double)pit_depth));
+      /* cout << volume << " " << greenfield_wall_height << " " <<
+      greenfield->elevation << " " << pit_depth << " " << pit->elevation << " "
+      << head << " " << head_ratio << "\n"; */
+
+      if (head_ratio > (1 + max_head_variability)) {
+        break;
+      }
+
+      if (volume < find_required_volume(energy_capacity, head)) {
+        continue;
+      }
+      required_volume = volume;
+      return true;
+    }
+
+    pit->elevation += pit_height_resolution;
+  }
+  return false;
+}
+
 Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
                       double energy_capacity, int storage_time, Pair *pair,
                       int max_FOM) {
@@ -164,6 +215,10 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   if (search_config.search_type == SearchType::SINGLE_PIT) {
     if (!determine_pit_elevation_and_volume(upper, lower, energy_capacity,
                                           single_pit, required_volume, head)) {
+      return NULL;
+    }
+  } else if (search_config.search_type == SearchType::BULK_PIT) {
+    if (!determine_pit_elevation_and_volume(upper, lower, energy_capacity, required_volume, head)) {
       return NULL;
     }
   }
