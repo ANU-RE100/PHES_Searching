@@ -2,6 +2,7 @@ set(UTIL_SOURCES
     reservoir.cpp
     polygons.cpp
     csv.cpp
+    json.cpp
     kml.cpp
     coordinates.cpp
     phes_base.cpp

@@ -1,4 +1,7 @@
+#include "json.hpp"
 #include "constructor_helpers.hpp"
+#include "coordinates.h"
+#include "csv.h"
 #include "mining_pits.h"
 #include "model2D.h"
 #include "phes_base.h"
@@ -66,37 +69,83 @@ bool check_within(GeographicCoordinate point, vector<vector<GeographicCoordinate
 /*
  * Read countries from custom country file in /input/countries/countries.txt
  */
-vector<vector<vector<GeographicCoordinate>>> read_countries(string filename, vector<string>& country_names){
+vector<vector<vector<vector<GeographicCoordinate>>>> read_countries(string filename, vector<string>& country_names){
     char *shp_filename = new char[filename.length() + 1];
     strcpy(shp_filename, filename.c_str());
     if(!file_exists(shp_filename)){
         cout << "No file: "+filename << endl;
         throw(1);
     }
-    vector<vector<vector<GeographicCoordinate>>> relevant_polygons;
+    // Vector of vectors has form < multipolygon (country) < multipolygon (components) < outer polygon, hole 1, hole 2 etc. < vertex coordinates > > > >
+    vector<vector<vector<vector<GeographicCoordinate>>>> relevant_polygons;
 
     ifstream in(filename);
     string line;
+    bool header = true;
     while(getline(in, line)){
-        if(line[0]=='@'){
-            line.erase(remove(line.begin(), line.end(), '@'), line.end());
-            line.erase(line.find_last_not_of(" \n\r\t")+1);
-            country_names.push_back(line);
-            vector<vector<GeographicCoordinate>> temp;
+        // Ignore header
+        if (header)
+            header = false;
+        else {
+          vector<string> line_values = read_from_csv_file(line, ';');
+          string country_name = line_values[5];
+          country_names.push_back(country_name);
+
+          string geojson = line_values[1];
+          clean_geojson(geojson);
+          const string geojson_const = geojson;
+
+          // Multipolygon countries
+          if (geojson.c_str()[3] == '[')
+            relevant_polygons.push_back(parseList3D(geojson_const));
+          
+          // Polygon countries
+          else {
+            vector<vector<vector<GeographicCoordinate>>> temp;
             relevant_polygons.push_back(temp);
-        }else{
-            vector<string> coordinates = read_from_csv_file(line);
-            vector<GeographicCoordinate> temp;
-            relevant_polygons[relevant_polygons.size()-1].push_back(temp);
-            for(uint i = 0; i<coordinates.size()/2; i++){
-                GeographicCoordinate c = {stod(coordinates[2*i+1]), stod(coordinates[2*i])};
-                relevant_polygons[relevant_polygons.size()-1][relevant_polygons[relevant_polygons.size()-1].size()-1].push_back(c);
-            }
+            relevant_polygons[relevant_polygons.size() - 1].push_back(parseList2D(geojson_const));
+          }          
         }
     }
     return relevant_polygons;
 }
 
+string find_country(GeographicCoordinate gc, vector<vector<vector<vector<GeographicCoordinate>>>>& countries, vector<string>& country_names){
+    string to_return;
+    bool in_country = false;
+    
+    for(uint i = 0; i< countries.size();i++){
+        // Check all multipolygons that make up a country
+        for (uint multi_i = 0; multi_i < countries[i].size(); multi_i++) {
+            if(countries[i][multi_i][0].empty())
+              continue;
+
+            // Check if it is within the outer polygon of that multipolygon
+            if(check_within(gc, countries[i][multi_i][0])){
+                in_country = true;
+                
+                // If it is in the outer polygon, make sure it is not within any of the holes
+                for (uint poly_i = 1; poly_i < countries[i][multi_i].size(); poly_i++){
+                  if(countries[i][multi_i][poly_i].empty())
+                    continue;
+
+                  if (check_within(gc, countries[i][multi_i][poly_i])){
+                    in_country = false;
+                    break;
+                  }
+                }
+                
+                if(in_country){
+                    to_return = country_names[i];
+                    break;
+                }
+            }
+        }
+        if(in_country)
+          break;
+    }
+    return to_return;
+}
 
 /*
  * Returns a tuple with the two cells adjacent to an edge defined by two points
@@ -339,7 +388,7 @@ string str(vector<GeographicCoordinate> polygon, double elevation) {
 bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates,
                      Model<bool> *seen, bool *non_overlap, vector<ArrayCoordinate> *used_points,
                      BigModel big_model, Model<char> *full_cur_model,
-                     vector<vector<vector<GeographicCoordinate>>> &countries,
+                     vector<vector<vector<vector<GeographicCoordinate>>>> &countries,
                      vector<string> &country_names) {
 
   Model<short> *DEM = big_model.DEM;
@@ -556,30 +605,20 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
       }
     }
   }
-  for (uint i = 0; i < countries.size(); i++) {
-    if (check_within(convert_coordinates(reservoir->pour_point),
-                     countries[i])) {
-      reservoir->country = country_names[i];
-      break;
-    }
-  }
+
+  reservoir->country = find_country(convert_coordinates(reservoir->pour_point), countries, country_names);
 
   return true;
 }
 
 bool model_bulk_pit(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates,
-                     vector<vector<vector<GeographicCoordinate>>> &countries,
+                     vector<vector<vector<vector<GeographicCoordinate>>>> &countries,
                      vector<string> &country_names) {
   string polygon_string = str(compress_poly(convert_poly(reservoir->shape_bound)), reservoir->elevation + reservoir->fill_depth);
   coordinates->reservoir = polygon_string;
   reservoir->reservoir_polygon = reservoir->shape_bound;
 
-  for(uint i = 0; i< countries.size();i++){
-      if(check_within(GeographicCoordinate_init(reservoir->latitude, reservoir->longitude), countries[i])){
-          reservoir->country = country_names[i];
-          break;
-      }
-  }
-  
+  reservoir->country = find_country(GeographicCoordinate_init(reservoir->latitude, reservoir->longitude), countries, country_names);
+
   return true;
 }

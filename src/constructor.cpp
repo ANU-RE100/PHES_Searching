@@ -9,7 +9,7 @@
 
 vector<vector<Pair>> pairs;
 
-bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinates, vector<vector<vector<GeographicCoordinate>>>& countries, vector<string>& country_names){
+bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinates, vector<vector<vector<vector<GeographicCoordinate>>>>& countries, vector<string>& country_names){
   if(!reservoir->river){
     ExistingReservoir r;
     if (use_tiled_bluefield)
@@ -31,12 +31,7 @@ bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* c
     }
 
     //KML
-    for(uint i = 0; i< countries.size();i++){
-        if(check_within(GeographicCoordinate_init(reservoir->latitude, reservoir->longitude), countries[i])){
-            reservoir->country = country_names[i];
-            break;
-        }
-    }
+    reservoir->country = find_country(GeographicCoordinate_init(reservoir->latitude, reservoir->longitude), countries, country_names);
   }
     return true;
 }
@@ -44,7 +39,7 @@ bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* c
 bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
                 bool *non_overlap, int max_FOM, BigModel big_model,
                 Model<char> *full_cur_model,
-                vector<vector<vector<GeographicCoordinate>>> &countries,
+                vector<vector<vector<vector<GeographicCoordinate>>>> &countries,
                 vector<string> &country_names, vector<vector<GeographicCoordinate>> &seen_polygons) {
 
   vector<ArrayCoordinate> used_points;
@@ -179,7 +174,7 @@ int main(int nargs, char **argv)
 
     BigModel big_model = BigModel_init(search_config.grid_square);
     vector<string> country_names;
-    vector<vector<vector<GeographicCoordinate>>> countries = read_countries(file_storage_location+"input/countries/countries.txt", country_names);
+    vector<vector<vector<vector<GeographicCoordinate>>>> countries = read_countries(file_storage_location+"input/countries/countries.txt", country_names);
 
     Model<bool>* seen = new Model<bool>(big_model.DEM->nrows(), big_model.DEM->nrows(), MODEL_SET_ZERO);
     seen->set_geodata(big_model.DEM->get_geodata());

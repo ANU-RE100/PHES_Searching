@@ -8,7 +8,8 @@ vector<double> find_polygon_intersections(double lat, vector<GeographicCoordinat
 bool check_contained_within(GeographicCoordinate point, vector<GeographicCoordinate> polygon);
 bool check_within(GeographicCoordinate point, vector<vector<GeographicCoordinate>> polygons);
 bool check_within(GeographicCoordinate point, vector<GeographicCoordinate> polygon);
-vector<vector<vector<GeographicCoordinate>>> read_countries(string filename, vector<string>& country_names);
+vector<vector<vector<vector<GeographicCoordinate>>>> read_countries(string filename, vector<string>& country_names);
+string find_country(GeographicCoordinate gc, vector<vector<vector<vector<GeographicCoordinate>>>>& countries, vector<string>& country_names);
 ArrayCoordinate* get_adjacent_cells(ArrayCoordinate point1, ArrayCoordinate point2);
 bool is_edge(ArrayCoordinate point1, ArrayCoordinate point2, Model<char>* model, ArrayCoordinate offset, int threshold);
 bool is_dam_wall(ArrayCoordinate point1, ArrayCoordinate point2, Model<short>* DEM, ArrayCoordinate offset, double wall_elevation);
@@ -23,10 +24,10 @@ bool model_reservoir(Reservoir *reservoir,
                      Reservoir_KML_Coordinates *coordinates, Model<bool> *seen,
                      bool *non_overlap, vector<ArrayCoordinate> *used_points,
                      BigModel big_model, Model<char> *full_cur_model,
-                     vector<vector<vector<GeographicCoordinate>>> &countries,
+                     vector<vector<vector<vector<GeographicCoordinate>>>> &countries,
                      vector<string> &country_names);
 bool model_bulk_pit(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates,
-                     vector<vector<vector<GeographicCoordinate>>> &countries,
+                     vector<vector<vector<vector<GeographicCoordinate>>>> &countries,
                      vector<string> &country_names);
 
 #endif
