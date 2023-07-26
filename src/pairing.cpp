@@ -158,28 +158,37 @@ bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
   }
 
   int max_fill_depth = *max_element(pit->fill_depths.begin(), pit->fill_depths.end());
-  vector<double> fill_depth_doubles;
-  for (int depth : pit->fill_depths)
-    fill_depth_doubles.push_back((double)depth);
+  int bottom_elevation = pit->elevation;
+  vector<double> p_fill_depth_doubles;
+  vector<double> g_fill_depth_doubles;
+  for (uint i=0; i< pit->fill_depths.size(); i++){
+    p_fill_depth_doubles.push_back((double)pit->fill_depths[i]);
+    g_fill_depth_doubles.push_back((double)greenfield->fill_depths[i]);
+  }
+    
 
-  while (pit->elevation < max_fill_depth) {
-    pit->max_dam_height = max_fill_depth - pit->elevation;
+  while (pit->elevation < bottom_elevation + max_fill_depth) {
+    pit->max_dam_height = bottom_elevation + max_fill_depth - pit->elevation;
     int pit_depth = 0;
     while (pit_depth < pit->max_dam_height) {
       pit_depth += 1;
-      double volume = linear_interpolate(pit_depth, fill_depth_doubles, pit->volumes);
-      double greenfield_wall_height = linear_interpolate(volume, greenfield->volumes, dam_wall_heights);
+      double volume = linear_interpolate(pit_depth, p_fill_depth_doubles, pit->volumes);
+      double greenfield_wall_height = linear_interpolate(volume, greenfield->volumes, g_fill_depth_doubles);
       head = convert_to_int(ABS(((0.5 * (double)greenfield_wall_height +
                         (double)greenfield->elevation) -
                        (0.5 * (double)pit_depth + (double)pit->elevation))));
-      if (head < min_head || head > max_head)
+      if (head < min_head || head > max_head) {
         continue;
+      }
       double head_ratio =
           (head + 0.5 * (greenfield_wall_height + (double)pit_depth)) /
           (head - 0.5 * (greenfield_wall_height + (double)pit_depth));
-      /* cout << volume << " " << greenfield_wall_height << " " <<
-      greenfield->elevation << " " << pit_depth << " " << pit->elevation << " "
-      << head << " " << head_ratio << "\n"; */
+
+      /* if (energy_capacity < 10) {
+        cout << volume << " " << energy_capacity << " " << find_required_volume(energy_capacity, head) << "\n";
+        cout << greenfield->elevation << " " << greenfield_wall_height << " " << pit_depth << " " << pit->elevation << " " << pit->max_dam_height << "\n";
+        cout << head << " " << head_ratio << "\n";
+      }   */    
 
       if (head_ratio > (1 + max_head_variability)) {
         break;
