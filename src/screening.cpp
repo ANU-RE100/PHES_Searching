@@ -11,7 +11,7 @@
 #include <gdal/gdal.h>
 #include <climits>
 
-bool debug_output = true;
+bool debug_output = false;
 
 void read_tif_filter(string filename, Model<bool>* filter, unsigned char value_to_filter){
 	try{
