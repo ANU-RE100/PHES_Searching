@@ -169,20 +169,20 @@ bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
 
   while (pit->elevation < pit->bottom_elevation + max_fill_depth) {
     pit->max_dam_height = pit->bottom_elevation + max_fill_depth - pit->elevation;
-    int pit_depth = 0;
-    while (pit_depth < pit->max_dam_height) {
-      pit_depth += 1;
-      double volume = linear_interpolate(pit_depth, p_fill_depth_doubles, pit->volumes);
+    pit->fill_depth_from_MOL = 0;
+    while (pit->fill_depth_from_MOL < pit->max_dam_height) {
+      pit->fill_depth_from_MOL += 1;
+      double volume = linear_interpolate(pit->fill_depth_from_MOL, p_fill_depth_doubles, pit->volumes);
       double greenfield_wall_height = linear_interpolate(volume, greenfield->volumes, g_fill_depth_doubles);
       head = convert_to_int(ABS(((0.5 * (double)greenfield_wall_height +
                         (double)greenfield->elevation) -
-                       (0.5 * (double)pit_depth + (double)pit->elevation))));
+                       (0.5 * (double)pit->fill_depth_from_MOL + (double)pit->elevation))));
       if (head < min_head || head > max_head) {
         continue;
       }
       double head_ratio =
-          (head + 0.5 * (greenfield_wall_height + (double)pit_depth)) /
-          (head - 0.5 * (greenfield_wall_height + (double)pit_depth));
+          (head + 0.5 * (greenfield_wall_height + (double)pit->fill_depth_from_MOL)) /
+          (head - 0.5 * (greenfield_wall_height + (double)pit->fill_depth_from_MOL));
 
       /* if (energy_capacity < 10) {
         cout << volume << " " << energy_capacity << " " << find_required_volume(energy_capacity, head) << "\n";
@@ -198,6 +198,9 @@ bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
         continue;
       }
       required_volume = volume;
+
+      if(greenfield->pit)
+        greenfield->fill_depth_from_MOL = linear_interpolate(required_volume, greenfield->volumes, int_to_double_vector(greenfield->fill_depths));
       return true;
     }
 
@@ -326,7 +329,10 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   upper_reservoir.water_rock = upper_water_rock_estimate;
   upper_reservoir.dam_height = upper_dam_wall_height;
   upper_reservoir.max_dam_height = upper->max_dam_height;
-  upper_reservoir.fill_depth = linear_interpolate(required_volume, upper->volumes, int_to_double_vector(upper->fill_depths));
+  if(!upper->pit)
+    upper_reservoir.fill_depth = linear_interpolate(required_volume, upper->volumes, int_to_double_vector(upper->fill_depths));
+  else
+    upper_reservoir.fill_depth = upper->fill_depth_from_MOL;
   upper_reservoir.brownfield = upper->brownfield;
   upper_reservoir.river = upper->river;
   upper_reservoir.pit = upper->pit;
@@ -347,7 +353,10 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   lower_reservoir.water_rock = lower_water_rock_estimate;
   lower_reservoir.dam_height = lower_dam_wall_height;
   lower_reservoir.max_dam_height = lower->max_dam_height;
-  lower_reservoir.fill_depth = linear_interpolate(required_volume, lower->volumes, int_to_double_vector(lower->fill_depths));
+  if(!lower->pit)
+    lower_reservoir.fill_depth = linear_interpolate(required_volume, lower->volumes, int_to_double_vector(lower->fill_depths));
+  else
+    lower_reservoir.fill_depth = lower->fill_depth_from_MOL;
   lower_reservoir.brownfield = lower->brownfield;
   lower_reservoir.river = lower->river;
   lower_reservoir.pit = lower->pit;

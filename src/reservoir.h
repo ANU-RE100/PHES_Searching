@@ -21,6 +21,7 @@ class RoughReservoir{
     vector<double> areas;
     vector<double> water_rocks;
     vector<int> fill_depths;
+    double fill_depth_from_MOL=0;
     double watershed_area = 0;
     double max_dam_height = 0;
     int bottom_elevation;
