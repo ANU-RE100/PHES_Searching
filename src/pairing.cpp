@@ -158,7 +158,7 @@ bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
   }
 
   int max_fill_depth = *max_element(pit->fill_depths.begin(), pit->fill_depths.end());
-  int bottom_elevation = pit->elevation;
+ 
   vector<double> p_fill_depth_doubles;
   vector<double> g_fill_depth_doubles;
   for (uint i=0; i< pit->fill_depths.size(); i++){
@@ -167,8 +167,8 @@ bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
   }
     
 
-  while (pit->elevation < bottom_elevation + max_fill_depth) {
-    pit->max_dam_height = bottom_elevation + max_fill_depth - pit->elevation;
+  while (pit->elevation < pit->bottom_elevation + max_fill_depth) {
+    pit->max_dam_height = pit->bottom_elevation + max_fill_depth - pit->elevation;
     int pit_depth = 0;
     while (pit_depth < pit->max_dam_height) {
       pit_depth += 1;
