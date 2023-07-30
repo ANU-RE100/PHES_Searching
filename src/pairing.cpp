@@ -123,15 +123,14 @@ bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
                        (0.5 * (double)pit_depth + (double)pit->elevation))));
       if (head < min_head || head > max_head)
         continue;
-      
-      double max_head_pair = MAX(greenfield->elevation + greenfield_wall_height - pit->elevation, greenfield->elevation - (pit->elevation + pit_depth));
-      double min_head_pair = MIN(greenfield->elevation + greenfield_wall_height - pit->elevation, greenfield->elevation - (pit->elevation + pit_depth));
-      double head_ratio = (max_head_pair - min_head_pair) / max_head_pair;
+      double head_ratio =
+          (head + 0.5 * (greenfield_wall_height + (double)pit_depth)) /
+          (head - 0.5 * (greenfield_wall_height + (double)pit_depth));
       // cout << volume << " " << greenfield_wall_height << " " <<
       // greenfield->elevation << " " << pit_depth << " " << pit->elevation << " "
       // << head << " " << head_ratio << "\n";
 
-      if (head_ratio > max_head_variability) {
+      if (head_ratio > (1 + max_head_variability)) {
         break;
       }
 
@@ -147,65 +146,58 @@ bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
   return false;
 }
 
-bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
-                                        RoughReservoir* &lower,
+bool determine_pit_elevation_and_volume(RoughReservoir &pit,
+                                        RoughReservoir &greenfield,
                                         double energy_capacity,
                                         double &required_volume, int &head) {
-  RoughReservoir* greenfield = upper;
-  RoughReservoir* pit = lower;
-  if (upper->pit) {
-    greenfield = lower;
-    pit = upper;
-  }
 
-  int max_fill_depth = *max_element(pit->fill_depths.begin(), pit->fill_depths.end());
+  int max_fill_depth = *max_element(pit.fill_depths.begin(), pit.fill_depths.end());
  
   vector<double> p_fill_depth_doubles;
   vector<double> g_fill_depth_doubles;
-  for (uint i=0; i< pit->fill_depths.size(); i++){
-    p_fill_depth_doubles.push_back((double)pit->fill_depths[i]);
-    g_fill_depth_doubles.push_back((double)greenfield->fill_depths[i]);
+  for (uint i=0; i< pit.fill_depths.size(); i++){
+    p_fill_depth_doubles.push_back((double)pit.fill_depths[i]);
+    g_fill_depth_doubles.push_back((double)greenfield.fill_depths[i]);
   }
     
 
-  while (pit->elevation < pit->bottom_elevation + max_fill_depth) {
-    pit->max_dam_height = pit->bottom_elevation + max_fill_depth - pit->elevation;
-    pit->fill_depth_from_MOL = 0;
-    while (pit->fill_depth_from_MOL < pit->max_dam_height) {
-      pit->fill_depth_from_MOL += 1;
-      double volume = linear_interpolate(pit->fill_depth_from_MOL, p_fill_depth_doubles, pit->volumes);
-      double greenfield_wall_height = linear_interpolate(volume, greenfield->volumes, g_fill_depth_doubles);
+  while (pit.elevation < pit.bottom_elevation + max_fill_depth) {
+    pit.max_dam_height = pit.bottom_elevation + max_fill_depth - pit.elevation;
+    pit.fill_depth_from_MOL = 0;
+    while (pit.fill_depth_from_MOL < pit.max_dam_height) {
+      pit.fill_depth_from_MOL += 1;
+      double volume = linear_interpolate(pit.fill_depth_from_MOL, p_fill_depth_doubles, pit.volumes);
+      double greenfield_wall_height = linear_interpolate(volume, greenfield.volumes, g_fill_depth_doubles);
+      
+      double max_head_pair = MAX(MAX(greenfield.elevation + greenfield_wall_height - pit.elevation, greenfield.elevation - (pit.elevation + pit.fill_depth_from_MOL)),0);
+      double min_head_pair = MAX(MIN(greenfield.elevation + greenfield_wall_height - pit.elevation, greenfield.elevation - (pit.elevation + pit.fill_depth_from_MOL)),0);
+
       head = convert_to_int(ABS(((0.5 * (double)greenfield_wall_height +
-                        (double)greenfield->elevation) -
-                       (0.5 * (double)pit->fill_depth_from_MOL + (double)pit->elevation))));
-      if (head < min_head || head > max_head) {
+                        (double)greenfield.elevation) -
+                       (0.5 * (double)pit.fill_depth_from_MOL + (double)pit.elevation))));
+      if (head < min_head || head > max_head)
         continue;
-      }
-      double head_ratio =
-          (head + 0.5 * (greenfield_wall_height + (double)pit->fill_depth_from_MOL)) /
-          (head - 0.5 * (greenfield_wall_height + (double)pit->fill_depth_from_MOL));
-
-      /* if (energy_capacity < 10) {
-        cout << volume << " " << energy_capacity << " " << find_required_volume(energy_capacity, head) << "\n";
-        cout << greenfield->elevation << " " << greenfield_wall_height << " " << pit_depth << " " << pit->elevation << " " << pit->max_dam_height << "\n";
-        cout << head << " " << head_ratio << "\n";
-      }   */    
-
-      if (head_ratio > (1 + max_head_variability)) {
-        break;
-      }
+      double head_ratio = max_head_pair != 0 ? (max_head_pair - min_head_pair) / max_head_pair : (double)INT_MAX;
+      // cout << volume << " " << greenfield_wall_height << " " <<
+      // greenfield->elevation << " " << pit_depth << " " << pit->elevation << " "
+      // << head << " " << head_ratio << "\n";
 
       if (volume < find_required_volume(energy_capacity, head)) {
         continue;
       }
       required_volume = volume;
 
-      if(greenfield->pit)
-        greenfield->fill_depth_from_MOL = linear_interpolate(required_volume, greenfield->volumes, int_to_double_vector(greenfield->fill_depths));
+      if (head_ratio > max_head_variability) {
+        break;
+      }
+
+      if(greenfield.pit)
+        greenfield.fill_depth_from_MOL = linear_interpolate(required_volume, greenfield.volumes, int_to_double_vector(greenfield.fill_depths));
+      
       return true;
     }
 
-    pit->elevation += pit_height_resolution;
+    pit.elevation += pit_height_resolution;
   }
   return false;
 }
@@ -220,6 +212,12 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
     return NULL;
   }
   ExistingPit single_pit;
+  RoughReservoir greenfield = *upper;
+  RoughReservoir pit = *lower;
+  if (upper->pit) {
+      greenfield = *lower;
+      pit = *upper;
+    }
 
   if (search_config.search_type == SearchType::SINGLE_PIT) {
     single_pit = single_pit_details;
@@ -231,7 +229,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
       return NULL;
     }
   } else if (search_config.search_type == SearchType::BULK_PIT) {
-    if (!determine_pit_elevation_and_volume(upper, lower, energy_capacity, required_volume, head)) {
+    if (!determine_pit_elevation_and_volume(pit, greenfield, energy_capacity, required_volume, head)) {
       return NULL;
     }
   }
@@ -311,8 +309,8 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
     lower->pour_point=lower_coordinates;
   }
 
-  Reservoir upper_reservoir = Reservoir_init(upper->pour_point, upper->elevation);
-  Reservoir lower_reservoir = Reservoir_init(lower->pour_point, lower->elevation);
+  Reservoir upper_reservoir = Reservoir_init(upper->pour_point, upper->pit ? pit.elevation : upper->elevation);
+  Reservoir lower_reservoir = Reservoir_init(lower->pour_point, (upper->pit && lower->pit) ? greenfield.elevation : (lower->pit ? pit.elevation : lower->elevation));
 
   upper_reservoir.identifier = upper->identifier;
   upper_reservoir.volume = required_volume;
@@ -333,7 +331,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   if(!upper->pit)
     upper_reservoir.fill_depth = linear_interpolate(required_volume, upper->volumes, int_to_double_vector(upper->fill_depths));
   else
-    upper_reservoir.fill_depth = upper->fill_depth_from_MOL;
+    upper_reservoir.fill_depth = pit.fill_depth_from_MOL;
   upper_reservoir.brownfield = upper->brownfield;
   upper_reservoir.river = upper->river;
   upper_reservoir.pit = upper->pit;
@@ -357,7 +355,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   if(!lower->pit)
     lower_reservoir.fill_depth = linear_interpolate(required_volume, lower->volumes, int_to_double_vector(lower->fill_depths));
   else
-    lower_reservoir.fill_depth = lower->fill_depth_from_MOL;
+    lower_reservoir.fill_depth = upper->pit ? greenfield.fill_depth_from_MOL : pit.fill_depth_from_MOL;
   lower_reservoir.brownfield = lower->brownfield;
   lower_reservoir.river = lower->river;
   lower_reservoir.pit = lower->pit;
