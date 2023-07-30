@@ -309,8 +309,8 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
     lower->pour_point=lower_coordinates;
   }
 
-  Reservoir upper_reservoir = Reservoir_init(upper->pour_point, upper->pit ? pit.elevation : upper->elevation);
-  Reservoir lower_reservoir = Reservoir_init(lower->pour_point, (upper->pit && lower->pit) ? greenfield.elevation : (lower->pit ? pit.elevation : lower->elevation));
+  Reservoir upper_reservoir = Reservoir_init(upper->pour_point, upper->pit ? pit.elevation : upper->elevation, upper->elevation);
+  Reservoir lower_reservoir = Reservoir_init(lower->pour_point, (upper->pit && lower->pit) ? greenfield.elevation : (lower->pit ? pit.elevation : lower->elevation), lower->elevation);
 
   upper_reservoir.identifier = upper->identifier;
   upper_reservoir.volume = required_volume;

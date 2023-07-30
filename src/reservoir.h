@@ -102,6 +102,7 @@ class Reservoir {
     double latitude;
     double longitude;
     int elevation;
+    int bottom_elevation;
     ArrayCoordinate pour_point;
     double volume;
     double dam_volume;
@@ -145,7 +146,7 @@ void update_reservoir_boundary(vector<array<ArrayCoordinate, directions.size()>>
                                ArrayCoordinate point, int elevation_above_pp);
 void update_reservoir_boundary(vector<ArrayCoordinate> &dam_shape_bounds,
                                ArrayCoordinate point);
-Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation);
+Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation, int bottom_elevation);
 ExistingReservoir ExistingReservoir_init(string identifier, double latitude, double longitude,
                                          int elevation, double volume);
 ExistingPit ExistingPit_init(ExistingReservoir reservoir);
