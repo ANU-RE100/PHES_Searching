@@ -123,14 +123,15 @@ bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
                        (0.5 * (double)pit_depth + (double)pit->elevation))));
       if (head < min_head || head > max_head)
         continue;
-      double head_ratio =
-          (head + 0.5 * (greenfield_wall_height + (double)pit_depth)) /
-          (head - 0.5 * (greenfield_wall_height + (double)pit_depth));
+      
+      double max_head_pair = MAX(greenfield->elevation + greenfield_wall_height - pit->elevation, greenfield->elevation - (pit->elevation + pit_depth));
+      double min_head_pair = MIN(greenfield->elevation + greenfield_wall_height - pit->elevation, greenfield->elevation - (pit->elevation + pit_depth));
+      double head_ratio = (max_head_pair - min_head_pair) / max_head_pair;
       // cout << volume << " " << greenfield_wall_height << " " <<
       // greenfield->elevation << " " << pit_depth << " " << pit->elevation << " "
       // << head << " " << head_ratio << "\n";
 
-      if (head_ratio > (1 + max_head_variability)) {
+      if (head_ratio > max_head_variability) {
         break;
       }
 

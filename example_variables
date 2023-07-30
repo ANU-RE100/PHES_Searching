@@ -41,7 +41,7 @@ filter_to_tile = input/filters/WPAD/WDPA_Jun2023_Public_shp-polygons2.shp;
 dam_wall_heights = 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150;			//  Wall heights to test and export in greenfield search
 
 depression_depth_min = 10;      // Minimum depth of depressions (m) for mining pit and turkey's nest screenings
-pit_lake_relative_depth = 0.25;  // Pit lakes typically have a relative depth (maximum depth : diameter) of between 10% - 40% (https://www.water.wa.gov.au/__data/assets/pdf_file/0020/4970/96278.pdf). Diameter is based on a circle with the same surface area as the pit lake.
+pit_lake_relative_depth = 0.1;  // Pit lakes typically have a relative depth (maximum depth : diameter) of between 10% - 40% (https://www.water.wa.gov.au/__data/assets/pdf_file/0020/4970/96278.pdf). Tailing reservoirs would be on the lower end.
 
 // Pairing
 min_head = 100;					// Minimum head (m) to be considered a potential pair
@@ -51,7 +51,7 @@ min_slope = 0.05;				// Minimum slope based on interpolated nearest point sepera
 min_pp_slope = 0.03;			// Minimum slope based on pourpoint seperation between two reservoirs
 max_lowers_per_upper = 100;		// Maximum number of lower reservoirs to keep per upper reservoir
 tolerance_on_FOM = 0.1;
-max_head_variability = 0.35		// Maximum amount the head can vary during water transfer (Default 0.35)
+max_head_variability = 0.5;		// Maximum amount the head can vary during water transfer: (Maximum Head - Minimum Head) / Maximum Head. (Default 0.35, 0.5 for pits to allow for pit expansions since 2015 and variable speed turbines)
 num_altitude_volume_pairs = 10;	// Number of altitude-volume pairs provided with an existing pit
 pit_height_resolution = 1;		// Height resolution of top and bottom of pit in metres
 max_bluefield_surface_area_ratio = 0.5;  // Maximum surface area of new reservoir relative to existing reservoir
