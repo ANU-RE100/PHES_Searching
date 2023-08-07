@@ -23,36 +23,13 @@ vector<double> find_polygon_intersections(double lat, vector<GeographicCoordinat
   return to_return;
 }
 
-bool check_contained_within(GeographicCoordinate point, vector<GeographicCoordinate> polygon) {
-  bool ray_directions[4]={false};
-  for(GeographicCoordinate poly_point : polygon) {
-    if(point.lat < poly_point.lat)
-      ray_directions[0] = true;
-    if(point.lat > poly_point.lat)
-      ray_directions[1] = true;
-    if(point.lon < poly_point.lon)
-      ray_directions[2] = true;
-    if(point.lon > poly_point.lon)
-      ray_directions[3] = true;
-    
-    if(ray_directions[0] && ray_directions[1] && ray_directions[2] && ray_directions[3]){
-      return true;
-    }
-  }
-
-  return false;
-}
-
 /*
  * Check if a geographic point is inside a polygon
  */
 bool check_within(GeographicCoordinate point, vector<GeographicCoordinate> polygon){
     vector<double> polygon_intersections = find_polygon_intersections(point.lat, polygon);
     for(uint j = 0; j<polygon_intersections.size()/2;j++){
-        if(polygon_intersections[2*j]<=point.lon && point.lon<=polygon_intersections[2*j+1])
-            return true;
-
-        if(check_contained_within(point,polygon))
+        if(polygon_intersections[2*j]<=point.lon+EPS && point.lon-EPS<=polygon_intersections[2*j+1])
             return true;
     }
     return false;
