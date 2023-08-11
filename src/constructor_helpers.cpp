@@ -29,7 +29,7 @@ vector<double> find_polygon_intersections(double lat, vector<GeographicCoordinat
 bool check_within(GeographicCoordinate point, vector<GeographicCoordinate> polygon){
     vector<double> polygon_intersections = find_polygon_intersections(point.lat, polygon);
     for(uint j = 0; j<polygon_intersections.size()/2;j++){
-        if(polygon_intersections[2*j]<=point.lon+EPS && point.lon-EPS<=polygon_intersections[2*j+1])
+        if(polygon_intersections[2*j]<=point.lon && point.lon<=polygon_intersections[2*j+1])
             return true;
     }
     return false;
@@ -287,7 +287,7 @@ vector<ArrayCoordinate> order_polygon(vector<ArrayCoordinate> unordered_edge_poi
         if(!found_path){
             // Backtrack if path is dead-end
             if(!to_return.empty()){
-                last = to_return[to_return.size()-1]; 
+                last = to_return[to_return.size()-2]; 
                 to_return.pop_back();
             }else
                 break;          

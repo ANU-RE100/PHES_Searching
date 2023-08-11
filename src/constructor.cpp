@@ -45,6 +45,12 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
   vector<ArrayCoordinate> used_points;
   *non_overlap = true;
 
+  // Remove pairs not within grid_square. Required for overlap analysis of existing reservoirs/pits
+  if(search_config.search_type.existing()){
+    if((pair->upper.brownfield && !check_within(convert_coordinates(pair->upper.pour_point), search_config.grid_square)) || (pair->lower.brownfield && !check_within(convert_coordinates(pair->lower.pour_point), search_config.grid_square)))
+      return false;
+  }
+
   if (pair->upper.brownfield && (search_config.search_type != SearchType::BULK_PIT)) {
     if (!model_existing_reservoir(&pair->upper, &pair_kml->upper, countries,
                                   country_names))
@@ -149,6 +155,26 @@ int main(int nargs, char **argv)
     write_summary_csv_header(total_csv_file_classes);
     FILE *total_csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+search_config.filename()+"/"+search_config.filename()+"_total.csv"), "w");
     write_summary_csv_header(total_csv_file_FOM);
+
+    // Read in all rough pairs from neighbours. Only keep pairs that have a pit/existing reservoir in the centre grid square
+    // Rough pairs CSV will not match constructor pairs for a given grid square, but this is required for overlap analysis
+    if(search_config.search_type.existing()){
+      for (uint d=0; d<directions.size(); d++){   
+        GridSquare neighbor_gs = GridSquare_init(search_config.grid_square.lat + directions[d].row, search_config.grid_square.lon+ directions[d].col);
+
+        vector<vector<Pair>> neighbor_pairs;
+        try {
+          neighbor_pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+search_config.search_type.prefix()+str(neighbor_gs) +"_rough_pretty_set_pairs_data.csv"));
+          for(uint i=0; i<neighbor_pairs.size(); i++){
+            pairs.push_back(neighbor_pairs[i]);
+          }
+        } catch(int e) {
+          search_config.logger.debug("Could not import pretty set pairs from " + file_storage_location +
+                                 "processing_files/pretty_set_pairs/" +
+                                 search_config.search_type.prefix()+str(neighbor_gs) +"_rough_pretty_set_pairs_data.csv");
+        }
+      }
+    }
 
     uint total_pairs = 0;
 	for(uint i = 0; i<pairs.size(); i++)
