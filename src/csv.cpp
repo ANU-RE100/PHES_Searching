@@ -579,6 +579,7 @@ void write_pair_csv_header(FILE *csv_file, bool output_FOM) {
                            "Upper dam volume (GL)",
                            "Upper water to rock ratio",
                            "Upper fill depth (m)",
+                           "Upper bottom elevation (m)",
                            "Upper country",
                            "Lower Identifier",
                            "Lower elevation (m)",
@@ -591,6 +592,7 @@ void write_pair_csv_header(FILE *csv_file, bool output_FOM) {
                            "Lower dam volume (GL)",
                            "Lower water to rock ratio",
                            "Lower fill depth (m)",
+                           "Lower bottom elevation (m)",
                            "Lower country"};
   if (output_FOM)
     header.push_back("Figure of Merit");
@@ -623,6 +625,7 @@ void write_pair_csv(FILE *csv_file, Pair *pair, bool output_FOM) {
       (pair->upper.brownfield ? "NA" : dtos(pair->upper.dam_volume, 2)),
       (pair->upper.brownfield ? "NA" : dtos(pair->upper.water_rock, 1)),
       dtos(pair->upper.fill_depth,1),
+      to_string(pair->upper.bottom_elevation),
       pair->upper.country,
       pair->lower.identifier,
       to_string(pair->lower.elevation),
@@ -645,6 +648,7 @@ void write_pair_csv(FILE *csv_file, Pair *pair, bool output_FOM) {
            ? "NA"
            : dtos(pair->lower.water_rock, 1)),
       dtos(pair->lower.fill_depth,1),
+      to_string(pair->lower.bottom_elevation),
       pair->lower.country};
   if (output_FOM)
     line.push_back(dtos(pair->FOM, 0));

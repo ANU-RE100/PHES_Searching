@@ -106,15 +106,33 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
 
   // Check overlap between reservoirs during pit and existing reservoir constructor
   if (pair->upper.brownfield || pair->lower.brownfield) {
-    // Overlap between upper and lower reservoirs
-    if(check_within(convert_coordinates(pair->upper.pour_point), convert_poly(pair->lower.reservoir_polygon)) || check_within(convert_coordinates(pair->lower.pour_point), convert_poly(pair->upper.reservoir_polygon)))
-      return false;
-    
-    // Overlap with other sites
-    *non_overlap = !(check_within(convert_coordinates(pair->upper.pour_point), seen_polygons) || check_within(convert_coordinates(pair->lower.pour_point), seen_polygons));
-    
-    seen_polygons.push_back(convert_poly(pair->upper.reservoir_polygon));
-    seen_polygons.push_back(convert_poly(pair->lower.reservoir_polygon));
+    *non_overlap = true;
+
+    // Overlap between upper and lower reservoirs, and overlap with other sites
+    for (ArrayCoordinate ac : pair->lower.reservoir_polygon){
+      if(!*non_overlap)
+        break;
+
+      if(check_within(convert_coordinates(ac), compress_poly(corner_cut_poly(convert_poly(pair->upper.reservoir_polygon)))))
+        return false;
+
+      *non_overlap = (!check_within(convert_coordinates(ac), seen_polygons) && *non_overlap);
+    }
+    for (ArrayCoordinate ac : pair->upper.reservoir_polygon){
+      if(!*non_overlap)
+        break;
+
+      if(check_within(convert_coordinates(ac), compress_poly(corner_cut_poly(convert_poly(pair->lower.reservoir_polygon)))))
+        return false;
+
+      *non_overlap = (!check_within(convert_coordinates(ac), seen_polygons) && *non_overlap);
+    }
+
+    if(pair->upper.pit)
+      seen_polygons.push_back(compress_poly(corner_cut_poly(convert_poly(pair->upper.reservoir_polygon))));
+
+    if(pair->lower.pit)
+      seen_polygons.push_back(compress_poly(corner_cut_poly(convert_poly(pair->lower.reservoir_polygon))));
   }
 
   if (*non_overlap) {
