@@ -8,20 +8,21 @@ class RoughReservoir{
   public:
     string identifier;
     bool brownfield = false;
-    bool ocean;
-    bool pit;
-    bool turkey;
-    double latitude;
-    double longitude;
-    int elevation;
+    bool river = false;
+    bool ocean = false;
+    bool pit = false;
+    bool turkey = false;
+    double latitude = 0;
+    double longitude = 0;
+    int elevation = INT_MIN;
     ArrayCoordinate pour_point;
     vector<double> volumes;
     vector<double> dam_volumes;
     vector<double> areas;
     vector<double> water_rocks;
     vector<int> fill_depths;
-    double watershed_area;
-    double max_dam_height;
+    double watershed_area = 0;
+    double max_dam_height = 0;
     int bottom_elevation;
 
     RoughReservoir() {};
@@ -62,6 +63,7 @@ public:
 class RoughBfieldReservoir : public RoughReservoir {
 public:
   vector<ArrayCoordinate> shape_bound;
+  vector<int> elevations;
   RoughBfieldReservoir() {};
   explicit RoughBfieldReservoir(const RoughReservoir &r) : RoughReservoir(r) {}
 };
@@ -73,6 +75,7 @@ struct ExistingReservoir {
   int elevation;
   double volume;
   double area;
+  bool river = false;
   vector<GeographicCoordinate> polygon;
 };
 
@@ -91,6 +94,7 @@ class Reservoir {
   public:
     string identifier;
     bool brownfield;
+    bool river;
     bool pit;
     bool ocean;
     bool turkey = false;

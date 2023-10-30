@@ -66,6 +66,7 @@ string get_html(Reservoir* reservoir, Pair* pair){
 "              <tr bgcolor=\"#D4E4F3\"><td>Longitude</td><td>"+dtos(reservoir->longitude,4)+"</td></tr>"+newline+
 "              <tr><td>Area (ha)</td><td>"+dtos(reservoir->area,0)+"</td></tr>"+newline+
 "              <tr bgcolor=\"#D4E4F3\"><td>Country</td><td>"+reservoir->country+"</td></tr>"+newline+
+(reservoir->volume < INF*1e-1 ? ("              <tr><td>Volume (GL)</td><td>"+dtos(reservoir->volume,0)+"</td></tr>"+newline) : "") +
 "              </table></td></tr></table></body></html>\n";
 	}else{
 		return
@@ -315,6 +316,8 @@ string get_point_geometry(string coordinates){
 }
 
 string get_reservoir_kml(Reservoir* reservoir, string colour, Reservoir_KML_Coordinates coordinates, Pair* pair){
+  if(reservoir->river)
+    return "";
 	return
 "      <Placemark>\n"
 "        <name><![CDATA["+reservoir->identifier+"]]></name>\n"

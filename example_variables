@@ -5,6 +5,7 @@ existing_reservoirs_csv = pits.csv;
 existing_reservoirs_shp = osm-aus-pits.shp;
 existing_reservoirs_shp_names = pitnames.csv;
 use_tiled_bluefield = 1;  // 0 for false, 1 for true
+use_tiled_rivers = 1;  // 0 for false, 1 for true (if true, above shps are ignored)
 
 // GPKG Tiling
 gpkg_path = preprocessing_files/brownfield/global_mining_tenaments.gpkg;       // Path to the GPKG file containing global mining tenament polygons
@@ -55,6 +56,7 @@ max_head_variability = 0.35		// Maximum amount the head can vary during water tr
 num_altitude_volume_pairs = 10;	// Number of altitude-volume pairs provided with an existing pit
 pit_height_resolution = 1;		// Height resolution of top and bottom of pit in metres
 max_bluefield_surface_area_ratio = 0.5;  // Maximum surface area of new reservoir relative to existing reservoir
+river_flow_volume_ratio = 5;  // Minimum ratio of annual river flow to reservoir volume for seasonal
 
 // Common
 gravity = 9.8;					// Acceleration due to gravity (m/s/s)

@@ -9,7 +9,13 @@
 vector<vector<Pair>> pairs;
 
 bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* coordinates, vector<vector<vector<GeographicCoordinate>>>& countries, vector<string>& country_names){
-    ExistingReservoir r = get_existing_reservoir(reservoir->identifier);
+  if(!reservoir->river){
+    ExistingReservoir r;
+    if (use_tiled_bluefield)
+      r = get_existing_tiled_reservoir(reservoir->identifier, reservoir->latitude,
+          reservoir->longitude);
+    else
+      r = get_existing_reservoir(reservoir->identifier);
     reservoir->volume = r.volume;
     string polygon_string = str(compress_poly(corner_cut_poly(r.polygon)), reservoir->pit ? r.elevation+reservoir->dam_height : r.elevation+5);
     coordinates->reservoir = polygon_string;
@@ -26,6 +32,7 @@ bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* c
             break;
         }
     }
+  }
     return true;
 }
 

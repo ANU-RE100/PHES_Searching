@@ -7,6 +7,7 @@ string existing_reservoirs_csv;
 string existing_reservoirs_shp;
 string existing_reservoirs_shp_names;
 bool use_tiled_bluefield;
+bool use_tiled_rivers;
 
 // GPKG Tiling
 std::string gpkg_path;  // Path to the GPKG file containing global mining tenament polygons
@@ -93,6 +94,7 @@ vector<Test> tests;					// Test in format {Volume (GL), Storage time (h), Maximu
 vector<CategoryCutoff> category_cutoffs;
 
 double max_bluefield_surface_area_ratio;
+double river_flow_volume_ratio;
 
 void parse_variables(char* filename){
     if(!file_exists(filename)){
@@ -260,8 +262,12 @@ void parse_variables(char* filename){
 				pit_height_resolution = stoi(value);
 			if(variable=="max_bluefield_surface_area_ratio")
 				max_bluefield_surface_area_ratio = stod(value);
+			if(variable=="river_flow_volume_ratio")
+				river_flow_volume_ratio = stod(value);
 			if(variable=="use_tiled_bluefield")
 				use_tiled_bluefield = stoi(value);
+			if(variable=="use_tiled_rivers")
+				use_tiled_rivers = stoi(value);
 		}
 	}
 }

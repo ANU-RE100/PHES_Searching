@@ -152,7 +152,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   int head = upper->elevation - lower->elevation;
   double required_volume = find_required_volume(energy_capacity, head);
   if ((max(upper->volumes) < required_volume) ||
-      (max(lower->volumes) < required_volume)) {
+      (max(lower->volumes) < required_volume * (lower->river ? 5 : 1))) {
     return NULL;
   }
   ExistingPit single_pit;
@@ -262,6 +262,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   upper_reservoir.max_dam_height = upper->max_dam_height;
   upper_reservoir.fill_depth = linear_interpolate(required_volume, upper->volumes, int_to_double_vector(upper->fill_depths));
   upper_reservoir.brownfield = upper->brownfield;
+  upper_reservoir.river = upper->river;
   upper_reservoir.pit = upper->pit;
 
   lower_reservoir.identifier = lower->identifier;
@@ -280,6 +281,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
   lower_reservoir.max_dam_height = lower->max_dam_height;
   lower_reservoir.fill_depth = linear_interpolate(required_volume, lower->volumes, int_to_double_vector(lower->fill_depths));
   lower_reservoir.brownfield = lower->brownfield;
+  lower_reservoir.river = lower->river;
   lower_reservoir.pit = lower->pit;
   lower_reservoir.ocean = lower->ocean;
 
@@ -320,31 +322,55 @@ void pairing(vector<unique_ptr<RoughReservoir>> &upper_reservoirs,
     for (uint ilower = 0; ilower < lower_reservoirs.size(); ilower++) {
       RoughReservoir* lower_reservoir = lower_reservoirs[ilower].get();
       int head = upper_reservoir->elevation - lower_reservoir->elevation;
-      if (head < min_head || head > max_head)
-        continue;
+      if (!upper_reservoir->river && !lower_reservoir->river)
+        if (head < min_head || head > max_head)
+          continue;
 
       if (!existing_existing_allowed && upper_reservoir->brownfield && lower_reservoir->brownfield)
         continue;
 
       // Pour point separation
-      double distance_sqd = find_distance_sqd(
+      double min_dist_sqd = find_distance_sqd(
           upper_reservoir->pour_point, lower_reservoir->pour_point, coslat);
 
       if(upper_reservoir->brownfield){
+        min_dist_sqd = INF;
         RoughBfieldReservoir* br = static_cast<RoughBfieldReservoir*>(upper_reservoir);
-        for(ArrayCoordinate ac: br->shape_bound)
-          distance_sqd =
-              MIN(find_distance_sqd(ac, lower_reservoir->pour_point, coslat), distance_sqd);
+        for(size_t i = 0; i<br->shape_bound.size(); i++){
+          ArrayCoordinate ac = br->shape_bound[i];
+          double dist_sqd = find_distance_sqd(ac, lower_reservoir->pour_point, coslat);
+          if(dist_sqd < min_dist_sqd){
+            min_dist_sqd = dist_sqd;
+          }
+        }
       }
       if(lower_reservoir->brownfield || lower_reservoir->ocean){
+        min_dist_sqd = INF;
         RoughBfieldReservoir* lr = static_cast<RoughBfieldReservoir*>(lower_reservoir);
-        for(ArrayCoordinate ac: lr->shape_bound){
-          distance_sqd =
-              MIN(find_distance_sqd(ac, upper_reservoir->pour_point, coslat), distance_sqd);
+
+        int idx = 0;
+        for(size_t i = 0; i<lr->shape_bound.size(); i++){
+          ArrayCoordinate ac = lr->shape_bound[i];
+          double dist_sqd = find_distance_sqd(ac, upper_reservoir->pour_point, coslat);
+          if(dist_sqd < min_dist_sqd){
+            idx = i;
+            min_dist_sqd = dist_sqd;
+          }
+        }
+        if(lower_reservoir->river){
+          lower_reservoir->elevation = lr->elevations[idx];
+          lower_reservoir->pour_point = lr->shape_bound[idx];
         }
       }
 
-      if (SQ(head * 0.001) <= distance_sqd * SQ(min_pp_slope))
+      if(upper_reservoir->river)
+        continue;
+
+      head = upper_reservoir->elevation - lower_reservoir->elevation;
+      if (head < min_head || head > max_head)
+        continue;
+
+      if (SQ(head * 0.001) <= min_dist_sqd * SQ(min_pp_slope))
         continue;
 
 
