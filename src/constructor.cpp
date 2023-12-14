@@ -33,7 +33,7 @@ bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* c
     //KML
     reservoir->country = find_country(GeographicCoordinate_init(reservoir->latitude, reservoir->longitude), countries, country_names);
   }
-    return true;
+  return true;
 }
 
 bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
@@ -103,9 +103,9 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
   if (pair->FOM > max_FOM || pair->category == 'Z') {
     return false;
   }
-
+  
   // Check overlap between reservoirs during pit and existing reservoir constructor
-  if (pair->upper.brownfield || pair->lower.brownfield) {
+  if ((pair->upper.brownfield || pair->lower.brownfield) && !pair->upper.river && !pair->lower.river) {
     *non_overlap = true;
 
     // Overlap between upper and lower reservoirs, and overlap with other sites
@@ -121,10 +121,10 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
     for (ArrayCoordinate ac : pair->upper.reservoir_polygon){
       if(!*non_overlap)
         break;
-
+      
       if(check_within(convert_coordinates(ac), compress_poly(corner_cut_poly(convert_poly(pair->lower.reservoir_polygon)))))
         return false;
-
+      
       *non_overlap = (!check_within(convert_coordinates(ac), seen_polygons) && *non_overlap);
     }
 
@@ -134,6 +134,7 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
     if(pair->lower.pit)
       seen_polygons.push_back(compress_poly(corner_cut_poly(convert_poly(pair->lower.reservoir_polygon))));
   }
+  // REMOVE OVERLAPPING RIVER SITES - ONLY 1 SITE PER RIVER. PERHAPS GO BY RIVER ID? HOW TO MANAGE BETWEEN DIFFERENT GRID SQUARES?
 
   if (*non_overlap) {
     for (uint i = 0; i < used_points.size(); i++) {
@@ -148,7 +149,7 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
     	((convert_coordinates(upper_closest_point).lon+convert_coordinates(lower_closest_point).lon)/2));
     pair_kml->point = dtos(average.lon,5)+","+dtos(average.lat,5)+",0";
     pair_kml->line = dtos(convert_coordinates(upper_closest_point).lon,5)+","+dtos(convert_coordinates(upper_closest_point).lat,5)+",0 "+dtos(convert_coordinates(lower_closest_point).lon,5)+","+dtos(convert_coordinates(lower_closest_point).lat,5)+",0";
-	return true;
+  return true;
 }
 
 int main(int nargs, char **argv)

@@ -499,7 +499,7 @@ int main(int nargs, char **argv) {
         convert_string(file_storage_location + "processing_files/reservoirs/" +
                        search_config.filename() + "_reservoirs_data.csv"));
     
-    if (search_config.search_type == SearchType::BULK_EXISTING || search_config.search_type == SearchType::BULK_PIT){
+    if (search_config.search_type == SearchType::BULK_EXISTING || search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::RIVER){
       
       vector<unique_ptr<RoughReservoir>> greenfield_reservoirs = read_rough_reservoir_data(
           convert_string(file_storage_location + "processing_files/reservoirs/" +
@@ -535,7 +535,7 @@ int main(int nargs, char **argv) {
           search_config.search_type.lowers_prefix() + str(neighbors[i]) + "_reservoirs_data.csv"));
 
       for (uint j = 0; j < temp.size(); j++) {
-        if ((search_config.search_type == SearchType::BULK_EXISTING || search_config.search_type == SearchType::BULK_PIT) &&
+        if ((search_config.search_type == SearchType::BULK_EXISTING || search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::RIVER) &&
             lower_ids.contains(temp[j]->identifier))
           continue;
 

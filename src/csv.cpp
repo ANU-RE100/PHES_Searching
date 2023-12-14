@@ -301,7 +301,7 @@ vector<unique_ptr<RoughReservoir>> read_rough_reservoir_data(char *filename) {
     reservoir->max_dam_height = stod(line[4]);
     reservoir->watershed_area = stod(line[5]);
     reservoir->identifier = line[0];
-
+    
     if(!compressed_format || (!reservoir->ocean && !reservoir->brownfield)){
       unique_ptr<RoughGreenfieldReservoir> greenfield_reservoir(new RoughGreenfieldReservoir(*reservoir));
       for (uint ih = 0; ih < dam_wall_heights.size(); ih++) {
@@ -324,7 +324,7 @@ vector<unique_ptr<RoughReservoir>> read_rough_reservoir_data(char *filename) {
       }
       if(reservoir->river)
         for(int i = 0; i<point_len; i++){
-          bfield_reservoir->elevations.push_back(stoi(line[10+3*dam_wall_heights.size()+2*point_len+i]));
+          bfield_reservoir->elevations.push_back(stoi(line[10+4*dam_wall_heights.size()+2*point_len+i]));
         }
       reservoirs.push_back(std::move(bfield_reservoir));
     }
