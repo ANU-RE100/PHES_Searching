@@ -29,7 +29,7 @@ vector<double> find_polygon_intersections(double lat, vector<GeographicCoordinat
 bool check_within(GeographicCoordinate point, vector<GeographicCoordinate> polygon){
     vector<double> polygon_intersections = find_polygon_intersections(point.lat, polygon);
     for(uint j = 0; j<polygon_intersections.size()/2;j++){
-        if(polygon_intersections[2*j]<=point.lon && point.lon<=polygon_intersections[2*j+1])
+        if(polygon_intersections[2*j]<=point.lon+EPS && point.lon-EPS<=polygon_intersections[2*j+1])
             return true;
     }
     return false;

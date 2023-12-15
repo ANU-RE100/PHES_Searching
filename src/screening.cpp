@@ -159,7 +159,9 @@ Model<double>* fill(Model<short>* DEM)
 	return DEM_filled_no_flat;
 }
 
-Model<bool>* find_ocean(Model<short>* DEM)
+
+
+Model<bool>* find_ocean(Model<short>* DEM, Model<bool> *filter)
 {
 	Model<bool>* ocean = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 	ocean->set_geodata(DEM->get_geodata());
@@ -172,22 +174,22 @@ Model<bool>* find_ocean(Model<short>* DEM)
 	for (int row=0; row<DEM->nrows()-1;row++) {
 		pq.push(ArrayCoordinateWithHeight_init(row+1, DEM->ncols()-1, (double)DEM->get(row+1,DEM->ncols()-1)));
 		seen->set(row+1,DEM->ncols()-1,true);
-		if(DEM->get(row+1,DEM->ncols()-1)==0)
+		if(DEM->get(row+1,DEM->ncols()-1)==0 && !filter->get(row+1,DEM->ncols()-1))
 			ocean->set(row+1,DEM->ncols()-1,true);
 		pq.push(ArrayCoordinateWithHeight_init(row, 0, (double)DEM->get(row,0)));
 		seen->set(row,0,true);
-		if(DEM->get(row,0)==0)
+		if(DEM->get(row,0)==0 && !filter->get(row,0))
 			ocean->set(row,0,true);
 	}
 
 	for (int col=0; col<DEM->ncols()-1;col++) {
 		pq.push(ArrayCoordinateWithHeight_init(DEM->nrows()-1, col, (double)DEM->get(DEM->ncols()-1,col)));
 		seen->set(DEM->nrows()-1,col,true);
-		if(DEM->get(DEM->ncols()-1,col)==0)
+		if(DEM->get(DEM->ncols()-1,col)==0 && !filter->get(DEM->ncols()-1,col))
 			ocean->set(DEM->ncols()-1,col,true);
 		pq.push(ArrayCoordinateWithHeight_init(0, col+1, (double)DEM->get(0,col+1)));
 		seen->set(0,col+1,true);
-		if(DEM->get(0,col+1)==0)
+		if(DEM->get(0,col+1)==0 && !filter->get(0,col+1))
 			ocean->set(0,col+1,true);
 	}
 
@@ -211,7 +213,8 @@ Model<bool>* find_ocean(Model<short>* DEM)
 			seen->set(neighbor.row,neighbor.col,true);
 
 			if (neighbor.h<=EPS && neighbor.h>=-EPS && ocean->get(c.row,c.col)==true) {
-				ocean->set(neighbor.row,neighbor.col,true);
+				if (!filter->get(neighbor.row, neighbor.col))
+					ocean->set(neighbor.row,neighbor.col,true);
 				q.push(neighbor);
 			}
 			else {
@@ -221,6 +224,33 @@ Model<bool>* find_ocean(Model<short>* DEM)
 	}
 	delete seen;
 	return ocean;
+}
+
+void add_caspian_sea(Model<bool> *pour_points){
+	Model<bool> *caspian_mask = new Model<bool>(pour_points->nrows(), pour_points->ncols(), MODEL_SET_ZERO);
+	caspian_mask->set_geodata(pour_points->get_geodata());
+
+	string filename = file_storage_location+"input/global_ocean/caspiansea_4326.shp";
+
+	read_shp_filter(filename,caspian_mask);
+
+	for (int row=0; row<pour_points->nrows(); row++)
+		for (int col=0; col<pour_points->ncols(); col++){
+			if(!caspian_mask->get(row,col))
+				continue;
+
+			for (uint d=0; d<directions.size(); d++){
+				ArrayCoordinate neighbor = {row+directions[d].row, col+directions[d].col, caspian_mask->get_origin()};
+
+				if(!caspian_mask->get(neighbor.row, neighbor.col)){
+					pour_points->set(row,col,true);
+					break;
+				}
+			}
+		}				
+	
+	delete caspian_mask;
+	return;
 }
 
 // Find the lowest neighbor of a point given the cos of the latitude (for speed optimization)
@@ -889,7 +919,40 @@ int main(int nargs, char **argv) {
     delete DEM_filled_no_flat;
 
     if(search_config.search_type == SearchType::OCEAN){
-      pour_points = find_ocean(DEM);
+      // Create a mask of all ocean buffers within grid square (used to exclude anomalous reservoirs further than 5km from coast)
+	  t_usec = walltime_usec();
+
+	  Model<bool> *ocean_buffer_mask = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
+	  ocean_buffer_mask->set_geodata(DEM->get_geodata());
+
+	  std:: string ocean_shp_gs = file_storage_location + "input/global_ocean/ocean_buffer.shp";
+	  read_shp_filter(ocean_shp_gs, ocean_buffer_mask);
+
+	  // Filter out all cells that aren't in the ocean buffer
+	  for(int row = 0; row<DEM->nrows(); row++){
+	  	for(int col = 0; col<DEM->ncols(); col++){
+			if(ocean_buffer_mask->get(row,col))
+				continue;
+			else
+				filter->set(row,col,true);
+		}
+	  }
+
+	  if (search_config.logger.output_debug()) {
+	 	printf("\nOcean Buffer Mask:\n");
+		ocean_buffer_mask->print();
+		printf("Ocean buffer mask Runtime: %.2f sec\n", 1.0e-6*(walltime_usec() - t_usec) );
+	  }
+	  if(debug_output){
+		mkdir(convert_string(file_storage_location+"debug/ocean_buffer_mask"),0777);
+		ocean_buffer_mask->write(file_storage_location+"debug/ocean_buffer_mask/"+str(search_config.grid_square)+"_ocean_buffer_mask.tif", GDT_Byte);
+		filter->write(file_storage_location+"debug/filter/"+str(search_config.grid_square)+"_filter.tif", GDT_Byte);
+	  }
+	  delete ocean_buffer_mask;
+	  
+      pour_points = find_ocean(DEM, filter);
+	  add_caspian_sea(pour_points);
+
       if (search_config.logger.output_debug()) {
         printf("\nOcean\n");
         pour_points->print();
