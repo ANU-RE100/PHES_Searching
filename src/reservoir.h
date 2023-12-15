@@ -21,6 +21,7 @@ class RoughReservoir{
     vector<double> areas;
     vector<double> water_rocks;
     vector<int> fill_depths;
+    double fill_depth_from_MOL=0;
     double watershed_area = 0;
     double max_dam_height = 0;
     int bottom_elevation;
@@ -101,6 +102,7 @@ class Reservoir {
     double latitude;
     double longitude;
     int elevation;
+    int bottom_elevation;
     ArrayCoordinate pour_point;
     double volume;
     double dam_volume;
@@ -144,7 +146,7 @@ void update_reservoir_boundary(vector<array<ArrayCoordinate, directions.size()>>
                                ArrayCoordinate point, int elevation_above_pp);
 void update_reservoir_boundary(vector<ArrayCoordinate> &dam_shape_bounds,
                                ArrayCoordinate point);
-Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation);
+Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation, int bottom_elevation);
 ExistingReservoir ExistingReservoir_init(string identifier, double latitude, double longitude,
                                          int elevation, double volume);
 ExistingPit ExistingPit_init(ExistingReservoir reservoir);

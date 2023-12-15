@@ -33,7 +33,7 @@ bool model_existing_reservoir(Reservoir* reservoir, Reservoir_KML_Coordinates* c
     //KML
     reservoir->country = find_country(GeographicCoordinate_init(reservoir->latitude, reservoir->longitude), countries, country_names);
   }
-    return true;
+  return true;
 }
 
 bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
@@ -44,6 +44,12 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
 
   vector<ArrayCoordinate> used_points;
   *non_overlap = true;
+
+  // Remove pairs not within grid_square. Required for overlap analysis of existing reservoirs/pits
+  if(search_config.search_type.existing()){
+    if((pair->upper.brownfield && !check_within(convert_coordinates(pair->upper.pour_point), search_config.grid_square)) || (pair->lower.brownfield && !check_within(convert_coordinates(pair->lower.pour_point), search_config.grid_square)))
+      return false;
+  }
 
   if (pair->upper.brownfield && (search_config.search_type != SearchType::BULK_PIT)) {
     if (!model_existing_reservoir(&pair->upper, &pair_kml->upper, countries,
@@ -97,19 +103,38 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
   if (pair->FOM > max_FOM || pair->category == 'Z') {
     return false;
   }
-
+  
   // Check overlap between reservoirs during pit and existing reservoir constructor
-  if (pair->upper.brownfield || pair->lower.brownfield) {
-    // Overlap between upper and lower reservoirs
-    if(check_within(convert_coordinates(pair->upper.pour_point), convert_poly(pair->lower.reservoir_polygon)) || check_within(convert_coordinates(pair->lower.pour_point), convert_poly(pair->upper.reservoir_polygon)))
-      return false;
-    
-    // Overlap with other sites
-    *non_overlap = !(check_within(convert_coordinates(pair->upper.pour_point), seen_polygons) || check_within(convert_coordinates(pair->lower.pour_point), seen_polygons));
-    
-    seen_polygons.push_back(convert_poly(pair->upper.reservoir_polygon));
-    seen_polygons.push_back(convert_poly(pair->lower.reservoir_polygon));
+  if ((pair->upper.brownfield || pair->lower.brownfield) && !pair->upper.river && !pair->lower.river) {
+    *non_overlap = true;
+
+    // Overlap between upper and lower reservoirs, and overlap with other sites
+    for (ArrayCoordinate ac : pair->lower.reservoir_polygon){
+      if(!*non_overlap)
+        break;
+
+      if(check_within(convert_coordinates(ac), compress_poly(corner_cut_poly(convert_poly(pair->upper.reservoir_polygon)))))
+        return false;
+
+      *non_overlap = (!check_within(convert_coordinates(ac), seen_polygons) && *non_overlap);
+    }
+    for (ArrayCoordinate ac : pair->upper.reservoir_polygon){
+      if(!*non_overlap)
+        break;
+      
+      if(check_within(convert_coordinates(ac), compress_poly(corner_cut_poly(convert_poly(pair->lower.reservoir_polygon)))))
+        return false;
+      
+      *non_overlap = (!check_within(convert_coordinates(ac), seen_polygons) && *non_overlap);
+    }
+
+    if(pair->upper.pit)
+      seen_polygons.push_back(compress_poly(corner_cut_poly(convert_poly(pair->upper.reservoir_polygon))));
+
+    if(pair->lower.pit)
+      seen_polygons.push_back(compress_poly(corner_cut_poly(convert_poly(pair->lower.reservoir_polygon))));
   }
+  // REMOVE OVERLAPPING RIVER SITES - ONLY 1 SITE PER RIVER. PERHAPS GO BY RIVER ID? HOW TO MANAGE BETWEEN DIFFERENT GRID SQUARES?
 
   if (*non_overlap) {
     for (uint i = 0; i < used_points.size(); i++) {
@@ -124,7 +149,7 @@ bool model_pair(Pair *pair, Pair_KML *pair_kml, Model<bool> *seen,
     	((convert_coordinates(upper_closest_point).lon+convert_coordinates(lower_closest_point).lon)/2));
     pair_kml->point = dtos(average.lon,5)+","+dtos(average.lat,5)+",0";
     pair_kml->line = dtos(convert_coordinates(upper_closest_point).lon,5)+","+dtos(convert_coordinates(upper_closest_point).lat,5)+",0 "+dtos(convert_coordinates(lower_closest_point).lon,5)+","+dtos(convert_coordinates(lower_closest_point).lat,5)+",0";
-	return true;
+  return true;
 }
 
 int main(int nargs, char **argv)
@@ -149,6 +174,26 @@ int main(int nargs, char **argv)
     write_summary_csv_header(total_csv_file_classes);
     FILE *total_csv_file_FOM = fopen(convert_string(file_storage_location+"output/final_output_FOM/"+search_config.filename()+"/"+search_config.filename()+"_total.csv"), "w");
     write_summary_csv_header(total_csv_file_FOM);
+
+    // Read in all rough pairs from neighbours. Only keep pairs that have a pit/existing reservoir in the centre grid square
+    // Rough pairs CSV will not match constructor pairs for a given grid square, but this is required for overlap analysis
+    if(search_config.search_type.existing()){
+      for (uint d=0; d<directions.size(); d++){   
+        GridSquare neighbor_gs = GridSquare_init(search_config.grid_square.lat + directions[d].row, search_config.grid_square.lon+ directions[d].col);
+
+        vector<vector<Pair>> neighbor_pairs;
+        try {
+          neighbor_pairs = read_rough_pair_data(convert_string(file_storage_location+"processing_files/pretty_set_pairs/"+search_config.search_type.prefix()+str(neighbor_gs) +"_rough_pretty_set_pairs_data.csv"));
+          for(uint i=0; i<neighbor_pairs.size(); i++){
+            pairs.push_back(neighbor_pairs[i]);
+          }
+        } catch(int e) {
+          search_config.logger.debug("Could not import pretty set pairs from " + file_storage_location +
+                                 "processing_files/pretty_set_pairs/" +
+                                 search_config.search_type.prefix()+str(neighbor_gs) +"_rough_pretty_set_pairs_data.csv");
+        }
+      }
+    }
 
     uint total_pairs = 0;
 	for(uint i = 0; i<pairs.size(); i++)

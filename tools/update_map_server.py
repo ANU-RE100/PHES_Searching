@@ -493,7 +493,6 @@ def create_member(site, country, phes_type, name):
         },
         "tileErrorHandlingOptions": {"ignoreUnknownTileErrors": True},
     }
-    country = country or "Global"
     energy = int(site.split("_")[0].split("G")[0].split(".")[0])
     time = int(site.split("_")[1].split("h")[0])
     add_reservoir_description(member["info"][0], energy, time)
@@ -521,8 +520,8 @@ def create_member(site, country, phes_type, name):
 def main(
     output_summary_path, postgres_pw, admin_pw, re100_un, phes_type, country, name
 ):
-    assert phes_type in ["Greenfield", "Bluefield", "Brownfield", "Ocean"], (
-        'PHES_type must be "Greenfield", "Bluefield", "Brownfield" or "Ocean" but was'
+    assert phes_type in ["Greenfield", "Bluefield", "Brownfield", "Ocean", "Seasonal"], (
+        'PHES_type must be "Greenfield", "Bluefield", "Brownfield", "Seaonal" or "Ocean" but was'
         + phes_type
     )
     if phes_type in ["Bluefield", "Brownfield"] and not country:
@@ -533,6 +532,7 @@ def main(
         )
         if var.lower() != "y":
             quit()
+    country = country or "Global"
 
     # UPDATE GEOSERVER
 

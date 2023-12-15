@@ -763,20 +763,21 @@ static int model_brownfield_reservoirs(Model<bool> *pit_lake_mask, Model<bool> *
 				continue;
 			}
 
-			// If the pit is entirely contained within the border, skip modelling.
+			// If the pit pour_point is within the border, skip modelling. 
+			// If the pit is touching the edge of the border, skip it too
 			// Prevents overlap between pits of different grid-squares and incomplete pit lakes
-			bool outside_border = false;
 			bool touching_edge = false;
-			for (ArrayCoordinate point : individual_pit_points){
-				if(!DEM->check_within_border(point.row, point.col)){
-					outside_border = true;
-				}
+			if(DEM->check_within_border(pit.lowest_point.row, pit.lowest_point.col)){
+				continue;
+			}
+
+			for (ArrayCoordinate point : individual_pit_points){				
 				if(DEM->check_on_edge(point.row, point.col)){
 					touching_edge = true;
 					break;
 				}
 			}
-			if(!outside_border || touching_edge)
+			if(touching_edge)
 				continue;
 			
 			if(pit.pit_lake_area / max(pit.areas) > 0.5)
@@ -990,80 +991,80 @@ int main(int nargs, char **argv) {
 		search_config.logger.debug("Found " + to_string(count) + " reservoirs. Runtime: " + to_string(1.0e-6*(walltime_usec() - t_usec)) + " sec");
 		printf(convert_string("Screening finished for "+search_config.search_type.prefix()+str(search_config.grid_square)+". Runtime: %.2f sec\n"), 1.0e-6*(walltime_usec() - start_usec) );
    
-   // Brownfield searching based on individual pits
-   } else if (search_config.search_type.existing() && search_config.search_type != SearchType::BULK_PIT) {
-    FILE *csv_file = fopen(convert_string(file_storage_location + "output/reservoirs/" +
-                                          search_config.filename() + "_reservoirs.csv"),
-                           "w");
-    if (!csv_file) {
-      cout << "Failed to open reservoir CSV file." << endl;
-      exit(1);
-    }
+    // Brownfield searching based on individual pits or bluefield based on existing reservoirs
+    } else if (search_config.search_type.existing() && search_config.search_type != SearchType::BULK_PIT) {
+		FILE *csv_file = fopen(convert_string(file_storage_location + "output/reservoirs/" +
+											search_config.filename() + "_reservoirs.csv"),
+							"w");
+		if (!csv_file) {
+			cout << "Failed to open reservoir CSV file." << endl;
+			exit(1);
+		}
 
-    write_rough_reservoir_csv_header(csv_file);
+		write_rough_reservoir_csv_header(csv_file);
 
-    FILE *csv_data_file =
-        fopen(convert_string(file_storage_location + "processing_files/reservoirs/" +
-              search_config.filename() +
-                             "_reservoirs_data.csv"),
-              "w");
-    if (!csv_file) {
-      fprintf(stderr, "failed to open reservoir CSV data file\n");
-      exit(1);
-    }
-    write_rough_reservoir_data_header(csv_data_file);
+		FILE *csv_data_file =
+			fopen(convert_string(file_storage_location + "processing_files/reservoirs/" +
+				search_config.filename() +
+								"_reservoirs_data.csv"),
+				"w");
+		if (!csv_file) {
+			fprintf(stderr, "failed to open reservoir CSV data file\n");
+			exit(1);
+		}
+		write_rough_reservoir_data_header(csv_data_file);
 
-    vector<ExistingReservoir> existing_reservoirs;
+		vector<ExistingReservoir> existing_reservoirs;
 
-    if(search_config.search_type.single())
-      existing_reservoirs.push_back(get_existing_reservoir(search_config.name));
-    else
-      existing_reservoirs = get_existing_reservoirs(search_config.grid_square);
+		if(search_config.search_type.single())
+			existing_reservoirs.push_back(get_existing_reservoir(search_config.name));
+		else
+			existing_reservoirs = get_existing_reservoirs(search_config.grid_square);
 
-    if (existing_reservoirs.size() < 1) {
-      printf("No existing reservoirs in %s\n", convert_string(str(search_config.grid_square)));
-      exit(0);
-    }
-    if (search_config.search_type == SearchType::BULK_EXISTING && use_tiled_rivers) {
-      Model<short> *DEM = read_DEM_with_borders(search_config.grid_square, border);
-      Model<double> *DEM_filled_no_flat = fill(DEM);
-      for (ExistingReservoir r : existing_reservoirs) {
-        RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
-        reservoir.pit = (search_config.search_type == SearchType::BULK_PIT ||
-                         search_config.search_type == SearchType::SINGLE_PIT);
-        if (reservoir.river) {
-          for (ArrayCoordinate ac : reservoir.shape_bound) {
-            int temp_elevation = INT_MAX;
-            for (int dx = -5; dx < 6; dx++)
-              for (int dy = -5; dy < 6; dy++) {
-                ArrayCoordinate n = ArrayCoordinate_init(ac.row + dy, ac.col + dx, ac.origin);
-                if (DEM_filled_no_flat->check_within(n.row, n.col))
-                  temp_elevation =
-                      MIN(temp_elevation,
-                          (int)DEM_filled_no_flat->get(convert_coordinates(n)));
-              }
-            reservoir.elevations.push_back(temp_elevation);
-          }
-          reservoir.elevation = reservoir.elevations[0];
-        }
-        write_rough_reservoir_csv(csv_file, &reservoir);
-        write_rough_reservoir_data(csv_data_file, &reservoir);
-      }
-    } else {
-		for (ExistingReservoir r : existing_reservoirs) {
-        RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
-        reservoir.pit = (search_config.search_type == SearchType::BULK_PIT ||
-                         search_config.search_type == SearchType::SINGLE_PIT);
-        write_rough_reservoir_csv(csv_file, &reservoir);
-        write_rough_reservoir_data(csv_data_file, &reservoir);
-      }
-    }
+		if (existing_reservoirs.size() < 1) {
+			printf("No existing reservoirs in %s\n", convert_string(str(search_config.grid_square)));
+			exit(0);
+		}
+		if (search_config.search_type == SearchType::RIVER && use_tiled_rivers) {
+			Model<short> *DEM = read_DEM_with_borders(search_config.grid_square, border);
+			Model<double> *DEM_filled_no_flat = fill(DEM);
+			for (ExistingReservoir r : existing_reservoirs) {
+				RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
+				reservoir.pit = (search_config.search_type == SearchType::BULK_PIT ||
+								search_config.search_type == SearchType::SINGLE_PIT);
+				if (reservoir.river) {
+					for (ArrayCoordinate ac : reservoir.shape_bound) {
+						int temp_elevation = INT_MAX;
+						for (int dx = -5; dx < 6; dx++)
+							for (int dy = -5; dy < 6; dy++) {
+								ArrayCoordinate n = ArrayCoordinate_init(ac.row + dy, ac.col + dx, ac.origin);
+								if (DEM_filled_no_flat->check_within(n.row, n.col))
+								temp_elevation =
+									MIN(temp_elevation,
+										(int)DEM_filled_no_flat->get(convert_coordinates(n)));
+							}
+						reservoir.elevations.push_back(temp_elevation);
+					}
+					reservoir.elevation = reservoir.elevations[0];
+				}
+				write_rough_reservoir_csv(csv_file, &reservoir);
+				write_rough_reservoir_data(csv_data_file, &reservoir);
+			}
+		} else {
+			for (ExistingReservoir r : existing_reservoirs) {
+				RoughBfieldReservoir reservoir = existing_reservoir_to_rough_reservoir(r);
+				reservoir.pit = (search_config.search_type == SearchType::BULK_PIT ||
+								search_config.search_type == SearchType::SINGLE_PIT);
+				write_rough_reservoir_csv(csv_file, &reservoir);
+				write_rough_reservoir_data(csv_data_file, &reservoir);
+			}
+		}
 
-    fclose(csv_file);
-    fclose(csv_data_file);
-    printf(convert_string("Screening finished for " + search_config.filename() +
-                          ". Runtime: %.2f sec\n"),
-           1.0e-6 * (walltime_usec() - start_usec));
+		fclose(csv_file);
+		fclose(csv_data_file);
+		printf(convert_string("Screening finished for " + search_config.filename() +
+							". Runtime: %.2f sec\n"),
+			1.0e-6 * (walltime_usec() - start_usec));
 
 	// New Brownfield reservoir screening based on mining tenaments in grid square rather than individual pit shapefiles
 	} else if (search_config.search_type == SearchType::BULK_PIT) {
