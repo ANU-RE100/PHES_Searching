@@ -50,7 +50,7 @@ def size_of_document(document, num_tabs=1):
 
 
 def get_site(task):
-    task = task.split(" ")
+    task = task.strip().split(" ")
     ns = "n" if int(task[-1]) >= 0 else "s"
     ew = "e" if int(task[-2]) >= 0 else "w"
     type = ""
@@ -58,6 +58,8 @@ def get_site(task):
         type = "existing_"
     if task[0] == "ocean":
         type = "ocean_"
+    if task[0] == "bulk_pit":
+        type = "pit_"
     return (
         type
         + ns
@@ -66,7 +68,6 @@ def get_site(task):
         + ew
         + str(abs(int(task[-2]))).zfill(3)
     )
-
 
 def remove_fullstop(site):
     if "." in site:

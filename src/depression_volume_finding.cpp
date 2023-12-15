@@ -2,25 +2,26 @@
 
 int main(int nargs, char **argv)
 {
-  if(nargs < 3){
+  if(nargs < 2){
     cout << "Not enough arguements" << endl;
     return -1;
   }
 	GridSquare square_coordinate = GridSquare_init(atoi(argv[2]), atoi(argv[1]));
-  search_config.logger = Logger::DEBUG;
+  	search_config.logger = Logger::DEBUG;
 
 	printf("Volume finding started for %s\n",convert_string(str(square_coordinate)));
 
 	GDALAllRegister();
+	parse_variables(convert_string("storage_location"));
 	parse_variables(convert_string(file_storage_location+"variables"));
 	unsigned long start_usec = walltime_usec();
 
 	Model<short>* DEM = read_DEM_with_borders(square_coordinate, border);
 	Model<bool>* extent = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
 	extent->set_geodata(DEM->get_geodata());
-	string rs(argv[3]);
+	string rs = convert_string(file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_shp);
 	read_shp_filter(rs, extent);
-
+	
 	int min_elevation = 100000000;
 
 	for(int row = 0; row<extent->nrows(); row++)

@@ -83,19 +83,34 @@ string dtos(double f, int nd) {
 	return ss.str();
 }
 
+std::string get_dem_filename(GridSquare gs){
+	std::string to_return;
+	if (dem_type == "SRTM") {
+		to_return = file_storage_location+"/input/DEMs/"+str(gs)+"_1arc_v3.tif";
+	}
+	else if (dem_type == "FABDEM"){
+		to_return = file_storage_location+"/input/FABDEMs/"+str_fabdem(gs)+"_FABDEM_V1-2.tif";
+	}
+	else {
+		printf("Invalid dem_type specified.\n");
+		exit(1);
+	}
+	return to_return;
+}
+
 Model<short>* read_DEM_with_borders(GridSquare sc, int border){
 	Model<short>* DEM = new Model<short>(0, 0, MODEL_UNSET);
 	const int neighbors[9][4][2] = {
-		//[(Tile coordinates) , (Tile base)		 		  , (Tile limit)				  , (Tile offset)	 	       ]
-		{ {sc.lat  ,sc.lon  } , {border,      border	 }, {border+3600,  	3600+border	 }, {border-1,    border     } },
-		{ {sc.lat+1,sc.lon-1} , {0,			  0		 	 }, {border, 	    border	 	 }, {border-3601, border-3600} },
-		{ {sc.lat+1,sc.lon  } , {0,	      	  border	 }, {border,	    3600+border	 }, {border-3601, border     } },
-		{ {sc.lat+1,sc.lon+1} , {0,	      	  3600+border}, {border,        3600+2*border}, {border-3601, border+3600} },
-		{ {sc.lat  ,sc.lon+1} , {border-1,    3600+border}, {3600+border,   3600+2*border}, {border-1,    border+3600} },
-		{ {sc.lat-1,sc.lon+1} , {3600+border, 3600+border}, {3600+2*border, 3600+2*border}, {border+3599, border+3600} },
-		{ {sc.lat-1,sc.lon  } , {3600+border, border	 }, {3600+2*border, 3601+border	 }, {border+3599, border     } },
-		{ {sc.lat-1,sc.lon-1} , {3600+border, 0		 	 }, {3600+2*border, border	 	 }, {border+3599, border-3600} },
-		{ {sc.lat  ,sc.lon-1} , {border-1,    0		 	 }, {3600+border,   border	 	 }, {border-1,    border-3600} }
+		//[(Tile coordinates) , 				(Tile base)		 		  									, (Tile limit)				  																				, (Tile offset)	 	       ]
+		{ {sc.lat  ,sc.lon  } , {border,      						border	 						}, {border+model_size-tile_overlap, 	model_size+border-tile_overlap		}, {border-tile_overlap,    			border  		  				 	} },
+		{ {sc.lat+1,sc.lon-1} , {0,			  						0		 						}, {border, 	    					border	 	 						}, {border-model_size, 	   				border-(model_size-tile_overlap)	} },
+		{ {sc.lat+1,sc.lon  } , {0,	      	  						border	 						}, {border,	    						model_size+border-tile_overlap		}, {border-model_size, 					border     							} },
+		{ {sc.lat+1,sc.lon+1} , {0,	      	  						model_size+border-tile_overlap	}, {border,        						model_size+2*border-tile_overlap	}, {border-model_size, 					border+(model_size-tile_overlap)	} },
+		{ {sc.lat  ,sc.lon+1} , {border-tile_overlap,    			model_size+border-tile_overlap	}, {model_size+border-tile_overlap,   	model_size+2*border-tile_overlap	}, {border-tile_overlap,   				border+(model_size-tile_overlap)	} },
+		{ {sc.lat-1,sc.lon+1} , {model_size+border-tile_overlap,	model_size+border-tile_overlap	}, {model_size+2*border-tile_overlap, 	model_size+2*border-tile_overlap	}, {border+(model_size-2*tile_overlap),	border+(model_size-tile_overlap)	} },
+		{ {sc.lat-1,sc.lon  } , {model_size+border-tile_overlap,	border							}, {model_size+2*border-tile_overlap, 	model_size+border					}, {border+(model_size-2*tile_overlap), border     							} },
+		{ {sc.lat-1,sc.lon-1} , {model_size+border-tile_overlap,	0		 	 					}, {model_size+2*border-tile_overlap, 	border	 							}, {border+(model_size-2*tile_overlap), border-(model_size-tile_overlap)	} },
+		{ {sc.lat  ,sc.lon-1} , {border-tile_overlap,    			0		 	 					}, {model_size+border-tile_overlap,   	border	 	 						}, {border-tile_overlap,    			border-(model_size-tile_overlap)	} }
 	};
 	for (int i=0; i<9; i++) {
 		GridSquare gs = GridSquare_init(neighbors[i][0][0], neighbors[i][0][1]);
@@ -103,19 +118,20 @@ Model<short>* read_DEM_with_borders(GridSquare sc, int border){
 		ArrayCoordinate tile_end = ArrayCoordinate_init(neighbors[i][2][0], neighbors[i][2][1], get_origin(gs, border));
 		ArrayCoordinate tile_offset = ArrayCoordinate_init(neighbors[i][3][0], neighbors[i][3][1], get_origin(gs, border));
 		try{
-			Model<short>* DEM_temp = new Model<short>(file_storage_location+"input/DEMs/"+str(gs)+"_1arc_v3.tif", GDT_Int16);
+			Model<short>* DEM_temp = new Model<short>(get_dem_filename(gs), GDT_Int16);
 			if (i==0) {
-				DEM = new Model<short>(DEM_temp->nrows()+2*border-1,DEM_temp->ncols()+2*border-1, MODEL_SET_ZERO);
+				DEM = new Model<short>(DEM_temp->nrows()+2*border-tile_overlap,DEM_temp->ncols()+2*border-tile_overlap, MODEL_SET_ZERO);
 				DEM->set_geodata(DEM_temp->get_geodata());
 				GeographicCoordinate origin = get_origin(gs, border);
 				DEM->set_origin(origin.lat, origin.lon);
 			}
 			for(int row = tile_start.row ; row < tile_end.row ; row++)
-				for(int col = tile_start.col ; col < tile_end.col; col++)
+				for(int col = tile_start.col ; col < tile_end.col; col++){
 					DEM->set(row, col, DEM_temp->get(row-tile_offset.row,col-tile_offset.col));
+				}
 			delete DEM_temp;
 		}catch (int e){
-			search_config.logger.debug("Could not find file "+file_storage_location+"input/DEMs/"+str(gs)+"_1arc_v3.tif " + strerror(errno));
+			search_config.logger.debug("Could not find file "+get_dem_filename(gs)+" " + strerror(errno));
 			if (i==0)
 				throw(1);
 		}
@@ -123,6 +139,46 @@ Model<short>* read_DEM_with_borders(GridSquare sc, int border){
 	return DEM;
 }
 
+Model<float>* read_float_DEM_with_borders(GridSquare sc, int border){
+	Model<float>* DEM = new Model<float>(0, 0, MODEL_UNSET);
+	const int neighbors[9][4][2] = {
+		//[(Tile coordinates) , 				(Tile base)		 		  									, (Tile limit)				  																				, (Tile offset)	 	       ]
+		{ {sc.lat  ,sc.lon  } , {border,      						border	 						}, {border+model_size-tile_overlap, 	model_size+border-tile_overlap		}, {border-tile_overlap,    			border  		  				 	} },
+		{ {sc.lat+1,sc.lon-1} , {0,			  						0		 						}, {border, 	    					border	 	 						}, {border-model_size, 	   				border-(model_size-tile_overlap)	} },
+		{ {sc.lat+1,sc.lon  } , {0,	      	  						border	 						}, {border,	    						model_size+border-tile_overlap		}, {border-model_size, 					border     							} },
+		{ {sc.lat+1,sc.lon+1} , {0,	      	  						model_size+border-tile_overlap	}, {border,        						model_size+2*border-tile_overlap	}, {border-model_size, 					border+(model_size-tile_overlap)	} },
+		{ {sc.lat  ,sc.lon+1} , {border-tile_overlap,    			model_size+border-tile_overlap	}, {model_size+border-tile_overlap,   	model_size+2*border-tile_overlap	}, {border-tile_overlap,   				border+(model_size-tile_overlap)	} },
+		{ {sc.lat-1,sc.lon+1} , {model_size+border-tile_overlap,	model_size+border-tile_overlap	}, {model_size+2*border-tile_overlap, 	model_size+2*border-tile_overlap	}, {border+(model_size-2*tile_overlap),	border+(model_size-tile_overlap)	} },
+		{ {sc.lat-1,sc.lon  } , {model_size+border-tile_overlap,	border							}, {model_size+2*border-tile_overlap, 	model_size+border					}, {border+(model_size-2*tile_overlap), border     							} },
+		{ {sc.lat-1,sc.lon-1} , {model_size+border-tile_overlap,	0		 	 					}, {model_size+2*border-tile_overlap, 	border	 							}, {border+(model_size-2*tile_overlap), border-(model_size-tile_overlap)	} },
+		{ {sc.lat  ,sc.lon-1} , {border-tile_overlap,    			0		 	 					}, {model_size+border-tile_overlap,   	border	 	 						}, {border-tile_overlap,    			border-(model_size-tile_overlap)	} }
+	};
+	for (int i=0; i<9; i++) {
+		GridSquare gs = GridSquare_init(neighbors[i][0][0], neighbors[i][0][1]);
+		ArrayCoordinate tile_start = ArrayCoordinate_init(neighbors[i][1][0], neighbors[i][1][1], get_origin(gs, border));
+		ArrayCoordinate tile_end = ArrayCoordinate_init(neighbors[i][2][0], neighbors[i][2][1], get_origin(gs, border));
+		ArrayCoordinate tile_offset = ArrayCoordinate_init(neighbors[i][3][0], neighbors[i][3][1], get_origin(gs, border));
+		try{
+			Model<float>* DEM_temp = new Model<float>(get_dem_filename(gs), GDT_Float32);
+			if (i==0) {
+				DEM = new Model<float>(DEM_temp->nrows()+2*border-tile_overlap,DEM_temp->ncols()+2*border-tile_overlap, MODEL_SET_ZERO);
+				DEM->set_geodata(DEM_temp->get_geodata());
+				GeographicCoordinate origin = get_origin(gs, border);
+				DEM->set_origin(origin.lat, origin.lon);
+			}
+			for(int row = tile_start.row ; row < tile_end.row ; row++)
+				for(int col = tile_start.col ; col < tile_end.col; col++){
+					DEM->set(row, col, DEM_temp->get(row-tile_offset.row,col-tile_offset.col));
+				}
+			delete DEM_temp;
+		}catch (int e){
+			search_config.logger.debug("Could not find file "+get_dem_filename(gs)+" " + strerror(errno));
+			if (i==0)
+				throw(1);
+		}
+	}
+	return DEM;
+}
 
 BigModel BigModel_init(GridSquare sc){
 	BigModel big_model;
@@ -139,7 +195,7 @@ BigModel BigModel_init(GridSquare sc){
 	for(int i = 0; i<9; i++){
 		big_model.neighbors[i] = neighbors[i];
 	}
-	big_model.DEM = read_DEM_with_borders(sc, 3600);
+	big_model.DEM = read_DEM_with_borders(sc, (model_size-tile_overlap));
 	for(int i = 0; i<9; i++){
 		GridSquare gs = big_model.neighbors[i];
 		try{
@@ -195,10 +251,7 @@ void set_FOM(Pair* pair){
 }
 
 string energy_capacity_to_string(double energy_capacity){
-	if(energy_capacity<10-EPS)
-		return dtos(energy_capacity,1);
-	else
-		return to_string(convert_to_int(energy_capacity));
+	return to_string(convert_to_int(energy_capacity));
 }
 
 string str(Test test){
@@ -213,11 +266,6 @@ bool file_exists (char* name) {
 bool file_exists (string name) {
 	ifstream infile(name.c_str());
     return infile.good();
-}
-
-
-GeographicCoordinate get_origin(double latitude, double longitude, int border){
-	return GeographicCoordinate_init(FLOOR(latitude)+1+(border/3600.0),FLOOR(longitude)-(border/3600.0));
 }
 
 ExistingReservoir get_existing_reservoir(string name, string filename) {
@@ -269,6 +317,11 @@ ExistingReservoir get_existing_reservoir(string name, string filename) {
       else
         i++;
     }
+  }
+
+  if(!use_tiled_bluefield){
+    filename = file_storage_location + "input/existing_reservoirs/" +
+                    existing_reservoirs_shp;
   }
 
   if (!file_exists(filename)) {
@@ -457,9 +510,12 @@ RoughBfieldReservoir existing_reservoir_to_rough_reservoir(ExistingReservoir r) 
     reservoir.dam_volumes.push_back(0);
     reservoir.areas.push_back(r.area);
     reservoir.water_rocks.push_back(1000000000);
+    reservoir.fill_depths.push_back(0);
   }
 
-	GeographicCoordinate origin = get_origin(r.latitude, r.longitude, border);
+   if (search_config.search_type.single()) 
+      search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
+	GeographicCoordinate origin = get_origin(search_config.grid_square, border);
 	for(GeographicCoordinate c : r.polygon)
     reservoir.shape_bound.push_back(convert_coordinates(c, origin));
 	return reservoir;
@@ -480,7 +536,7 @@ vector<ExistingPit> get_pit_details(GridSquare grid_square){
 ExistingPit get_pit_details(string pitname){
 	ExistingPit pit;
 	vector<ExistingPit> pits = read_existing_pit_data(convert_string(file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_csv));
-
+ 
 	for(ExistingPit p : pits){
 		if (p.reservoir.identifier==pitname)
 			pit = p;
@@ -488,179 +544,27 @@ ExistingPit get_pit_details(string pitname){
 	return pit;
 }
 
-void depression_volume_finding(Model<short>* DEM) {
-	vector<vector<string> > csv_modified_lines;
-	vector<int> csv_modified_line_numbers;
-	string filename = file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv;
+RoughBfieldReservoir pit_to_rough_reservoir(BulkPit pit, GeographicCoordinate lowest_point){
+	RoughBfieldReservoir reservoir;
+	reservoir.identifier = pit.res_identifier;
+	reservoir.pit = true;
+    reservoir.brownfield = true;
+    reservoir.ocean = false;
+	reservoir.turkey = false;
+	reservoir.latitude = lowest_point.lat;
+	reservoir.longitude = lowest_point.lon;
+	reservoir.elevation = pit.min_elevation;
 
-	if (!file_exists(convert_string(filename))) {
-		cout << "File " << filename << " does not exist." << endl;
-		throw 1;
-	}
-	vector<ExistingReservoir> reservoirs = read_existing_reservoir_data(convert_string(filename));
+	for(uint i = 0; i<pit.fill_elevations.size(); i++){
+		reservoir.volumes.push_back(pit.volumes[i]);
+		reservoir.fill_depths.push_back(pit.fill_depths[i]);
+		reservoir.areas.push_back(pit.areas[i]);
+		reservoir.water_rocks.push_back(1000000000);
+		reservoir.dam_volumes.push_back(0);
+  	}
 
-	vector<string> names = read_names(convert_string(
-		file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_shp_names));
-
-	filename = file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_shp;
-
-	char *shp_filename = new char[filename.length() + 1];
-	strcpy(shp_filename, filename.c_str());
-	if (!file_exists(shp_filename)) {
-		search_config.logger.debug("No file: " + filename);
-		throw(1);
-	}
-
-	SHPHandle SHP = SHPOpen(convert_string(filename), "rb");
-	if (SHP != NULL) {
-		int nEntities;
-		SHPGetInfo(SHP, &nEntities, NULL, NULL, NULL);
-
-		SHPObject *shape;
-
-		for(int i = 0; i<nEntities; i++){
-			Model<bool>* extent = new Model<bool>(DEM->nrows(), DEM->ncols(), MODEL_SET_ZERO);
-			extent->set_geodata(DEM->get_geodata());
-			short min_elevation = 32767;
-			short max_elevation = 0;
-			vector<string> csv_modified_line(2*num_altitude_volume_pairs+2);
-
-			shape = SHPReadObject(SHP, i);
-			if (shape == NULL) {
-				fprintf(stderr, "Unable to read shape %d, terminating object reading.\n", i);
-			}
-			int idx = -1;
-			for (uint r = 0; r < reservoirs.size(); r++) {
-				if (reservoirs[r].identifier == names[i]) {
-					idx = r;
-				}
-			}
-			if (idx < 0) {
-				search_config.logger.debug("Could not find reservoir with id " + names[i]);
-        exit(1);
-			}
-
-			ExistingReservoir reservoir = reservoirs[idx];
-			GeographicCoordinate gc = GeographicCoordinate_init(reservoir.latitude, reservoir.longitude);
-			if(!check_within(gc, search_config.grid_square)) {
-				SHPDestroyObject(shape);
-				delete extent;
-				continue;
-			}
-			vector<GeographicCoordinate> temp_poly;
-			for (int j = 0; j < shape->nVertices; j++) {
-				GeographicCoordinate temp_point = GeographicCoordinate_init(shape->padfY[j], shape->padfX[j]);
-				temp_poly.push_back(temp_point);
-
-			}
-			polygon_to_raster(temp_poly, extent);
-			SHPDestroyObject(shape);
-
-			// Find lowest elevation within mine polygon (pour point)
-			for(int row = 0; row<extent->nrows(); row++)
-				for(int col = 0; col<extent->ncols(); col++){
-					if(extent->get(row, col)) {
-						min_elevation = MIN(DEM->get(row, col), min_elevation);
-						max_elevation = MAX(DEM->get(row,col), max_elevation);
-					}
-				}
-
-			double area_at_elevation[max_elevation + 1];
-			double volume_at_elevation[max_elevation + 1];
-			double cumulative_area_at_elevation[max_elevation + 1];
-			double pit_elevations[num_altitude_volume_pairs];
-      std::memset(area_at_elevation, 0, (max_elevation+1)*sizeof(double));
-      std::memset(volume_at_elevation, 0, (max_elevation+1)*sizeof(double));
-      std::memset(cumulative_area_at_elevation, 0, (max_elevation+1)*sizeof(double));
-      std::memset(pit_elevations, 0, (num_altitude_volume_pairs)*sizeof(double));
-
-			// Determine the elevations for altitude-volume pairs
-			for (int ih = 1; ih <= num_altitude_volume_pairs; ih++) {
-				pit_elevations[ih-1] = min_elevation + std::round(ih * (max_elevation - min_elevation)/num_altitude_volume_pairs);
-			}
-
-			// Find the area of cells within mine polygon at each elevation above the pour point
-			for(int row = 0; row<extent->nrows(); row++)
-				for(int col = 0; col<extent->ncols(); col++)
-					if(extent->get(row, col)){
-						area_at_elevation[min_elevation + 1] += find_area(ArrayCoordinate_init(row, col, DEM->get_origin()));
-					}
-
-			// Find the surface area and volume of reservoir at each elevation above pour point
-			for (int ih=1; ih<max_elevation+1-min_elevation;ih++) {
-				cumulative_area_at_elevation[min_elevation + ih] = cumulative_area_at_elevation[min_elevation + ih-1] + area_at_elevation[min_elevation + ih];
-				volume_at_elevation[min_elevation + ih] = volume_at_elevation[min_elevation + ih-1] + 0.01*cumulative_area_at_elevation[min_elevation + ih]; // area in ha, vol in GL
-			}
-
-			// Find the altitude-volume pairs for the pit
-			csv_modified_line[0] = to_string(min_elevation);
-			csv_modified_line[1] = to_string(volume_at_elevation[max_elevation]);
-			for (int ih =0 ; ih < num_altitude_volume_pairs; ih++) {
-				int height = pit_elevations[ih];
-				csv_modified_line[2+2*ih] = to_string(height);
-				csv_modified_line[2+2*ih + 1] = to_string(volume_at_elevation[height]);
-			}
-
-			// Add the line to the vector to be written to the pits CSV
-			csv_modified_lines.push_back(csv_modified_line);
-			csv_modified_line_numbers.push_back(i+1);
-
-			//extent->write(file_storage_location+"debug/extent/"+str(search_config.grid_square)+"_extent.tif", GDT_Byte);
-
-			delete extent;
-			temp_poly.clear();
-		}
-	} else {
-		cout << "Could not read shapefile " << filename << endl;
-		throw(1);
-	}
-	SHPClose(SHP);
-
-	// Write the altitude-volume pairs to the CSV
-	std::ifstream inputFile(file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv);
-	vector<string> lines;
-
-	if (!inputFile.is_open()) {
-		printf("Error opening pits CSV\n");
-	}
-
-	string line;
-	int line_number = 0;
-	while(std::getline(inputFile, line)) {
-		istringstream lineStream(line);
-		string cell;
-		int column = 1;
-		ostringstream modifiedLine;
-
-		while (std::getline(lineStream, cell, ',')) {
-
-			if (column >= 4 && column <= 5 + 2*num_altitude_volume_pairs && std::count(csv_modified_line_numbers.begin(), csv_modified_line_numbers.end(), line_number)) {
-				std::vector<int>::iterator vector_index_itr = find(csv_modified_line_numbers.begin(), csv_modified_line_numbers.end(), line_number);
-				int vector_index = std::distance(csv_modified_line_numbers.begin(), vector_index_itr);
-				cell = string(csv_modified_lines[vector_index][column-4]);
-			}
-
-			modifiedLine << cell;
-
-			if (column < 5 + 2*num_altitude_volume_pairs) {
-				modifiedLine << ",";
-			}
-
-			++column;
-		}
-
-		lines.push_back(modifiedLine.str());
-
-		line_number++;
-	}
-
-	inputFile.close();
-
-	std::ofstream outputFile(file_storage_location + "input/existing_reservoirs/" + existing_reservoirs_csv);
-	for (const auto &line : lines) {
-		outputFile << line << std::endl;
-	}
-
-	outputFile.close();
+	GeographicCoordinate origin = get_origin(search_config.grid_square, border);
+	for(GeographicCoordinate c : pit.brownfield_polygon)
+    	reservoir.shape_bound.push_back(convert_coordinates(c, origin));
+	return reservoir;
 }
-

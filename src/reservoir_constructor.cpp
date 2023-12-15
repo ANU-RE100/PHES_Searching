@@ -41,7 +41,7 @@ int main(int nargs, char **argv) {
                              " reservoirs");
 
   vector<string> country_names;
-  vector<vector<vector<GeographicCoordinate>>> countries = read_countries(
+  vector<vector<vector<vector<GeographicCoordinate>>>> countries = read_countries(
       file_storage_location + "input/countries/countries.txt", country_names);
 
   string rs(argv[3]);

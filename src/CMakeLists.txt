@@ -2,13 +2,15 @@ set(UTIL_SOURCES
     reservoir.cpp
     polygons.cpp
     csv.cpp
+    json.cpp
     kml.cpp
     coordinates.cpp
     phes_base.cpp
     variable_parser.cpp
     constructor_helpers.cpp
     model2D.cpp
-    search_config.cpp)
+    search_config.cpp
+    mining_pits.cpp)
 
 include_directories(${MPI_CXX_INCLUDE_PATH} ${JSON_INCLUDE_PATH})
 
@@ -20,4 +22,5 @@ add_library(search_driver_objects OBJECT search_driver.cpp)
 add_library(shapefile_tiling_objects OBJECT shapefile_tiling.cpp)
 add_library(reservoir_constructor_objects OBJECT reservoir_constructor.cpp)
 add_library(depression_volume_finding_objects OBJECT depression_volume_finding.cpp)
+add_library(gpkg_tiling_objects OBJECT gpkg_tiling.cpp)
 add_library(util_objects OBJECT ${UTIL_SOURCES})

@@ -1,4 +1,10 @@
+#include "json.hpp"
 #include "constructor_helpers.hpp"
+#include "coordinates.h"
+#include "csv.h"
+#include "mining_pits.h"
+#include "model2D.h"
+#include "phes_base.h"
 
 /*
  * Returns sorted vector containing the longitude of all polgon boundary interections at certain
@@ -20,12 +26,19 @@ vector<double> find_polygon_intersections(double lat, vector<GeographicCoordinat
 /*
  * Check if a geographic point is inside a polygon
  */
+bool check_within(GeographicCoordinate point, vector<GeographicCoordinate> polygon){
+    vector<double> polygon_intersections = find_polygon_intersections(point.lat, polygon);
+    for(uint j = 0; j<polygon_intersections.size()/2;j++){
+        if(polygon_intersections[2*j]<=point.lon && point.lon<=polygon_intersections[2*j+1])
+            return true;
+    }
+    return false;
+}
+
 bool check_within(GeographicCoordinate point, vector<vector<GeographicCoordinate>> polygons){
     for(vector<GeographicCoordinate> polygon:polygons){
-        vector<double> polygon_intersections = find_polygon_intersections(point.lat, polygon);
-        for(uint j = 0; j<polygon_intersections.size()/2;j++)
-            if(polygon_intersections[2*j]<=point.lon && point.lon<=polygon_intersections[2*j+1])
-                return true;
+        if(check_within(point, polygon))
+            return true;
     }
     return false;
 }
@@ -33,37 +46,83 @@ bool check_within(GeographicCoordinate point, vector<vector<GeographicCoordinate
 /*
  * Read countries from custom country file in /input/countries/countries.txt
  */
-vector<vector<vector<GeographicCoordinate>>> read_countries(string filename, vector<string>& country_names){
+vector<vector<vector<vector<GeographicCoordinate>>>> read_countries(string filename, vector<string>& country_names){
     char *shp_filename = new char[filename.length() + 1];
     strcpy(shp_filename, filename.c_str());
     if(!file_exists(shp_filename)){
         cout << "No file: "+filename << endl;
         throw(1);
     }
-    vector<vector<vector<GeographicCoordinate>>> relevant_polygons;
+    // Vector of vectors has form < multipolygon (country) < multipolygon (components) < outer polygon, hole 1, hole 2 etc. < vertex coordinates > > > >
+    vector<vector<vector<vector<GeographicCoordinate>>>> relevant_polygons;
 
     ifstream in(filename);
     string line;
+    bool header = true;
     while(getline(in, line)){
-        if(line[0]=='@'){
-            line.erase(remove(line.begin(), line.end(), '@'), line.end());
-            line.erase(line.find_last_not_of(" \n\r\t")+1);
-            country_names.push_back(line);
-            vector<vector<GeographicCoordinate>> temp;
+        // Ignore header
+        if (header)
+            header = false;
+        else {
+          vector<string> line_values = read_from_csv_file(line, ';');
+          string country_name = line_values[5];
+          country_names.push_back(country_name);
+
+          string geojson = line_values[1];
+          clean_geojson(geojson);
+          const string geojson_const = geojson;
+
+          // Multipolygon countries
+          if (geojson.c_str()[3] == '[')
+            relevant_polygons.push_back(parseList3D(geojson_const));
+          
+          // Polygon countries
+          else {
+            vector<vector<vector<GeographicCoordinate>>> temp;
             relevant_polygons.push_back(temp);
-        }else{
-            vector<string> coordinates = read_from_csv_file(line);
-            vector<GeographicCoordinate> temp;
-            relevant_polygons[relevant_polygons.size()-1].push_back(temp);
-            for(uint i = 0; i<coordinates.size()/2; i++){
-                GeographicCoordinate c = {stod(coordinates[2*i+1]), stod(coordinates[2*i])};
-                relevant_polygons[relevant_polygons.size()-1][relevant_polygons[relevant_polygons.size()-1].size()-1].push_back(c);
-            }
+            relevant_polygons[relevant_polygons.size() - 1].push_back(parseList2D(geojson_const));
+          }          
         }
     }
     return relevant_polygons;
 }
 
+string find_country(GeographicCoordinate gc, vector<vector<vector<vector<GeographicCoordinate>>>>& countries, vector<string>& country_names){
+    string to_return;
+    bool in_country = false;
+    
+    for(uint i = 0; i< countries.size();i++){
+        // Check all multipolygons that make up a country
+        for (uint multi_i = 0; multi_i < countries[i].size(); multi_i++) {
+            if(countries[i][multi_i][0].empty())
+              continue;
+
+            // Check if it is within the outer polygon of that multipolygon
+            if(check_within(gc, countries[i][multi_i][0])){
+                in_country = true;
+                
+                // If it is in the outer polygon, make sure it is not within any of the holes
+                for (uint poly_i = 1; poly_i < countries[i][multi_i].size(); poly_i++){
+                  if(countries[i][multi_i][poly_i].empty())
+                    continue;
+
+                  if (check_within(gc, countries[i][multi_i][poly_i])){
+                    in_country = false;
+                    break;
+                  }
+                }
+                
+                if(in_country){
+                    to_return = country_names[i];
+                    break;
+                }
+            }
+        }
+        if(in_country)
+          break;
+    }
+    return to_return;
+}
 
 /*
  * Returns a tuple with the two cells adjacent to an edge defined by two points
@@ -166,6 +225,7 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
             for(int id = 0; id<3; id++){
                 int d = dir_to_do[last_dir][id];
                 ArrayCoordinate next = ArrayCoordinate_init(last.row+dir_def[d][0],last.col+dir_def[d][1], pour_point.origin);
+                
                 if(is_edge(last, next, model, offset, threshold)){
                     temp_to_return.push_back(next);
                     last = next;
@@ -174,8 +234,10 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
                     break;
                 }
             }
-            if(!found_path)
+            if(!found_path){
                 break;
+            }
+            
             if(last.row==initial.row && last.col == initial.col){
                 succesful_path = true;
                 break;
@@ -198,13 +260,59 @@ vector<ArrayCoordinate> convert_to_polygon(Model<char>* model, ArrayCoordinate o
     return to_return;
 }
 
+vector<ArrayCoordinate> order_polygon(vector<ArrayCoordinate> unordered_edge_points){
+    vector<ArrayCoordinate> to_return;
+
+    bool succesful_path = false;
+    // initial edge point is the point with the largest column - avoids finding a point on the edge of a hole
+    ArrayCoordinate initial = *std::max_element(unordered_edge_points.begin(), unordered_edge_points.end(), [](const ArrayCoordinate& p1, const ArrayCoordinate& p2) {
+        return p1.col < p2.col;
+    });
+    ArrayCoordinate last = initial;
+
+    while(!unordered_edge_points.empty()){
+        bool found_path = false;
+        for (uint d=0; d<directions.size(); d++) {
+            ArrayCoordinate next = ArrayCoordinate_init(last.row+directions[d].row,last.col+directions[d].col, unordered_edge_points[0].origin);
+            
+            if(std::find(unordered_edge_points.begin(), unordered_edge_points.end(), next) != unordered_edge_points.end()){
+                found_path = true;
+                to_return.push_back(next);
+                unordered_edge_points.erase(remove(unordered_edge_points.begin(), unordered_edge_points.end(), next), unordered_edge_points.end());
+                last = next;
+                break;
+            }
+        }
+
+        if(!found_path){
+            // Backtrack if path is dead-end
+            if(!to_return.empty()){
+                last = to_return[to_return.size()-2]; 
+                to_return.pop_back();
+            }else
+                break;          
+        }
+          
+        if(last==initial){
+            succesful_path = true;
+            break;
+        }
+    }
+    
+    if(!succesful_path){
+      search_config.logger.error("Could not find a succesful path around the polygon.");
+      throw 1;
+    }
+    return to_return;
+}
+
 /*
  * Convert polygon of grid vertices to polygon of geographic coordinates
  */
 vector<GeographicCoordinate> convert_poly(vector<ArrayCoordinate> polygon){
     vector<GeographicCoordinate> to_return;
     for(uint i = 0; i<polygon.size(); i++){
-    	to_return.push_back(convert_coordinates(polygon[i], 0));
+    	to_return.push_back(convert_coordinates(polygon[i], 0.5));
     }
     return to_return;
 }
@@ -257,16 +365,23 @@ string str(vector<GeographicCoordinate> polygon, double elevation) {
 bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates,
                      Model<bool> *seen, bool *non_overlap, vector<ArrayCoordinate> *used_points,
                      BigModel big_model, Model<char> *full_cur_model,
-                     vector<vector<vector<GeographicCoordinate>>> &countries,
+                     vector<vector<vector<vector<GeographicCoordinate>>>> &countries,
                      vector<string> &country_names) {
 
   Model<short> *DEM = big_model.DEM;
   Model<char> *flow_directions = big_model.flow_directions[0];
+  GridSquare flow_directions_gs = big_model.neighbors[0];
 
   for (int i = 0; i < 9; i++)
     if (big_model.neighbors[i].lat == convert_to_int(FLOOR(reservoir->latitude + EPS)) &&
-        big_model.neighbors[i].lon == convert_to_int(FLOOR(reservoir->longitude + EPS)))
+        big_model.neighbors[i].lon == convert_to_int(FLOOR(reservoir->longitude + EPS))) {
       flow_directions = big_model.flow_directions[i];
+      flow_directions_gs = big_model.neighbors[i];
+    }
+  
+  if(!file_exists(file_storage_location+"processing_files/flow_directions/"+str(flow_directions_gs)+"_flow_directions.tif")){
+    return false;
+  }
 
   ArrayCoordinate offset = convert_coordinates(
       convert_coordinates(ArrayCoordinate_init(0, 0, flow_directions->get_origin())),
@@ -352,6 +467,8 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
     }
   }
 
+  reservoir->fill_depth = reservoir->dam_height;
+
   if (reservoir->dam_height < minimum_dam_height) {
     return false;
   }
@@ -366,6 +483,7 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
 
   vector<ArrayCoordinate> reservoir_polygon;
   reservoir_polygon = convert_to_polygon(full_cur_model, offset, reservoir->pour_point, 1);
+  reservoir->reservoir_polygon = reservoir_polygon;
 
   // full_cur_model->write("out1.tif", GDT_Byte);
   // DAM WALL
@@ -464,13 +582,23 @@ bool model_reservoir(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinate
       }
     }
   }
-  for (uint i = 0; i < countries.size(); i++) {
-    if (check_within(convert_coordinates(reservoir->pour_point),
-                     countries[i])) {
-      reservoir->country = country_names[i];
-      break;
-    }
-  }
+
+  reservoir->country = find_country(convert_coordinates(reservoir->pour_point), countries, country_names);
+
+  return true;
+}
+
+bool model_bulk_pit(Reservoir *reservoir, Reservoir_KML_Coordinates *coordinates,
+                     vector<vector<vector<vector<GeographicCoordinate>>>> &countries,
+                     vector<string> &country_names) {
+  vector<ArrayCoordinate> reservoir_ring = reservoir->shape_bound;
+  reservoir_ring.push_back(reservoir->shape_bound[0]);
+
+  string polygon_string = str(compress_poly(corner_cut_poly(convert_poly(reservoir_ring))), reservoir->elevation + reservoir->fill_depth);
+  coordinates->reservoir = polygon_string;
+  reservoir->reservoir_polygon = reservoir->shape_bound;
+
+  reservoir->country = find_country(GeographicCoordinate_init(reservoir->latitude, reservoir->longitude), countries, country_names);
 
   return true;
 }

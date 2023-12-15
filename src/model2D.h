@@ -12,6 +12,8 @@
 #define MODEL_UNSET 0
 #define MODEL_SET_ZERO 1
 
+const double pi = 3.14159265358979323846;
+
 struct Geodata {
   double geotransform[6];
   char *geoprojection;
@@ -31,6 +33,24 @@ struct GeographicCoordinate {
 struct ArrayCoordinate {
   int row, col;
   GeographicCoordinate origin;
+
+  bool operator==(const ArrayCoordinate& other_ac) const{
+    return row == other_ac.row && col == other_ac.col;
+  }
+
+  bool operator!=(const ArrayCoordinate& other_ac) const{
+    return row != other_ac.row || col != other_ac.col;
+  }
+};
+
+struct Circle {
+  ArrayCoordinate centre_point;
+  double radius;
+
+  Circle(ArrayCoordinate point, double r){
+    centre_point = point;
+    radius = r;
+  }
 };
 
 #include "phes_base.h"
@@ -78,6 +98,12 @@ public:
     return check_within(floor((g.lat - geodata.geotransform[3]) / geodata.geotransform[5]),
                         floor((g.lon - geodata.geotransform[0]) / geodata.geotransform[1]));
   }
+  bool check_within_border(int row, int col) {
+    return (row<border || col<border || row >= nrows()-border || col>=ncols()-border);
+  }
+  bool check_on_edge(int row, int col){
+    return (row == 0 || col == 0 || row == nrows()-1 || col == ncols()-1);
+  }
   T get(GeographicCoordinate g) {
     return get(floor((g.lat - geodata.geotransform[3]) / geodata.geotransform[5]),
                floor((g.lon - geodata.geotransform[0]) / geodata.geotransform[1]));
@@ -96,10 +122,57 @@ public:
         geodata.geotransform[0] + ((double)col + 0.5) * geodata.geotransform[1]};
     return to_return;
   }
+
+  ArrayCoordinate get_array_coord(double lat, double lon){
+    ArrayCoordinate to_return = {
+      int(((lat - geodata.geotransform[3]) / geodata.geotransform[5]) - 0.5),
+      int(((lon - geodata.geotransform[0]) / geodata.geotransform[1]) - 0.5),
+      get_origin()};
+      return to_return;
+  }
   std::vector<GeographicCoordinate> get_corners() {
     std::vector<GeographicCoordinate> to_return = {get_origin(), get_coordinate(0, ncols()),
                                               get_coordinate(nrows(), ncols()),
                                               get_coordinate(nrows(), 0)};
+    return to_return;
+  }
+
+  double get_slope(int row, int col) {
+    // Slope is calculated according to Horn's algorithm (1981)
+    double to_return = -1000;
+    double dz_dx = -1000; // Change in elevation of the cell along the horizontal axis of the DEM
+    double dz_dy = -1000; // Change in elevation of the cell along the vertical axis of the DEM
+
+    // Define the cell horizontal and vertical lengths at this location
+    ArrayCoordinate centre_cell = ArrayCoordinate_init(row, col, get_origin());
+    ArrayCoordinate right_cell = ArrayCoordinate_init(row, col+1, get_origin());
+    ArrayCoordinate upper_cell = ArrayCoordinate_init(row+1,col, get_origin());
+    double coslat = COS(RADIANS(get_origin().lat - (0.5 + border / (double)(nrows() - 2 * border))));
+    double x_cell_length = find_distance(centre_cell, right_cell, coslat)*1000; // meters
+    double y_cell_length = find_distance(centre_cell, upper_cell, coslat)*1000; // meters
+
+    // Cells a - i define a 3x3 2D vector of doubles within the DEM
+    // a b c
+    // d e f
+    // g h i
+
+    // Slope of the cell in three dimensions is calculated according to the 3rd order finite differences approach
+    if ((row > 0) && (col > 0) && (row < nrows() - 1) && (col < nrows() - 1)) {
+      double a = get(row + 1, col - 1);
+      double b = get(row + 1, col);
+      double c = get(row + 1, col + 1);
+      double d = get(row, col - 1);
+      double f = get(row, col + 1);
+      double g = get(row - 1, col - 1);
+      double h = get(row - 1, col);
+      double i = get(row - 1, col + 1);
+      
+      dz_dx = ((c + 2.0*f + i) - (a + 2.0*d + g)) / (8.0 * x_cell_length);
+      dz_dy = ((g + 2.0*h + i) - (a + 2.0*b + c)) / (8.0 * y_cell_length);
+      // Calculate the slope of the cell and convert from rads to degrees
+      to_return = atan(std::sqrt(dz_dx * dz_dx + dz_dy * dz_dy)) * 180.0 / pi;
+    }
+
     return to_return;
   }
 
