@@ -92,7 +92,7 @@ std::string get_dem_filename(GridSquare gs){
 		to_return = file_storage_location+"/input/FABDEMs/"+str_fabdem(gs)+"_FABDEM_V1-2.tif";
 	}
 	else {
-		printf("Invalid dem_type specified.");
+		printf("Invalid dem_type specified.\n");
 		exit(1);
 	}
 	return to_return;
@@ -536,7 +536,7 @@ vector<ExistingPit> get_pit_details(GridSquare grid_square){
 ExistingPit get_pit_details(string pitname){
 	ExistingPit pit;
 	vector<ExistingPit> pits = read_existing_pit_data(convert_string(file_storage_location+"input/existing_reservoirs/"+existing_reservoirs_csv));
-
+ 
 	for(ExistingPit p : pits){
 		if (p.reservoir.identifier==pitname)
 			pit = p;
