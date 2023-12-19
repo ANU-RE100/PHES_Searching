@@ -55,11 +55,12 @@ GridSquare get_square_coordinate(ExistingReservoir reservoir) {
                          convert_to_int(FLOOR(reservoir.longitude)));
 }
 
-Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation) {
+Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation, int bottom_elevation) {
   Reservoir reservoir;
   reservoir.brownfield = false;
   reservoir.pit = false;
   reservoir.elevation = elevation;
+  reservoir.bottom_elevation = bottom_elevation;
   GeographicCoordinate geo_coordinate = convert_coordinates(pour_point);
   reservoir.latitude = geo_coordinate.lat;
   reservoir.longitude = geo_coordinate.lon;

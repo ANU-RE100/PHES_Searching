@@ -2,6 +2,7 @@
 #define COORDINATES_H
 
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -32,6 +33,7 @@ bool check_within(ArrayCoordinateWithHeight c, int shape[2]);
 bool check_within(ArrayCoordinate c, int shape[2]);
 bool check_within(GeographicCoordinate gc, GridSquare gs);
 string str(GridSquare square);
+string str_fabdem(GridSquare square);
 double find_area(ArrayCoordinate c);
 double find_distance(ArrayCoordinate c1, ArrayCoordinate c2);
 double find_distance(ArrayCoordinate c1, ArrayCoordinate c2, double coslat);
@@ -50,5 +52,6 @@ ArrayCoordinate convert_coordinates(GeographicCoordinate c,
                                     GeographicCoordinate origin, double lat_res,
                                     double lon_res);
 double find_orthogonal_nn_distance(ArrayCoordinate c1, ArrayCoordinate c2);
+void pushback_non_duplicate_points(std::vector<ArrayCoordinate> &main_vector, std::vector<ArrayCoordinate> check_vector);
 
 #endif

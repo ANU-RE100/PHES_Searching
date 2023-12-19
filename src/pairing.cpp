@@ -146,6 +146,62 @@ bool determine_pit_elevation_and_volume(RoughReservoir* &upper,
   return false;
 }
 
+bool determine_pit_elevation_and_volume(RoughReservoir &pit,
+                                        RoughReservoir &greenfield,
+                                        double energy_capacity,
+                                        double &required_volume, int &head) {
+
+  int max_fill_depth = *max_element(pit.fill_depths.begin(), pit.fill_depths.end());
+ 
+  vector<double> p_fill_depth_doubles;
+  vector<double> g_fill_depth_doubles;
+  for (uint i=0; i< pit.fill_depths.size(); i++){
+    p_fill_depth_doubles.push_back((double)pit.fill_depths[i]);
+    g_fill_depth_doubles.push_back((double)greenfield.fill_depths[i]);
+  }
+    
+
+  while (pit.elevation < pit.bottom_elevation + max_fill_depth) {
+    pit.max_dam_height = pit.bottom_elevation + max_fill_depth - pit.elevation;
+    pit.fill_depth_from_MOL = 0;
+    while (pit.fill_depth_from_MOL < pit.max_dam_height) {
+      pit.fill_depth_from_MOL += 1;
+      double volume = linear_interpolate(pit.fill_depth_from_MOL, p_fill_depth_doubles, pit.volumes);
+      double greenfield_wall_height = linear_interpolate(volume, greenfield.volumes, g_fill_depth_doubles);
+      
+      double max_head_pair = MAX(MAX(greenfield.elevation + greenfield_wall_height - pit.elevation, greenfield.elevation - (pit.elevation + pit.fill_depth_from_MOL)),0);
+      double min_head_pair = MAX(MIN(greenfield.elevation + greenfield_wall_height - pit.elevation, greenfield.elevation - (pit.elevation + pit.fill_depth_from_MOL)),0);
+
+      head = convert_to_int(ABS(((0.5 * (double)greenfield_wall_height +
+                        (double)greenfield.elevation) -
+                       (0.5 * (double)pit.fill_depth_from_MOL + (double)pit.elevation))));
+      if (head < min_head || head > max_head)
+        continue;
+      double head_ratio = max_head_pair != 0 ? (max_head_pair - min_head_pair) / max_head_pair : (double)INT_MAX;
+      // cout << volume << " " << greenfield_wall_height << " " <<
+      // greenfield->elevation << " " << pit_depth << " " << pit->elevation << " "
+      // << head << " " << head_ratio << "\n";
+
+      if (volume < find_required_volume(energy_capacity, head)) {
+        continue;
+      }
+      required_volume = volume;
+
+      if (head_ratio > max_head_variability) {
+        break;
+      }
+
+      if(greenfield.pit)
+        greenfield.fill_depth_from_MOL = linear_interpolate(required_volume, greenfield.volumes, int_to_double_vector(greenfield.fill_depths));
+      
+      return true;
+    }
+
+    pit.elevation += pit_height_resolution;
+  }
+  return false;
+}
+
 Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
                       double energy_capacity, int storage_time, Pair *pair,
                       int max_FOM) {
@@ -156,36 +212,24 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
     return NULL;
   }
   ExistingPit single_pit;
-
-  if (search_config.search_type == SearchType::BULK_PIT) {
-    for (uint i = 0; i < pit_details.size(); i++) {
-      if (upper->brownfield && pit_details[i].reservoir.identifier == upper->identifier) {
-        single_pit = pit_details[i];
-        break;
-      }
-      else if (lower->brownfield && pit_details[i].reservoir.identifier == lower->identifier) {
-        single_pit = pit_details[i];
-        break;
-      }
-
-      // Throw error if there are no pit details assigned to single_pit
-      if (i == pit_details.size() - 1) {
-        string pit_id = "MISSING ID";
-        if (upper->brownfield)
-          pit_id = upper->identifier;
-        else
-          pit_id = lower->identifier;
-        search_config.logger.debug("No pit details in existing_reservoirs_csv for reservoir with ID: " + pit_id);
-        exit(1);
-      }
+  RoughReservoir greenfield = *upper;
+  RoughReservoir pit = *lower;
+  if (upper->pit) {
+      greenfield = *lower;
+      pit = *upper;
     }
-  } else if (search_config.search_type == SearchType::SINGLE_PIT) {
+
+  if (search_config.search_type == SearchType::SINGLE_PIT) {
     single_pit = single_pit_details;
   }
 
-  if (search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT) {
+  if (search_config.search_type == SearchType::SINGLE_PIT) {
     if (!determine_pit_elevation_and_volume(upper, lower, energy_capacity,
                                           single_pit, required_volume, head)) {
+      return NULL;
+    }
+  } else if (search_config.search_type == SearchType::BULK_PIT) {
+    if (!determine_pit_elevation_and_volume(pit, greenfield, energy_capacity, required_volume, head)) {
       return NULL;
     }
   }
@@ -203,7 +247,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
                                              dam_wall_heights,
                                              upper->dam_volumes);
   } else {
-    if (search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT)
+    if (search_config.search_type == SearchType::SINGLE_PIT)
       upper_dam_wall_height = linear_interpolate(required_volume +
                                  pit_volume(single_pit,
                                             single_pit.reservoir.elevation,
@@ -224,7 +268,7 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
                                              dam_wall_heights,
                                              lower->dam_volumes);
   } else {
-    if (search_config.search_type==SearchType::BULK_PIT || search_config.search_type == SearchType::SINGLE_PIT)
+    if (search_config.search_type == SearchType::SINGLE_PIT)
       lower_dam_wall_height =
           linear_interpolate(required_volume +
                                  pit_volume(single_pit,
@@ -265,8 +309,8 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
     lower->pour_point=lower_coordinates;
   }
 
-  Reservoir upper_reservoir = Reservoir_init(upper->pour_point, upper->elevation);
-  Reservoir lower_reservoir = Reservoir_init(lower->pour_point, lower->elevation);
+  Reservoir upper_reservoir = Reservoir_init(upper->pour_point, upper->pit ? pit.elevation : upper->elevation, upper->elevation);
+  Reservoir lower_reservoir = Reservoir_init(lower->pour_point, (upper->pit && lower->pit) ? greenfield.elevation : (lower->pit ? pit.elevation : lower->elevation), lower->elevation);
 
   upper_reservoir.identifier = upper->identifier;
   upper_reservoir.volume = required_volume;
@@ -276,12 +320,18 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
         upper_dam_wall_height, dam_wall_heights, upper->dam_volumes);
     upper_reservoir.area = linear_interpolate(upper_dam_wall_height,
                                               dam_wall_heights, upper->areas);
+  } else if (upper->pit) {
+    upper_reservoir.area = linear_interpolate(required_volume, upper->volumes, upper->areas);
   } else {
     upper_reservoir.area = upper->areas[0];
   }
   upper_reservoir.water_rock = upper_water_rock_estimate;
   upper_reservoir.dam_height = upper_dam_wall_height;
   upper_reservoir.max_dam_height = upper->max_dam_height;
+  if(!upper->pit)
+    upper_reservoir.fill_depth = linear_interpolate(required_volume, upper->volumes, int_to_double_vector(upper->fill_depths));
+  else
+    upper_reservoir.fill_depth = pit.fill_depth_from_MOL;
   upper_reservoir.brownfield = upper->brownfield;
   upper_reservoir.river = upper->river;
   upper_reservoir.pit = upper->pit;
@@ -294,12 +344,18 @@ Pair *check_good_pair(RoughReservoir* upper, RoughReservoir* lower,
         lower_dam_wall_height, dam_wall_heights, lower->dam_volumes);
     lower_reservoir.area = linear_interpolate(lower_dam_wall_height,
                                               dam_wall_heights, lower->areas);
+  } else if (lower->pit) {
+    lower_reservoir.area = linear_interpolate(required_volume, lower->volumes, lower->areas);
   } else {
     lower_reservoir.area = lower->areas[0];
   }
   lower_reservoir.water_rock = lower_water_rock_estimate;
   lower_reservoir.dam_height = lower_dam_wall_height;
   lower_reservoir.max_dam_height = lower->max_dam_height;
+  if(!lower->pit)
+    lower_reservoir.fill_depth = linear_interpolate(required_volume, lower->volumes, int_to_double_vector(lower->fill_depths));
+  else
+    lower_reservoir.fill_depth = upper->pit ? greenfield.fill_depth_from_MOL : pit.fill_depth_from_MOL;
   lower_reservoir.brownfield = lower->brownfield;
   lower_reservoir.river = lower->river;
   lower_reservoir.pit = lower->pit;
@@ -435,15 +491,16 @@ int main(int nargs, char **argv) {
 
   vector<unique_ptr<RoughReservoir>> upper_reservoirs;
   vector<unique_ptr<RoughReservoir>> lower_reservoirs;
-
+  
   if (search_config.search_type.existing()) {
     if (search_config.search_type.single())
       search_config.grid_square = get_square_coordinate(get_existing_reservoir(search_config.name));
     upper_reservoirs = read_rough_reservoir_data(
         convert_string(file_storage_location + "processing_files/reservoirs/" +
                        search_config.filename() + "_reservoirs_data.csv"));
-    if (search_config.search_type == SearchType::BULK_EXISTING){
-
+    
+    if (search_config.search_type == SearchType::BULK_EXISTING || search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::RIVER){
+      
       vector<unique_ptr<RoughReservoir>> greenfield_reservoirs = read_rough_reservoir_data(
           convert_string(file_storage_location + "processing_files/reservoirs/" +
                          str(search_config.grid_square) + "_reservoirs_data.csv"));
@@ -451,16 +508,14 @@ int main(int nargs, char **argv) {
         upper_reservoirs.push_back(std::move(greenfield_reservoirs[i]));
       }
     }
-    if (search_config.search_type == SearchType::BULK_PIT) {
-      pit_details = get_pit_details(search_config.grid_square);
-    } else if (search_config.search_type == SearchType::SINGLE_PIT) {
+    if (search_config.search_type == SearchType::SINGLE_PIT) {
       single_pit_details = get_pit_details(search_config.name);
     }
   } else
     upper_reservoirs = read_rough_reservoir_data(
         convert_string(file_storage_location + "processing_files/reservoirs/" +
                        str(search_config.grid_square) + "_reservoirs_data.csv"));
-
+  
   GridSquare neighbors[9] = {
       (GridSquare){search_config.grid_square.lat, search_config.grid_square.lon},
       (GridSquare){search_config.grid_square.lat + 1, search_config.grid_square.lon - 1},
@@ -480,7 +535,7 @@ int main(int nargs, char **argv) {
           search_config.search_type.lowers_prefix() + str(neighbors[i]) + "_reservoirs_data.csv"));
 
       for (uint j = 0; j < temp.size(); j++) {
-        if ((search_config.search_type == SearchType::BULK_EXISTING || search_config.search_type == SearchType::BULK_PIT) &&
+        if ((search_config.search_type == SearchType::BULK_EXISTING || search_config.search_type == SearchType::BULK_PIT || search_config.search_type == SearchType::RIVER) &&
             lower_ids.contains(temp[j]->identifier))
           continue;
 

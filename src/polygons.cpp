@@ -1,4 +1,5 @@
 #include "polygons.h"
+#include "coordinates.h"
 #include "model2D.h"
 
 // find_polygon_intersections returns an array containing the longitude of all line. Assumes last coordinate is same as first
@@ -75,6 +76,49 @@ void read_shp_filter(string filename, Model<bool>* filter){
     	throw(1);
     }
     SHPClose(SHP);
+}
+
+std::vector<ArrayCoordinate> find_edge(std::vector<ArrayCoordinate> polygon_points, bool add_edge){
+	std::vector<ArrayCoordinate> edge_points;
+
+	auto model_row_iter = std::max_element(polygon_points.begin(), polygon_points.end(), [](const ArrayCoordinate& p1, const ArrayCoordinate& p2) {
+        return p1.row < p2.row;
+    });
+	auto model_col_iter = std::max_element(polygon_points.begin(), polygon_points.end(), [](const ArrayCoordinate& p1, const ArrayCoordinate& p2) {
+        return p1.col < p2.col;
+    });
+	int model_rows = model_row_iter->row + 2;
+	int model_cols = model_col_iter->col + 2;
+
+	std::vector<std::vector<bool>> seen_points(model_rows, std::vector<bool>(model_cols, false));
+	
+	for (const auto& point : polygon_points) {
+		for (uint d=0; d<directions.size(); d++) {
+			if (directions[d].row * directions[d].col != 0)
+				continue;	
+
+			ArrayCoordinate neighbor = ArrayCoordinate_init(point.row + directions[d].row, point.col + directions[d].col, point.origin);
+			
+			if(neighbor.row<0 || neighbor.col<0 || neighbor.row>=model_rows || neighbor.col>=model_cols)
+				continue;
+			
+			if(seen_points[neighbor.row][neighbor.col] == true)
+				continue;
+			else
+				seen_points[neighbor.row][neighbor.col] = true;	
+			
+			if(std::find(polygon_points.begin(), polygon_points.end(), neighbor) == polygon_points.end()){
+				if(add_edge)
+					edge_points.push_back(neighbor);
+				else {
+					edge_points.push_back(point);
+					break;
+				}
+			}
+		}
+	}
+
+    return edge_points;
 }
 
 double geographic_polygon_area(vector<GeographicCoordinate> polygon) {

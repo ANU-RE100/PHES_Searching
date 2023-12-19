@@ -3,7 +3,7 @@
 #include "constructor_helpers.hpp"
 
 bool check_pair(Pair &pair, Model<bool> *seen, BigModel &big_model, set<string>& used_with_river) {
-  vector<vector<vector<GeographicCoordinate>>> empty_countries;
+  vector<vector<vector<vector<GeographicCoordinate>>>> empty_countries;
   vector<string> empty_country_names;
   vector<ArrayCoordinate> used_points;
   if(pair.lower.river && used_with_river.contains(pair.upper.identifier))

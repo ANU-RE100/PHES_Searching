@@ -2,6 +2,7 @@
 #define RESERVOIR_H
 
 #include "phes_base.h"
+#include <array>
 
 class RoughReservoir{
   public:
@@ -19,6 +20,8 @@ class RoughReservoir{
     vector<double> dam_volumes;
     vector<double> areas;
     vector<double> water_rocks;
+    vector<int> fill_depths;
+    double fill_depth_from_MOL=0;
     double watershed_area = 0;
     double max_dam_height = 0;
     int bottom_elevation;
@@ -71,7 +74,6 @@ struct ExistingReservoir {
   double latitude;
   double longitude;
   int elevation;
-  int bottom_elevation;
   double volume;
   double area;
   bool river = false;
@@ -100,6 +102,7 @@ class Reservoir {
     double latitude;
     double longitude;
     int elevation;
+    int bottom_elevation;
     ArrayCoordinate pour_point;
     double volume;
     double dam_volume;
@@ -107,11 +110,13 @@ class Reservoir {
     double area;
     double water_rock;
     double watershed_area;
+    double fill_depth;
     double average_water_depth;
     double dam_height;
     double max_dam_height;
     string country;
     vector<ArrayCoordinate> shape_bound;
+    vector<ArrayCoordinate> reservoir_polygon;
     bool operator<(const Reservoir &o) const { return elevation > o.elevation; }
 };
 
@@ -128,6 +133,7 @@ struct Pair {
   double FOM;
   char category;
   double water_rock;
+  double fill_depth;
   double energy_capacity;
   int storage_time;
   int head;
@@ -140,7 +146,7 @@ void update_reservoir_boundary(vector<array<ArrayCoordinate, directions.size()>>
                                ArrayCoordinate point, int elevation_above_pp);
 void update_reservoir_boundary(vector<ArrayCoordinate> &dam_shape_bounds,
                                ArrayCoordinate point);
-Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation);
+Reservoir Reservoir_init(ArrayCoordinate pour_point, int elevation, int bottom_elevation);
 ExistingReservoir ExistingReservoir_init(string identifier, double latitude, double longitude,
                                          int elevation, double volume);
 ExistingPit ExistingPit_init(ExistingReservoir reservoir);
